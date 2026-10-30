@@ -46,12 +46,17 @@ El conector de TikTok es independiente de la radio: normaliza y filtra eventos, 
 - `GET /api/status`: estado del conector.
 - `GET/PUT /api/config`: consulta o cambia la cuenta de TikTok y los eventos ignorados.
 - `GET /api/events`: flujo SSE de estado y eventos de TikTok.
+- `GET /api/overlay/stream`: flujo SSE de ajustes y comandos para el overlay; los ajustes incluyen metas y frecuencia de CTA.
+- `GET/PUT /api/overlay/settings`: lee y guarda metas de Tap Tap (`1000`, `5000`, `10000` o `20000`), meta de monedas, mensajes y frecuencia automática (`20`, `25` o `30` segundos).
+- `POST /api/overlay/operator`: comandos administrativos y vistas previas que no alteran las métricas reales.
 - `GET /api/radio/tracks`: archivos de audio disponibles.
 - `POST/DELETE /api/radio/tracks`: carga o borra archivos locales.
 - `GET/PUT /api/radio/playlist`: consulta o guarda el orden de reproducción.
 - `POST /api/radio/current`, `/next`, `/previous` y `/playback`: controla la reproducción.
 - `GET /audio/:filename`: sirve un archivo de audio local.
 - `GET /api/radio-state` y `/api/radio-state/stream`: estado y actualizaciones SSE de la radio.
+
+El conector escucha los eventos que declara `tiktok-live-connector`: `like`, `gift`, `member`, `follow`, `share`, `chat` y `subNotify` (suscripciones). Se publican por `GET /api/events` como `update` con `entry.id`, `activityCount` y `diamondCount`; el ID del mensaje del proveedor se usa para deduplicar y las rachas de regalos contabilizan solo el incremento. `member` y `subNotify` dependen de que TikTok/proveedor los envíe para ese directo. El overlay reconoce dedicatorias escritas en el chat como `Dedico a María` o `Dedico esta canción a María`.
 
 ## Pruebas
 

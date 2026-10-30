@@ -1,3 +1,4 @@
+const { randomUUID } = require('node:crypto');
 const { TikTokLiveConnection, WebcastEvent, ControlEvent } = require('tiktok-live-connector');
 const { eventNames, eventLabels, defaultEnabledEvents } = require('./eventConfig');
 const { createEventFeedStore } = require('./eventFeedService');
@@ -41,6 +42,8 @@ function createTikTokMonitorService({
   };
   const activityListeners = new Set();
   const statusListeners = new Set();
+  const recentEventIds = new Map();
+  const giftComboCounts = new Map();
   let connectionGeneration = 0;
   let connectedInGeneration = false;
   let retryTimer = null;
@@ -68,7 +71,7 @@ function createTikTokMonitorService({
   function safeUserName(user) {
     if (!user) return 'usuario';
     if (typeof user === 'string') return user;
-    return user.uniqueId || user.nickname || user.displayName || 'usuario';
+    return user.uniqueId || user.displayId || user.nickname || user.displayName || 'usuario';
   }
 
   function summarizeEvent(eventName, data) {
@@ -102,9 +105,54 @@ function createTikTokMonitorService({
     const rawCount = eventName === webcastEvents.GIFT
       ? data.repeatCount || data.comboCount
       : eventName === webcastEvents.LIKE
-        ? data.incrementalLikeCount || data.likeCount
+        ? data.incrementalLikeCount || data.count || data.likeCount
         : undefined;
     return Number.isFinite(rawCount) && rawCount > 0 ? Math.min(100, Math.floor(rawCount)) : undefined;
+  }
+
+  function getGiftActivityCount(data) {
+    const rawCount = Number(data && (data.repeatCount ?? data.comboCount));
+    const count = Number.isFinite(rawCount) && rawCount > 0 ? Math.floor(rawCount) : 1;
+    const groupId = data && (data.groupId ?? data.group_id ?? data.comboId ?? data.combo_id);
+    if (groupId === undefined || groupId === null || groupId === '') return count;
+
+    const giftName = data.giftName || data.gift?.name || data.giftDetails?.giftName || '';
+    const key = `${safeUserName(data.user || data.sender)}:${giftName}:${groupId}`;
+    const previousCount = giftComboCounts.get(key) || 0;
+    const delta = Math.max(0, count - previousCount);
+    const repeatEnded = Boolean(data.repeatEnd ?? data.repeat_end);
+    if (repeatEnded) giftComboCounts.delete(key);
+    else if (count > previousCount) giftComboCounts.set(key, count);
+    return delta;
+  }
+
+  function getSourceEventId(data) {
+    if (!data || typeof data !== 'object') return '';
+    const common = data.common && typeof data.common === 'object' ? data.common : {};
+    const candidates = [
+      data.eventId,
+      data.event_id,
+      data.msgId,
+      data.msg_id,
+      data.logId,
+      data.log_id,
+      common.msgId,
+      common.msg_id,
+    ];
+    const sourceId = candidates.find((candidate) =>
+      (typeof candidate === 'string' && candidate.length > 0)
+      || (typeof candidate === 'number' && Number.isFinite(candidate)));
+    return sourceId === undefined ? '' : String(sourceId);
+  }
+
+  function wasEventAlreadyReceived(eventName, payload) {
+    const sourceId = getSourceEventId(payload);
+    if (!sourceId) return false;
+    const key = `${eventName}:${sourceId}`;
+    if (recentEventIds.has(key)) return true;
+    recentEventIds.set(key, Date.now());
+    if (recentEventIds.size > 5000) recentEventIds.delete(recentEventIds.keys().next().value);
+    return false;
   }
 
   function eventDiamondCount(eventName, data) {
@@ -163,11 +211,15 @@ function createTikTokMonitorService({
     for (const eventName of eventNames) {
       listeners.set(eventName, (payload) => {
         if (state.connection !== connection || !state.enabledEvents.has(eventName)) return;
+        if (wasEventAlreadyReceived(eventName, payload)) return;
         const summary = summarizeEvent(eventName, payload);
         const username = eventAuthor(payload);
         const content = eventContent(eventName, payload);
-        const activityCount = eventActivityCount(eventName, payload);
+        const activityCount = eventName === webcastEvents.GIFT
+          ? getGiftActivityCount(payload)
+          : eventActivityCount(eventName, payload);
         const diamondCount = eventDiamondCount(eventName, payload);
+        if (eventName === webcastEvents.GIFT && activityCount === 0) return;
 
         if (eventName === webcastEvents.MEMBER && username !== 'Sistema') {
           state.recentJoiners.unshift({ username, time: new Date().toISOString() });
@@ -175,6 +227,7 @@ function createTikTokMonitorService({
         }
 
         state.lastEvent = {
+          id: getSourceEventId(payload) || randomUUID(),
           event: eventName,
           summary,
           username,
@@ -184,6 +237,7 @@ function createTikTokMonitorService({
         };
 
         const entry = addLog(`${eventName}: ${summary}`, {
+          id: state.lastEvent.id,
           type: eventName,
           eventLabel: eventLabels[eventName] || eventName,
           username,

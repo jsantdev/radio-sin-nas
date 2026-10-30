@@ -20,6 +20,8 @@
       .eyebrow { margin-bottom: 6px; font-size: .78rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
       .header-links { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; font-size: .9rem; }
       #playbackStatus { max-width: 320px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); color: var(--accent); font-size: .9rem; }
+      .playback-controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+      .playback-controls button { min-width: 48px; }
       .channel-panel { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 16px; padding: 20px 22px; }
       .channel-status { display: flex; align-items: center; gap: 13px; min-width: 0; }
       .channel-indicator { display: grid; width: 52px; height: 52px; flex: 0 0 52px; place-items: center; border: 2px solid #576057; border-radius: 50%; background: #282e29; color: #b7c0b7; font-size: 1.25rem; }
@@ -136,7 +138,12 @@
           <a href="#serverSettings">Ajustes del servidor</a>
         </nav>
       </div>
-      <div id="playbackStatus" class="muted">Cargando playlist…</div>
+      <div class="playback-controls" aria-label="Controles de reproducción del servidor">
+        <div id="playbackStatus" class="muted">Cargando playlist…</div>
+        <button id="previousTrack" type="button" class="secondary" aria-label="Canción anterior" disabled>◀</button>
+        <button id="togglePlayback" type="button" aria-label="Reproducir radio" disabled>▶ Reproducir</button>
+        <button id="nextTrack" type="button" class="secondary" aria-label="Siguiente canción" disabled>▶|</button>
+      </div>
     </header>
     <p id="notice" role="status" aria-live="polite"></p>
     <section class="panel channel-panel" aria-labelledby="channelHeading">
@@ -233,11 +240,18 @@
                   <option value="1000">1.000 taps</option>
                   <option value="5000">5.000 taps</option>
                   <option value="10000">10.000 taps</option>
-                  <option value="25000">25.000 taps</option>
+                  <option value="20000">20.000 taps</option>
                 </select>
               </label>
               <label for="coinGoal">Meta de monedas para pedir canción
                 <input id="coinGoal" type="number" min="1" max="1000000" step="50" required>
+              </label>
+              <label for="ctaIntervalSeconds">Frecuencia de mensajes automáticos
+                <select id="ctaIntervalSeconds">
+                  <option value="20">Cada 20 segundos</option>
+                  <option value="25">Cada 25 segundos</option>
+                  <option value="30">Cada 30 segundos</option>
+                </select>
               </label>
             </div>
             <h3>Mensajes rotativos</h3>
@@ -412,6 +426,13 @@
         playbackStatus.textContent = state.currentTrack
           ? `${state.isPlaying ? 'Reproduciendo' : 'En pausa'}: ${state.currentTrack.title}`
           : 'Sin canciones en la playlist';
+        const hasQueue = state.queue.length > 0;
+        document.querySelector('#previousTrack').disabled = pending || !hasQueue;
+        document.querySelector('#nextTrack').disabled = pending || !hasQueue;
+        const togglePlayback = document.querySelector('#togglePlayback');
+        togglePlayback.disabled = pending || !hasQueue;
+        togglePlayback.textContent = state.isPlaying ? '❚❚ Pausar' : '▶ Reproducir';
+        togglePlayback.setAttribute('aria-label', state.isPlaying ? 'Pausar radio' : 'Reproducir radio');
       }
 
       async function runAction(action, successMessage) {
@@ -457,6 +478,25 @@
           state = result.state;
         }, 'Se seleccionó la canción.');
       }
+
+      function controlPlayback(endpoint, body, successMessage) {
+        return runAction(async () => {
+          const result = await requestJson(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          state = result.state;
+        }, successMessage);
+      }
+
+      document.querySelector('#previousTrack').addEventListener('click', () =>
+        controlPlayback('/api/radio/previous', {}, 'Se seleccionó la canción anterior.'));
+      document.querySelector('#nextTrack').addEventListener('click', () =>
+        controlPlayback('/api/radio/next', {}, 'Se seleccionó la canción siguiente.'));
+      document.querySelector('#togglePlayback').addEventListener('click', () =>
+        controlPlayback('/api/radio/playback', { isPlaying: !state.isPlaying },
+          state.isPlaying ? 'Radio pausada.' : 'Radio en reproducción.'));
 
       function deleteFile(track) {
         if (!window.confirm(`¿Borrar "${track.title}" del disco y de la playlist?`)) return;
@@ -606,6 +646,7 @@
         const settings = await requestJson('/api/overlay/settings');
         document.querySelector('#tapGoal').value = String(settings.tapGoal);
         document.querySelector('#coinGoal').value = settings.coinGoal;
+        document.querySelector('#ctaIntervalSeconds').value = String(settings.ctaIntervalSeconds || 25);
         overlayMessages = settings.ctaMessages;
         renderOverlayMessages();
       }
@@ -742,6 +783,7 @@
             body: JSON.stringify({
               tapGoal: Number(document.querySelector('#tapGoal').value),
               coinGoal: Number(document.querySelector('#coinGoal').value),
+              ctaIntervalSeconds: Number(document.querySelector('#ctaIntervalSeconds').value),
               ctaMessages: overlayMessages.map((message) => message.trim()).filter(Boolean),
             }),
           });

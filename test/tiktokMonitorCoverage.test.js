@@ -105,6 +105,38 @@ test('monitor converts structured TikTok connection errors to readable messages'
   monitor.disconnectUser();
 });
 
+test('monitor deduplicates provider message IDs and counts gift combo deltas once', async () => {
+  const { monitor } = createMonitor();
+  const received = [];
+  monitor.subscribeToEvents((entry) => received.push(entry));
+  monitor.connectUser('hnaevalopez');
+  await new Promise((resolve) => setImmediate(resolve));
+  const connection = FakeConnection.instances[0];
+
+  const like = { common: { msgId: 'like-1' }, count: 7 };
+  connection.emit(WebcastEvent.LIKE, like);
+  connection.emit(WebcastEvent.LIKE, like);
+
+  connection.emit(WebcastEvent.GIFT, {
+    common: { msgId: 'gift-1' }, user: { uniqueId: 'donor' }, giftName: 'Rose',
+    groupId: 'combo-1', repeatCount: 1, diamondCount: 5,
+  });
+  const comboUpdate = {
+    common: { msgId: 'gift-2' }, user: { uniqueId: 'donor' }, giftName: 'Rose',
+    groupId: 'combo-1', repeatCount: 3, diamondCount: 5,
+  };
+  connection.emit(WebcastEvent.GIFT, comboUpdate);
+  connection.emit(WebcastEvent.GIFT, comboUpdate);
+
+  assert.equal(received.filter((entry) => entry.type === 'like').length, 1);
+  assert.equal(received[0].id, 'like-1');
+  assert.deepEqual(received.filter((entry) => entry.type === 'gift').map((entry) => entry.activityCount), [1, 2]);
+  assert.equal(received.filter((entry) => entry.type === 'gift').reduce(
+    (total, entry) => total + entry.activityCount * entry.diamondCount, 0,
+  ), 15);
+  monitor.disconnectUser();
+});
+
 test('monitor normalizes every webcast event and event payload shape', async () => {
   const { monitor } = createMonitor();
   const received = [];

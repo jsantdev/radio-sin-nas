@@ -1,7 +1,7 @@
 const { WebcastEvent } = require('tiktok-live-connector');
 
 const eventNames = [...new Set(Object.values(WebcastEvent))];
-const defaultEnabledEvents = ['chat', 'gift', 'like', 'follow', 'share', 'member', 'roomUser'];
+const defaultEnabledEvents = ['chat', 'gift', 'like', 'follow', 'share', 'member', 'roomUser', 'subNotify'];
 const eventPriorities = { gift: 0, chat: 1, like: 2, share: 3, member: 4 };
 const eventLabels = {
   chat: 'Comentario',
@@ -18,6 +18,7 @@ const eventLabels = {
   envelope: 'Sobre de regalo',
   follow: 'Nuevo seguidor',
   share: 'Compartido',
+  subNotify: 'Suscriptor',
   streamEnd: 'Fin del directo',
   controlMessage: 'Control del directo',
   barrage: 'Mensaje destacado',
