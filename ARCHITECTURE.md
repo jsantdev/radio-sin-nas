@@ -24,8 +24,8 @@ La aplicación es un único servidor Node.js modular. Las carpetas separan respo
     realtime/
       sseHub.js                # Clientes SSE y difusión de eventos
   public/
-    index.html                 # Panel del conector en /backend
-    playlist.html              # Gestión de playlist en /playlist
+    index.html                 # Página anterior del panel (redireccionada)
+    playlist.html              # Playlist y ajustes unificados
   test/
   data/
 ```

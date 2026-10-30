@@ -34,6 +34,30 @@
       #channelStatusText.pending { color: #f0c674; }
       #channelDetails { margin: 4px 0 0; color: var(--muted); font-size: .85rem; overflow-wrap: anywhere; }
       #reconnectChannel { min-height: 48px; min-width: 150px; }
+      .admin-panel { margin-top: 20px; }
+      .admin-panel > summary { cursor: pointer; font-size: 1.15rem; font-weight: 750; }
+      .admin-section { margin-top: 14px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: #151a16; }
+      .admin-section > summary { cursor: pointer; font-weight: 700; }
+      .admin-section-content { margin-top: 16px; }
+      .settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+      .settings-grid input, .settings-grid select, .message-row input, #newMessage, #tiktokUsername { width: 100%; min-height: 46px; padding: 10px 12px; border: 1px solid #465047; border-radius: 9px; color: inherit; background: #111612; font: inherit; }
+      .event-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; max-height: 340px; overflow: auto; margin: 12px 0 16px; }
+      .event-option { display: flex; align-items: center; gap: 8px; padding: 9px; border: 1px solid var(--line); border-radius: 8px; }
+      .event-option input { accent-color: var(--accent); }
+      .message-list { display: grid; gap: 8px; margin: 12px 0; }
+      .message-row, .message-add { display: flex; align-items: center; gap: 8px; }
+      .message-row input, .message-add input { flex: 1; min-width: 0; }
+      .message-add { margin: 12px 0; }
+      .test-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+      .test-actions button, .message-row button, .message-add button { min-height: 44px; }
+      .admin-status { display: inline-flex; margin: 8px 0 12px; padding: 7px 11px; border: 1px solid var(--line); border-radius: 99px; color: #f0c674; }
+      .admin-status.connected { color: #73f5a9; }
+      .admin-status.disconnected { color: #ff9298; }
+      .event-feed { max-height: 340px; overflow: auto; }
+      .event-feed-item { padding: 11px 0; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
+      .event-feed-meta { display: flex; flex-wrap: wrap; gap: 8px; color: var(--muted); font-size: .86rem; }
+      .event-feed-type { color: var(--accent); font-weight: 700; }
+      .event-feed-content { margin: 5px 0 0; }
       .panel { min-width: 0; padding: 22px; }
       .upload-panel { margin-top: 18px; padding: clamp(20px, 4vw, 32px); background: linear-gradient(135deg, #202a20, #191f1b 65%); }
       .upload-intro { max-width: 580px; margin-bottom: 22px; }
@@ -91,11 +115,14 @@
         .step { align-items: flex-start; flex-direction: column; gap: 5px; font-size: .75rem; }
         .upload-fields { grid-template-columns: 1fr; }
         .upload-fields button { width: 100%; min-height: 48px; }
-        .layout { grid-template-columns: 1fr; gap: 12px; margin-top: 12px; }
+        .layout, .settings-grid { grid-template-columns: 1fr; }
+        .layout { gap: 12px; margin-top: 12px; }
         .track { align-items: stretch; flex-direction: column; gap: 10px; }
         .track-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(42px, 1fr)); }
         .track-controls button { min-width: 0; }
         .actions button { flex: 1 1 140px; min-height: 46px; }
+        .message-row, .message-add { align-items: stretch; flex-direction: column; }
+        .test-actions button { flex: 1 1 140px; }
       }
     </style>
   </head>
@@ -106,7 +133,7 @@
         <h1>Playlist de la radio</h1>
         <nav class="header-links" aria-label="Navegación">
           <a href="/">Abrir radio ↗</a>
-          <a href="/backend">Panel de administración</a>
+          <a href="#serverSettings">Ajustes del servidor</a>
         </nav>
       </div>
       <div id="playbackStatus" class="muted">Cargando playlist…</div>
@@ -177,6 +204,68 @@
         <ol id="playlistTracks" class="track-list"></ol>
       </section>
     </main>
+    <details id="serverSettings" class="panel admin-panel" open>
+      <summary>Ajustes del servidor</summary>
+      <p class="hint" style="margin-top: 10px;">Configura el canal de TikTok, los eventos y el overlay desde esta misma página.</p>
+      <details class="admin-section" open>
+        <summary>Conexión y eventos de TikTok</summary>
+        <div class="admin-section-content">
+          <p id="adminTikTokStatus" class="admin-status">Conectando…</p>
+          <form id="tiktokConfigForm">
+            <label for="tiktokUsername">Usuario del directo
+              <input id="tiktokUsername" name="username" type="text" autocomplete="off" placeholder="@hnaevalopez" required>
+            </label>
+            <p class="hint" style="margin-top: 10px;">Canal predeterminado: @hnaevalopez. Marca los eventos que quieres recibir y mostrar.</p>
+            <div id="eventOptions" class="event-options">Cargando eventos…</div>
+            <button type="submit">Guardar y conectar</button>
+          </form>
+          <h3>Eventos recibidos</h3>
+          <div id="eventFeed" class="event-feed" aria-live="polite"><p class="muted">Esperando eventos…</p></div>
+        </div>
+      </details>
+      <details class="admin-section">
+        <summary>Metas y mensajes del overlay</summary>
+        <div class="admin-section-content">
+          <form id="overlaySettingsForm">
+            <div class="settings-grid">
+              <label for="tapGoal">Meta de Tap Tap (likes)
+                <select id="tapGoal">
+                  <option value="1000">1.000 taps</option>
+                  <option value="5000">5.000 taps</option>
+                  <option value="10000">10.000 taps</option>
+                  <option value="25000">25.000 taps</option>
+                </select>
+              </label>
+              <label for="coinGoal">Meta de monedas para pedir canción
+                <input id="coinGoal" type="number" min="1" max="1000000" step="50" required>
+              </label>
+            </div>
+            <h3>Mensajes rotativos</h3>
+            <div id="overlayMessages" class="message-list"></div>
+            <div class="message-add">
+              <input id="newMessage" type="text" maxlength="180" placeholder="Añadir mensaje para el overlay">
+              <button id="addMessage" type="button" class="secondary">Agregar</button>
+            </div>
+            <p class="hint">Hasta 20 mensajes. Cada uno puede tener hasta 180 caracteres.</p>
+            <button type="submit" style="margin-top: 14px;">Guardar ajustes del overlay</button>
+          </form>
+        </div>
+      </details>
+      <details class="admin-section">
+        <summary>Pruebas del overlay</summary>
+        <div class="admin-section-content">
+          <p class="hint">Comprueba los eventos visuales en el overlay abierto.</p>
+          <div class="test-actions">
+            <button type="button" class="secondary" data-overlay-action="test-like">Probar +50 taps</button>
+            <button type="button" class="secondary" data-overlay-action="test-follow">Probar seguidor</button>
+            <button type="button" class="secondary" data-overlay-action="test-gift">Probar regalo</button>
+            <button type="button" class="secondary" data-overlay-action="test-epic-gift">Probar regalo especial</button>
+            <button type="button" class="secondary" data-overlay-action="test-song-goal">Probar meta de canción</button>
+            <button type="button" class="secondary" data-overlay-action="reset">Reiniciar contadores</button>
+          </div>
+        </div>
+      </details>
+    </details>
     <script>
       const notice = document.querySelector('#notice');
       const availableTracks = document.querySelector('#availableTracks');
@@ -194,6 +283,11 @@
       const channelStatusText = document.querySelector('#channelStatusText');
       const channelDetails = document.querySelector('#channelDetails');
       const reconnectChannel = document.querySelector('#reconnectChannel');
+      const eventOptions = document.querySelector('#eventOptions');
+      const eventFeed = document.querySelector('#eventFeed');
+      const adminTikTokStatus = document.querySelector('#adminTikTokStatus');
+      let overlayMessages = [];
+      const receivedEvents = [];
       let available = [];
       let state = null;
       let pending = false;
@@ -431,6 +525,11 @@
           ? 'CONECTADO AL CANAL'
           : isPending ? 'CONECTANDO…' : 'NO CONECTADO';
         const username = connector.username || status.username || status.configuredUsername;
+        adminTikTokStatus.className = `admin-status ${style}`;
+        adminTikTokStatus.textContent = isConnected
+          ? `Conectado a @${username || ''}`
+          : isPending ? `Conectando a @${username || 'hnaevalopez'}…`
+            : `TikTok: ${status.status || currentStatus}`;
         const attempts = connector.connectionAttempts;
         const maxAttempts = connector.maxConnectionAttempts || 3;
         const attemptInfo = Number.isInteger(attempts) && !isConnected
@@ -447,6 +546,93 @@
         ].filter(Boolean).join(' ');
         reconnectChannel.disabled = pending || isConnected || isPending || !username;
         reconnectChannel.textContent = isConnected ? 'Canal conectado' : isPending ? 'Intentando conectar…' : 'Reconectar canal';
+      }
+
+      function renderEvent(entry) {
+        const item = document.createElement('article');
+        item.className = 'event-feed-item';
+        const meta = document.createElement('div');
+        meta.className = 'event-feed-meta';
+        const type = document.createElement('span');
+        type.className = 'event-feed-type';
+        type.textContent = entry.eventLabel || entry.type || 'Evento';
+        const username = document.createElement('span');
+        username.textContent = entry.username || 'Sistema';
+        const time = document.createElement('time');
+        time.dateTime = entry.time || '';
+        time.textContent = entry.time ? new Date(entry.time).toLocaleTimeString() : '';
+        meta.append(type, username, time);
+        item.append(meta);
+        if (entry.content) {
+          const content = document.createElement('p');
+          content.className = 'event-feed-content';
+          content.textContent = entry.content;
+          item.append(content);
+        }
+        return item;
+      }
+
+      function renderEventFeed() {
+        eventFeed.replaceChildren();
+        if (!receivedEvents.length) {
+          const empty = document.createElement('p');
+          empty.className = 'muted';
+          empty.textContent = 'Esperando eventos…';
+          eventFeed.append(empty);
+          return;
+        }
+        receivedEvents.slice(0, 40).forEach((entry) => eventFeed.append(renderEvent(entry)));
+      }
+
+      async function loadTikTokConfiguration() {
+        const configuration = await requestJson('/api/config');
+        document.querySelector('#tiktokUsername').value = configuration.username || 'hnaevalopez';
+        eventOptions.replaceChildren();
+        configuration.events.forEach((event) => {
+          const label = document.createElement('label');
+          label.className = 'event-option';
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.value = event.name;
+          checkbox.checked = event.enabled;
+          const name = document.createElement('span');
+          name.textContent = event.label;
+          label.append(checkbox, name);
+          eventOptions.append(label);
+        });
+      }
+
+      async function loadOverlaySettings() {
+        const settings = await requestJson('/api/overlay/settings');
+        document.querySelector('#tapGoal').value = String(settings.tapGoal);
+        document.querySelector('#coinGoal').value = settings.coinGoal;
+        overlayMessages = settings.ctaMessages;
+        renderOverlayMessages();
+      }
+
+      function renderOverlayMessages() {
+        const container = document.querySelector('#overlayMessages');
+        container.replaceChildren();
+        overlayMessages.forEach((message, index) => {
+          const row = document.createElement('div');
+          row.className = 'message-row';
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.maxLength = 180;
+          input.value = message;
+          input.setAttribute('aria-label', `Mensaje ${index + 1}`);
+          input.addEventListener('input', () => { overlayMessages[index] = input.value; });
+          const remove = document.createElement('button');
+          remove.type = 'button';
+          remove.className = 'danger';
+          remove.textContent = 'Quitar';
+          remove.addEventListener('click', () => {
+            overlayMessages.splice(index, 1);
+            renderOverlayMessages();
+          });
+          row.append(input, remove);
+          container.append(row);
+        });
       }
 
       async function refreshChannelStatus() {
@@ -516,6 +702,74 @@
         }
       });
 
+      document.querySelector('#tiktokConfigForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const username = document.querySelector('#tiktokUsername').value;
+        const ignoredEvents = [...eventOptions.querySelectorAll('input:not(:checked)')]
+          .map((checkbox) => checkbox.value);
+        try {
+          const result = await requestJson('/api/config', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, ignoredEvents }),
+          });
+          showNotice(`Configuración guardada para @${result.username}.`, 'success');
+          await refreshChannelStatus();
+        } catch (error) {
+          showNotice(error.message, 'error');
+        }
+      });
+
+      document.querySelector('#addMessage').addEventListener('click', () => {
+        const input = document.querySelector('#newMessage');
+        const message = input.value.trim();
+        if (!message) return;
+        if (overlayMessages.length >= 20) {
+          showNotice('Puedes configurar hasta 20 mensajes.', 'error');
+          return;
+        }
+        overlayMessages.push(message);
+        input.value = '';
+        renderOverlayMessages();
+      });
+
+      document.querySelector('#overlaySettingsForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        try {
+          const { settings } = await requestJson('/api/overlay/settings', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              tapGoal: Number(document.querySelector('#tapGoal').value),
+              coinGoal: Number(document.querySelector('#coinGoal').value),
+              ctaMessages: overlayMessages.map((message) => message.trim()).filter(Boolean),
+            }),
+          });
+          overlayMessages = settings.ctaMessages;
+          renderOverlayMessages();
+          showNotice('Ajustes del overlay guardados y aplicados.', 'success');
+        } catch (error) {
+          showNotice(error.message, 'error');
+        }
+      });
+
+      document.querySelectorAll('[data-overlay-action]').forEach((button) => {
+        button.addEventListener('click', async () => {
+          const action = button.dataset.overlayAction;
+          if (action === 'reset' && !window.confirm('¿Reiniciar los contadores de taps y monedas?')) return;
+          try {
+            await requestJson('/api/overlay/operator', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action }),
+            });
+            showNotice(action === 'reset' ? 'Contadores reiniciados en el overlay.' : 'Prueba enviada al overlay.', 'success');
+          } catch (error) {
+            showNotice(error.message, 'error');
+          }
+        });
+      });
+
       document.querySelector('#confirmUpload').addEventListener('click', async () => {
         const file = audioFiles.files[0];
         const filename = selectedFilename();
@@ -563,6 +817,17 @@
       radioStream.addEventListener('update', (event) => applySnapshot(JSON.parse(event.data)));
       const channelStream = new EventSource('/api/events');
       channelStream.addEventListener('status', (event) => renderChannelStatus(JSON.parse(event.data)));
+      channelStream.addEventListener('snapshot', (event) => {
+        receivedEvents.splice(0, receivedEvents.length, ...JSON.parse(event.data));
+        renderEventFeed();
+      });
+      channelStream.addEventListener('update', (event) => {
+        const payload = JSON.parse(event.data);
+        receivedEvents.splice(0, receivedEvents.length, ...payload.events);
+        renderEventFeed();
+      });
+      loadTikTokConfiguration().catch((error) => showNotice(error.message, 'error'));
+      loadOverlaySettings().catch((error) => showNotice(error.message, 'error'));
       refreshChannelStatus().catch((error) => {
         channelStatusText.className = 'disconnected';
         channelStatusText.textContent = 'NO SE PUDO LEER EL ESTADO';

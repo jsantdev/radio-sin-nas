@@ -698,6 +698,24 @@
       });
     };
 
+    window.onTikTokMember = function(user) {
+      showNotificationAlert({
+        title: `¡Bienvenido @${user}!`,
+        subtitle: 'Gracias por acompañarnos en este LIVE. 🕊️',
+        icon: '👋',
+        badge: 'SE UNIÓ AL LIVE'
+      });
+    };
+
+    window.onTikTokChat = function(user, message) {
+      showNotificationAlert({
+        title: `@${user}`,
+        subtitle: String(message).slice(0, 180),
+        icon: '💬',
+        badge: 'COMENTARIO'
+      });
+    };
+
 
     /* ==========================================================================
        CONEXIÓN A LOS EVENTOS TIKTOK DEL SERVIDOR
@@ -725,6 +743,10 @@
           window.onTikTokFollow(user);
         } else if (entry.type === 'share') {
           window.onTikTokShare(user);
+        } else if (entry.type === 'member') {
+          window.onTikTokMember(user);
+        } else if (entry.type === 'chat') {
+          window.onTikTokChat(user, entry.content || 'Envió un mensaje');
         }
       });
     }

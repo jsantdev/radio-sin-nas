@@ -45,7 +45,7 @@ function createWebserver({
   radioModule.registerRoutes(app);
 
   app.get(['/backend', '/backend/', '/backend/index.html'], (request, response) => {
-    response.sendFile(path.join(__dirname, 'public', 'index.html'));
+    response.redirect(308, '/playlist#serverSettings');
   });
   app.get(['/playlist', '/playlist/', '/playlist/index.html'], (request, response) => {
     response.sendFile(path.join(__dirname, 'public', 'playlist.html'));

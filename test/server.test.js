@@ -18,6 +18,9 @@ function createMonitorService() {
       enabled: ['chat', 'gift', 'like', 'follow', 'share', 'member'],
     }),
     getStatusPayload: () => ({ ...service.state }),
+    setEnabledEvents(events) {
+      service.enabledEvents = [...events];
+    },
     subscribeToEvents(listener) {
       eventListener = listener;
       return () => { eventListener = null; };
@@ -97,14 +100,13 @@ test('radio server keeps TikTok configuration, event monitoring, and radio state
     assert.match(overlayHtml, /serviceWorker\.register\('\/service-worker\.js'\)/);
     assert.doesNotMatch(overlayHtml, /toggleOperatorPanelBtn|operatorPanel/);
     assert.match(overlayHtml, /initOperatorStream\(\);/);
+    assert.match(overlayHtml, /window\.onTikTokMember\(user\)/);
+    assert.match(overlayHtml, /window\.onTikTokChat\(user, entry\.content/);
     assert.doesNotMatch(overlayHtml, /renderOperatorMessagesList/);
 
-    const backendPage = await fetch(`${baseUrl}/backend`);
-    assert.equal(backendPage.status, 200);
-    const backendHtml = await backendPage.text();
-    assert.match(backendHtml, /Radio TikTok Live/);
-    assert.match(backendHtml, /Configuración del overlay/);
-    assert.match(backendHtml, /Instalar Fe y Esperanza en Android/);
+    const backendPage = await fetch(`${baseUrl}/backend`, { redirect: 'manual' });
+    assert.equal(backendPage.status, 308);
+    assert.equal(backendPage.headers.get('location'), '/playlist#serverSettings');
 
     const manifestResponse = await fetch(`${baseUrl}/manifest.webmanifest`);
     assert.equal(manifestResponse.status, 200);
@@ -173,6 +175,11 @@ test('radio server keeps TikTok configuration, event monitoring, and radio state
     assert.match(playlistHtml, /id="selectedAudioPlayer" controls/);
     assert.match(playlistHtml, /URL\.createObjectURL\(file\)/);
     assert.match(playlistHtml, /URL\.revokeObjectURL\(audioPreviewUrl\)/);
+    assert.match(playlistHtml, /id="serverSettings"/);
+    assert.match(playlistHtml, /id="tiktokConfigForm"/);
+    assert.match(playlistHtml, /id="overlaySettingsForm"/);
+    assert.match(playlistHtml, /data-overlay-action="test-like"/);
+    assert.match(playlistHtml, /loadTikTokConfiguration\(\)/);
 
     const radioState = await fetch(`${baseUrl}/api/radio-state`).then((response) => response.json());
     assert.deepEqual(radioState, {
@@ -195,6 +202,7 @@ test('radio server keeps TikTok configuration, event monitoring, and radio state
     assert.match(initialEvents, /event: snapshot/);
 
     const config = await fetch(`${baseUrl}/api/config`).then((response) => response.json());
+    assert.equal(config.username, 'hnaevalopez');
     assert.equal(config.events.find((event) => event.name === 'gift').enabled, true);
 
     const reconnectWithoutUser = await sendJson('/api/reconnect', 'POST', {});
@@ -205,6 +213,10 @@ test('radio server keeps TikTok configuration, event monitoring, and radio state
       ignoredEvents: ['follow'],
     }).then((response) => response.json());
     assert.equal(connect.username, 'hnaevalopez');
+    assert.equal(JSON.parse(fs.readFileSync(configurationPath, 'utf8')).usernameConfigured, true);
+    const configuredEvents = await fetch(`${baseUrl}/api/config`).then((response) => response.json());
+    assert.equal(configuredEvents.events.find((event) => event.name === 'chat').enabled, true);
+    assert.equal(configuredEvents.events.find((event) => event.name === 'follow').enabled, false);
     const reconnectWhileConnected = await sendJson('/api/reconnect', 'POST', {});
     assert.equal(reconnectWhileConnected.status, 409);
     monitorService.disconnectUser();
@@ -228,6 +240,20 @@ test('radio server keeps TikTok configuration, event monitoring, and radio state
       update += new TextDecoder().decode(next.value);
     }
     assert.match(update, /music-fan/);
+
+    monitorService.emit({
+      type: 'chat',
+      username: 'live-viewer',
+      time: new Date().toISOString(),
+      content: '¡Hola!',
+    });
+    let chatUpdate = '';
+    while (!chatUpdate.includes('"type":"chat"')) {
+      const next = await eventReader.read();
+      assert.equal(next.done, false);
+      chatUpdate += new TextDecoder().decode(next.value);
+    }
+    assert.match(chatUpdate, /live-viewer/);
 
     const status = await fetch(`${baseUrl}/api/status`).then((response) => response.json());
     assert.equal(status.connected, true);
@@ -307,6 +333,35 @@ test('server reports malformed saved TikTok configuration', () => {
       audioDirectory: path.join(storagePath, 'music'),
       playlistPath: path.join(storagePath, 'playlist.json'),
     }), /configuración guardada.*no es válida/);
+  } finally {
+    fs.rmSync(storagePath, { recursive: true, force: true });
+  }
+});
+
+test('server migrates legacy TikTok settings to the default channel and preserves event filters', () => {
+  const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), `radio-config-${randomUUID()}-`));
+  const configurationPath = path.join(storagePath, 'monitor-config.json');
+  fs.writeFileSync(configurationPath, JSON.stringify({
+    username: 'old-channel',
+    ignoredEvents: ['gift'],
+  }));
+  const monitorService = createMonitorService();
+
+  try {
+    createWebserver({
+      monitorService,
+      configurationPath,
+      overlaySettingsPath: path.join(storagePath, 'overlay-settings.json'),
+      audioDirectory: path.join(storagePath, 'music'),
+      playlistPath: path.join(storagePath, 'playlist.json'),
+    });
+    assert.equal(monitorService.state.username, 'hnaevalopez');
+    assert.deepEqual(JSON.parse(fs.readFileSync(configurationPath, 'utf8')), {
+      username: 'hnaevalopez',
+      ignoredEvents: ['gift'],
+      usernameConfigured: false,
+    });
+    assert.deepEqual(monitorService.enabledEvents, ['chat', 'like', 'follow', 'share', 'member']);
   } finally {
     fs.rmSync(storagePath, { recursive: true, force: true });
   }

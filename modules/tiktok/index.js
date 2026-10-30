@@ -11,6 +11,7 @@ function createTikTokModule({
   stream,
   monitorService = createTikTokMonitorService(),
   configurationPath = process.env.WEBSERVER_CONFIG_PATH || path.join(__dirname, '..', '..', 'data', 'monitor-config.json'),
+  defaultUsername = process.env.TIKTOK_USERNAME || 'hnaevalopez',
 } = {}) {
   if (!stream || typeof stream.attach !== 'function' || typeof stream.broadcast !== 'function') {
     throw new Error('El módulo TikTok necesita su canal de eventos.');
@@ -20,18 +21,42 @@ function createTikTokModule({
   const eventHistory = [];
   const events = [];
   let ignoredEvents = new Set();
-  let configuration = { username: '', saved: false };
+  const environmentUsername = process.env.TIKTOK_USERNAME?.trim().replace(/^@+/, '');
+  const normalizedDefaultUsername = String(defaultUsername || 'hnaevalopez').trim().replace(/^@+/, '');
+  let configuration = { username: environmentUsername || normalizedDefaultUsername, saved: false };
 
   try {
     const savedConfiguration = JSON.parse(fs.readFileSync(configurationPath, 'utf8'));
     if (typeof savedConfiguration.username !== 'string' || !Array.isArray(savedConfiguration.ignoredEvents)
+      || (savedConfiguration.usernameConfigured !== undefined
+        && typeof savedConfiguration.usernameConfigured !== 'boolean')
       || savedConfiguration.ignoredEvents.some((eventName) => typeof eventName !== 'string')) {
       throw new Error('La configuración guardada del servidor no es válida.');
     }
-    configuration = { username: savedConfiguration.username, saved: true };
+    const hasExplicitUsername = savedConfiguration.usernameConfigured === true;
+    configuration = {
+      username: environmentUsername
+        || (hasExplicitUsername ? savedConfiguration.username.trim() : normalizedDefaultUsername),
+      saved: true,
+    };
     ignoredEvents = new Set(savedConfiguration.ignoredEvents);
+    if (!environmentUsername && !hasExplicitUsername) {
+      fs.writeFileSync(configurationPath, JSON.stringify({
+        username: normalizedDefaultUsername,
+        ignoredEvents: savedConfiguration.ignoredEvents,
+        usernameConfigured: false,
+      }, null, 2));
+    }
   } catch (error) {
     if (error.code !== 'ENOENT') throw error;
+  }
+
+  if (configuration.saved) {
+    enabledEvents.clear();
+    for (const eventName of availableEvents) {
+      if (!ignoredEvents.has(eventName)) enabledEvents.add(eventName);
+    }
+    monitorService.setEnabledEvents([...enabledEvents]);
   }
 
   const state = {
@@ -104,13 +129,18 @@ function createTikTokModule({
     }
 
     const uniqueIgnoredEvents = [...new Set(submittedIgnoredEvents)];
-    monitorService.connectUser(username);
-    const savedConfiguration = { username, ignoredEvents: uniqueIgnoredEvents };
+    enabledEvents.clear();
+    for (const eventName of availableEvents) {
+      if (!uniqueIgnoredEvents.includes(eventName)) enabledEvents.add(eventName);
+    }
+    monitorService.setEnabledEvents([...enabledEvents]);
+    const savedConfiguration = { username, ignoredEvents: uniqueIgnoredEvents, usernameConfigured: true };
     fs.mkdirSync(path.dirname(configurationPath), { recursive: true });
     fs.writeFileSync(configurationPath, JSON.stringify(savedConfiguration, null, 2));
     configuration = { username, saved: true };
     ignoredEvents = new Set(uniqueIgnoredEvents);
     applyEventFilter();
+    monitorService.connectUser(username);
     return { ok: true, username, ignoredEvents: uniqueIgnoredEvents };
   }
 

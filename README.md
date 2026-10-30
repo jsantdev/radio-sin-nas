@@ -6,15 +6,15 @@ Servidor Node.js modular para una radio vinculada a TikTok Live. Conserva el con
 
 Se requiere Node.js 18 o posterior. En Windows, ejecuta [`iniciar-servidores.bat`](iniciar-servidores.bat): inicia el servidor en el puerto 80 por defecto, espera a que responda y abre la radio y el panel de playlist en Chrome. Para iniciarlo manualmente, ejecuta `npm start` desde la raíz. Define `PORT` para cambiar el puerto del servidor.
 
-El lanzador abre `http://localhost:80/` para la radio y `http://localhost:80/playlist` para administrar el playlist. El panel del conector TikTok permanece disponible en `http://localhost:80/backend`.
+El lanzador abre `http://localhost:80/` para la radio y `http://localhost:80/playlist` para administrar el playlist y todos los ajustes del servidor. `/backend` redirige a la sección de ajustes de esa misma página.
 
 ### Easypanel con Nixpacks
 
-Selecciona **Nixpacks** como proveedor de construcción. El proyecto no requiere compilación: Nixpacks instala las dependencias desde `package-lock.json` y ejecuta `npm start` (`node server.js`). El servidor escucha en `0.0.0.0` en el puerto de `PORT`, con `3000` como valor local predeterminado; configura el puerto interno del servicio como `3000`. Monta un volumen persistente en `/app/data` para conservar los audios subidos, la playlist y la configuración entre despliegues.
+Selecciona **Nixpacks** como proveedor de construcción. El proyecto no requiere compilación: Nixpacks instala las dependencias desde `package-lock.json` y ejecuta `npm start` (`node server.js`). El servidor escucha en `0.0.0.0` en el puerto de `PORT`, con `3000` como valor local predeterminado; configura el puerto interno del servicio como `3000`. Monta un volumen persistente en `/app/data` para conservar los audios subidos, la playlist y la configuración entre despliegues. El usuario predeterminado de TikTok es `hnaevalopez`; `TIKTOK_USERNAME` puede fijarlo en el entorno y tiene prioridad sobre la configuración guardada.
 
 ## Instalar en Android
 
-El overlay incluye un manifiesto, iconos y un service worker para instalarse como aplicación desde Chrome. Para habilitar la instalación, abre el panel en `https://` con un certificado válido y confiable para el teléfono; el HTTP local (`http://localhost`) solo es seguro en el mismo dispositivo y no habilita la instalación desde otro teléfono de la red. En Chrome Android, abre `/backend` y pulsa **Instalar aplicación**, o abre `/`, toca el menú ⋮ y elige **Instalar aplicación** / **Agregar a pantalla principal**. La aplicación instalada abre el overlay; la conexión y la reproducción necesitan que el servidor esté en línea.
+El overlay incluye un manifiesto, iconos y un service worker para instalarse como aplicación desde Chrome. Para habilitar la instalación, abre la radio en `https://` con un certificado válido y confiable para el teléfono; el HTTP local (`http://localhost`) solo es seguro en el mismo dispositivo y no habilita la instalación desde otro teléfono de la red. En Chrome Android, abre `/`, toca el menú ⋮ y elige **Instalar aplicación** / **Agregar a pantalla principal**. La aplicación instalada abre el overlay; la conexión y la reproducción necesitan que el servidor esté en línea.
 
 ## Estructura
 
@@ -26,8 +26,8 @@ modules/
   overlay/                   # Overlay público para TikTok Live
   realtime/                  # Transporte SSE compartido
 public/
-  index.html                 # Panel del conector TikTok en /backend
-  playlist.html              # Gestión de audio y playlist en /playlist
+  index.html                 # Página anterior del panel (la ruta /backend redirige)
+  playlist.html              # Playlist y ajustes unificados del servidor
 data/
   monitor-config.json        # Configuración local persistente de TikTok
   music/                     # Archivos de audio locales
@@ -41,8 +41,8 @@ El conector de TikTok es independiente de la radio: normaliza y filtra eventos, 
 
 - `GET /`: overlay de la radio y estado del conector.
 - `GET /manifest.webmanifest`, `/service-worker.js` y `/icons/icon-192.png`, `/icons/icon-512.png`: recursos de instalación PWA.
-- `GET /playlist`: panel para cargar archivos y administrar el orden de reproducción.
-- `GET /backend`: panel de configuración y registro de eventos.
+- `GET /playlist`: panel para cargar archivos, administrar la playlist y configurar TikTok y el overlay.
+- `GET /backend`: redirige a la sección de ajustes dentro de `/playlist`.
 - `GET /api/status`: estado del conector.
 - `GET/PUT /api/config`: consulta o cambia la cuenta de TikTok y los eventos ignorados.
 - `GET /api/events`: flujo SSE de estado y eventos de TikTok.
