@@ -8,6 +8,10 @@ Se requiere Node.js 18 o posterior. En Windows, ejecuta [`iniciar-servidores.bat
 
 El lanzador abre `http://localhost:80/` para la radio y `http://localhost:80/playlist` para administrar el playlist. El panel del conector TikTok permanece disponible en `http://localhost:80/backend`.
 
+### Easypanel con Nixpacks
+
+Selecciona **Nixpacks** como proveedor de construcción. El proyecto no requiere compilación: Nixpacks instala las dependencias desde `package-lock.json` y ejecuta `npm start` (`node server.js`). El servidor escucha en `0.0.0.0` en el puerto de `PORT`, con `3000` como valor local predeterminado; configura el puerto interno del servicio como `3000`. Monta un volumen persistente en `/app/data` para conservar los audios subidos, la playlist y la configuración entre despliegues.
+
 ## Instalar en Android
 
 El overlay incluye un manifiesto, iconos y un service worker para instalarse como aplicación desde Chrome. Para habilitar la instalación, abre el panel en `https://` con un certificado válido y confiable para el teléfono; el HTTP local (`http://localhost`) solo es seguro en el mismo dispositivo y no habilita la instalación desde otro teléfono de la red. En Chrome Android, abre `/backend` y pulsa **Instalar aplicación**, o abre `/`, toca el menú ⋮ y elige **Instalar aplicación** / **Agregar a pantalla principal**. La aplicación instalada abre el overlay; la conexión y la reproducción necesitan que el servidor esté en línea.

@@ -71,7 +71,7 @@ function createWebserver({
 }
 
 function startServer({
-  port = Number(process.env.PORT || 80),
+  port = Number(process.env.PORT || 3000),
   host = process.env.HOST || '0.0.0.0',
   createWebserver: createServerInstance = createWebserver,
   logger = console,

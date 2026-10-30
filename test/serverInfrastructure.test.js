@@ -96,6 +96,29 @@ test('startServer reports its address, falls back to requested port, and handles
     }
   }
   const factory = (server) => () => ({ server });
+  const originalPort = process.env.PORT;
+  try {
+    delete process.env.PORT;
+    const defaultPort = new FakeServer(null);
+    startServer({
+      createWebserver: factory(defaultPort),
+      logger: { log: (message) => messages.push(message), error: assert.fail },
+    });
+    assert.equal(defaultPort.port, 3000);
+
+    process.env.PORT = '4387';
+    const environmentPort = new FakeServer(null);
+    startServer({
+      createWebserver: factory(environmentPort),
+      logger: { log: (message) => messages.push(message), error: assert.fail },
+    });
+    assert.equal(environmentPort.port, 4387);
+  } finally {
+    if (originalPort === undefined) delete process.env.PORT;
+    else process.env.PORT = originalPort;
+  }
+  messages.length = 0;
+
   const first = new FakeServer({ port: 4321 });
   startServer({
     port: 80,
