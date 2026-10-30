@@ -4,6 +4,7 @@ const path = require('node:path');
 const { createOverlayModule } = require('./modules/overlay');
 const { createSseHub } = require('./modules/realtime/sseHub');
 const { createRadioModule } = require('./modules/radio');
+const { createExternalLibraryClient } = require('./modules/radio/externalLibraryClient');
 const { createTikTokModule, createTikTokMonitorService } = require('./modules/tiktok');
 
 function createErrorHandler() {
@@ -24,6 +25,8 @@ function createWebserver({
   overlaySettingsPath = path.join(__dirname, 'data', 'overlay-settings.json'),
   audioDirectory = path.join(__dirname, 'data', 'music'),
   playlistPath = path.join(__dirname, 'data', 'radio-playlist.json'),
+  externalLibraryConfigurationPath = path.join(__dirname, 'data', 'external-library-config.json'),
+  externalLibrary = createExternalLibraryClient({ configurationPath: externalLibraryConfigurationPath }),
   monitorService = createTikTokMonitorService(),
 } = {}) {
   const app = express();
@@ -31,7 +34,7 @@ function createWebserver({
   const radioStream = createSseHub();
   const activityStream = createSseHub();
   const overlayStream = createSseHub();
-  const radioModule = createRadioModule({ stream: radioStream, audioDirectory, playlistPath });
+  const radioModule = createRadioModule({ stream: radioStream, audioDirectory, playlistPath, externalLibrary });
   const overlayModule = createOverlayModule({ stream: overlayStream, settingsPath: overlaySettingsPath });
   const tiktokModule = createTikTokModule({
     stream: activityStream,

@@ -55,6 +55,12 @@
       .admin-status { display: inline-flex; margin: 8px 0 12px; padding: 7px 11px; border: 1px solid var(--line); border-radius: 99px; color: #f0c674; }
       .admin-status.connected { color: #73f5a9; }
       .admin-status.disconnected { color: #ff9298; }
+      #externalStorageUrl { width: 100%; min-height: 46px; padding: 10px 12px; border: 1px solid #465047; border-radius: 9px; color: inherit; background: #111612; font: inherit; }
+      #discField[hidden], #newDiscRow[hidden] { display: none; }
+      .disc-picker { display: grid; gap: 12px; margin-top: 16px; }
+      .disc-picker select, .new-disc-row input { width: 100%; min-height: 46px; padding: 10px 12px; border: 1px solid #465047; border-radius: 9px; color: inherit; background: #111612; font: inherit; }
+      .new-disc-row { display: flex; align-items: end; gap: 10px; }
+      .new-disc-row label { flex: 1; }
       .event-feed { max-height: 340px; overflow: auto; }
       .event-feed-item { padding: 11px 0; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
       .event-feed-meta { display: flex; flex-wrap: wrap; gap: 8px; color: var(--muted); font-size: .86rem; }
@@ -98,6 +104,7 @@
       .layout { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
       .section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
       .track-list { display: grid; gap: 9px; padding: 0; margin: 16px 0 0; list-style: none; }
+      .disc-heading { margin-top: 8px; color: var(--accent); font-weight: 750; }
       .track { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: #151a16; }
       .track-name { min-width: 0; overflow-wrap: anywhere; line-height: 1.4; }
       .track-controls { display: flex; flex: 0 0 auto; gap: 6px; }
@@ -117,6 +124,7 @@
         .step { align-items: flex-start; flex-direction: column; gap: 5px; font-size: .75rem; }
         .upload-fields { grid-template-columns: 1fr; }
         .upload-fields button { width: 100%; min-height: 48px; }
+        .new-disc-row { align-items: stretch; flex-direction: column; }
         .layout, .settings-grid { grid-template-columns: 1fr; }
         .layout { gap: 12px; margin-top: 12px; }
         .track { align-items: stretch; flex-direction: column; gap: 10px; }
@@ -187,6 +195,20 @@
             </label>
             <button id="reviewUpload" type="submit">Revisar subida</button>
           </div>
+          <div id="discField" class="disc-picker" hidden>
+            <label for="discSelect">Disco / grupo
+              <select id="discSelect">
+                <option value="">Elige un disco</option>
+                <option value="__create__">＋ Crear un disco nuevo</option>
+              </select>
+            </label>
+            <div id="newDiscRow" class="new-disc-row" hidden>
+              <label for="newDiscName">Nombre del nuevo disco
+                <input id="newDiscName" type="text" maxlength="100" autocomplete="off" placeholder="Ej.: Mi álbum">
+              </label>
+              <button id="createDiscButton" class="secondary" type="button">Crear disco</button>
+            </div>
+          </div>
           <div id="uploadConfirmation" class="confirm-card" hidden>
             <p class="eyebrow">Así aparecerá en tu biblioteca</p>
             <p id="confirmFilename" class="confirm-title"></p>
@@ -214,6 +236,19 @@
     <details id="serverSettings" class="panel admin-panel" open>
       <summary>Ajustes del servidor</summary>
       <p class="hint" style="margin-top: 10px;">Configura el canal de TikTok, los eventos y el overlay desde esta misma página.</p>
+      <details class="admin-section" id="externalStorageSection">
+        <summary>Biblioteca externa de temas</summary>
+        <div class="admin-section-content">
+          <p id="externalStorageStatus" class="admin-status">Comprobando biblioteca…</p>
+          <form id="externalStorageForm">
+            <label for="externalStorageUrl">URL base del servidor de temas
+              <input id="externalStorageUrl" type="url" autocomplete="url" placeholder="https://biblioteca.ejemplo.com">
+            </label>
+            <p class="hint" style="margin: 10px 0;">La URL se guarda en el disco de la aplicación para reconectar automáticamente. Los temas se almacenan en el servidor externo y se agrupan por disco.</p>
+            <button type="submit">Guardar y conectar</button>
+          </form>
+        </div>
+      </details>
       <details class="admin-section" open>
         <summary>Conexión y eventos de TikTok</summary>
         <div class="admin-section-content">
@@ -293,6 +328,12 @@
       const audioPreviewCard = document.querySelector('#audioPreviewCard');
       const selectedAudioPlayer = document.querySelector('#selectedAudioPlayer');
       const audioPreviewName = document.querySelector('#audioPreviewName');
+      const discField = document.querySelector('#discField');
+      const discSelect = document.querySelector('#discSelect');
+      const newDiscRow = document.querySelector('#newDiscRow');
+      const newDiscName = document.querySelector('#newDiscName');
+      const createDiscButton = document.querySelector('#createDiscButton');
+      const externalStorageStatus = document.querySelector('#externalStorageStatus');
       const channelIndicator = document.querySelector('#channelIndicator');
       const channelStatusText = document.querySelector('#channelStatusText');
       const channelDetails = document.querySelector('#channelDetails');
@@ -333,8 +374,30 @@
           requestJson('/api/radio/playlist'),
         ]);
         available = library.tracks;
+        renderDiscs(library.discs || []);
         state = snapshot;
         render();
+      }
+
+      function renderDiscs(discs) {
+        const selected = discSelect.value;
+        discSelect.replaceChildren();
+        const choose = document.createElement('option');
+        choose.value = '';
+        choose.textContent = 'Elige un disco';
+        discSelect.append(choose);
+        discs.forEach((disc) => {
+          const option = document.createElement('option');
+          option.value = disc.name;
+          option.textContent = `${disc.name} (${disc.trackCount})`;
+          discSelect.append(option);
+        });
+        const create = document.createElement('option');
+        create.value = '__create__';
+        create.textContent = '＋ Crear un disco nuevo';
+        discSelect.append(create);
+        discSelect.value = [...discSelect.options].some((option) => option.value === selected) ? selected : '';
+        newDiscRow.hidden = discSelect.value !== '__create__';
       }
 
       function render() {
@@ -348,7 +411,15 @@
           empty.textContent = 'Todavía no hay archivos de audio cargados.';
           availableTracks.append(empty);
         }
+        let renderedDisc = '';
         available.forEach((track) => {
+          if (track.discName && track.discName !== renderedDisc) {
+            renderedDisc = track.discName;
+            const heading = document.createElement('li');
+            heading.className = 'disc-heading';
+            heading.textContent = renderedDisc;
+            availableTracks.append(heading);
+          }
           const row = document.createElement('li');
           row.className = 'track';
           const name = document.createElement('span');
@@ -385,7 +456,7 @@
           row.className = 'track';
           const name = document.createElement('span');
           name.className = 'track-name';
-          name.textContent = `${index + 1}. ${track.title}${index === state.currentIndex ? ' · En reproducción' : ''}`;
+          name.textContent = `${index + 1}. ${track.discName ? `${track.discName} · ` : ''}${track.title}${index === state.currentIndex ? ' · En reproducción' : ''}`;
           const controls = document.createElement('div');
           controls.className = 'track-controls';
           const play = document.createElement('button');
@@ -499,7 +570,7 @@
           state.isPlaying ? 'Radio pausada.' : 'Radio en reproducción.'));
 
       function deleteFile(track) {
-        if (!window.confirm(`¿Borrar "${track.title}" del disco y de la playlist?`)) return;
+        if (!window.confirm(`¿Borrar "${track.title}"${track.discName ? ` del disco "${track.discName}"` : ''} y de la playlist?`)) return;
         return runAction(async () => {
           await requestJson(`/api/radio/tracks/${encodeURIComponent(track.name)}`, { method: 'DELETE' });
         }, 'Archivo eliminado.');
@@ -708,6 +779,11 @@
       document.querySelector('#uploadForm').addEventListener('submit', (event) => {
         event.preventDefault();
         if (!audioFiles.files.length) return;
+        if (!discField.hidden && (!discSelect.value || discSelect.value === '__create__')) {
+          showNotice('Elige o crea un disco antes de confirmar la subida.', 'error');
+          discSelect.focus();
+          return;
+        }
         const filename = selectedFilename();
         if (!filename) {
           showNotice('Escribe un nombre válido para el tema.', 'error');
@@ -759,6 +835,57 @@
         } catch (error) {
           showNotice(error.message, 'error');
         }
+      });
+
+      document.querySelector('#externalStorageForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        await runAction(async () => {
+          const configuration = await requestJson('/api/radio/storage', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ serverUrl: document.querySelector('#externalStorageUrl').value }),
+          });
+          document.querySelector('#externalStorageUrl').value = configuration.serverUrl;
+          updateStorageStatus(configuration);
+        }, 'Biblioteca externa guardada y conectada.');
+      });
+
+      function updateStorageStatus(configuration) {
+        discField.hidden = !configuration.external;
+        externalStorageStatus.className = `admin-status ${configuration.external && configuration.connected ? 'connected' : configuration.external ? 'disconnected' : ''}`;
+        externalStorageStatus.textContent = configuration.external
+          ? configuration.connected
+            ? `Conectada · ${configuration.discCount} discos · ${configuration.trackCount} temas`
+            : `Desconectada${configuration.error ? `: ${configuration.error}` : ''}`
+          : 'Usando la biblioteca local. Configura una URL para guardar temas en otro servidor.';
+      }
+
+      async function loadStorageConfiguration() {
+        const configuration = await requestJson('/api/radio/storage');
+        document.querySelector('#externalStorageUrl').value = configuration.serverUrl;
+        updateStorageStatus(configuration);
+      }
+
+      discSelect.addEventListener('change', () => {
+        newDiscRow.hidden = discSelect.value !== '__create__';
+      });
+
+      createDiscButton.addEventListener('click', async () => {
+        const name = newDiscName.value.trim();
+        if (!name) {
+          showNotice('Escribe el nombre del disco.', 'error');
+          newDiscName.focus();
+          return;
+        }
+        await runAction(async () => {
+          const result = await requestJson('/api/radio/discs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name }),
+          });
+          discSelect.value = result.disc.name;
+          newDiscName.value = '';
+        }, 'Disco listo para cargar temas.');
       });
 
       document.querySelector('#addMessage').addEventListener('click', () => {
@@ -816,6 +943,11 @@
         const file = audioFiles.files[0];
         const filename = selectedFilename();
         if (!file || !filename) return;
+        if (!discField.hidden && (!discSelect.value || discSelect.value === '__create__')) {
+          showNotice('Elige o crea un disco antes de subir el tema.', 'error');
+          discSelect.focus();
+          return;
+        }
         setPending(true);
         document.querySelector('#confirmUpload').textContent = 'Subiendo…';
         try {
@@ -824,6 +956,7 @@
             headers: {
               'Content-Type': file.type || 'application/octet-stream',
               'X-File-Name': encodeURIComponent(filename),
+              'X-Disc-Name': encodeURIComponent(discSelect.value),
             },
             body: file,
           });
@@ -870,6 +1003,7 @@
       });
       loadTikTokConfiguration().catch((error) => showNotice(error.message, 'error'));
       loadOverlaySettings().catch((error) => showNotice(error.message, 'error'));
+      loadStorageConfiguration().catch((error) => showNotice(error.message, 'error'));
       refreshChannelStatus().catch((error) => {
         channelStatusText.className = 'disconnected';
         channelStatusText.textContent = 'NO SE PUDO LEER EL ESTADO';
