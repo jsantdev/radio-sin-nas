@@ -241,11 +241,11 @@
         <div class="admin-section-content">
           <p id="externalStorageStatus" class="admin-status">Comprobando biblioteca…</p>
           <form id="externalStorageForm">
-            <label for="externalStorageUrl">URL base del servidor de temas
+            <label for="externalStorageUrl">Ingresa manualmente la URL base de la API de la biblioteca musical
               <input id="externalStorageUrl" type="url" autocomplete="url" placeholder="https://biblioteca.ejemplo.com">
             </label>
-            <p class="hint" style="margin: 10px 0;">La URL se guarda en el disco de la aplicación para reconectar automáticamente. Los temas se almacenan en el servidor externo y se agrupan por disco.</p>
-            <button type="submit">Guardar y conectar</button>
+            <p class="hint" style="margin: 10px 0;">La URL ingresada se guarda permanentemente en el JSON de configuración. El estado indicará si la API conectó o cuál fue el error.</p>
+            <button type="submit">Conectar y guardar</button>
           </form>
         </div>
       </details>
@@ -358,7 +358,11 @@
       async function requestJson(url, options) {
         const response = await fetch(url, options);
         const result = await response.json();
-        if (!response.ok) throw new Error(result.message || 'La solicitud no se pudo completar.');
+        if (!response.ok) {
+          const error = new Error(result.message || 'La solicitud no se pudo completar.');
+          error.configuration = result.configuration;
+          throw error;
+        }
         return result;
       }
 
@@ -514,6 +518,7 @@
           await refresh();
           showNotice(successMessage, 'success');
         } catch (error) {
+          if (error.configuration) updateStorageStatus(error.configuration);
           showNotice(error.message, 'error');
         } finally {
           setPending(false);

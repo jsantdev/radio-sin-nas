@@ -43,6 +43,44 @@ async function close(server) {
   await closed;
 }
 
+test('radio saves an unreachable manually configured library URL and exposes its error', async () => {
+  const storage = fs.mkdtempSync(path.join(os.tmpdir(), `external-radio-${randomUUID()}-`));
+  const settingsPath = path.join(storage, 'external-library-config.json');
+  const server = createWebserver({
+    monitorService: createMonitorService(),
+    configurationPath: path.join(storage, 'monitor-config.json'),
+    overlaySettingsPath: path.join(storage, 'overlay-settings.json'),
+    audioDirectory: path.join(storage, 'local-music'),
+    playlistPath: path.join(storage, 'radio-playlist.json'),
+    externalLibraryConfigurationPath: settingsPath,
+  }).server;
+  const radioUrl = await listen(server);
+
+  try {
+    const response = await fetch(`${radioUrl}/api/radio/storage`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ serverUrl: 'http://127.0.0.1:1' }),
+    });
+    assert.equal(response.status, 502);
+    const result = await response.json();
+    assert.match(result.message, /La URL quedó guardada, pero no se pudo conectar/);
+    assert.equal(result.configuration.serverUrl, 'http://127.0.0.1:1');
+    assert.equal(result.configuration.connected, false);
+    assert.ok(result.configuration.error);
+    assert.deepEqual(JSON.parse(fs.readFileSync(settingsPath, 'utf8')), {
+      serverUrl: 'http://127.0.0.1:1',
+    });
+
+    const currentStatus = await fetch(`${radioUrl}/api/radio/storage`).then((item) => item.json());
+    assert.equal(currentStatus.connected, false);
+    assert.ok(currentStatus.error);
+  } finally {
+    await close(server);
+    fs.rmSync(storage, { recursive: true, force: true });
+  }
+});
+
 test('radio uploads and plays tracks from the persistent external library after restart', async () => {
   const storage = fs.mkdtempSync(path.join(os.tmpdir(), `external-radio-${randomUUID()}-`));
   const dataDirectory = path.join(storage, 'discs');
