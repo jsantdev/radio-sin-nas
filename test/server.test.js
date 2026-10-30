@@ -92,6 +92,7 @@ test('radio server keeps TikTok configuration, event monitoring, and radio state
     assert.match(overlayHtml, /clamp\(120px, 23vh, 210px\)/);
     assert.match(overlayHtml, /id="tapProgressBar"/);
     assert.match(overlayHtml, /Siguiente logro de la comunidad/);
+    assert.match(overlayHtml, /href="\/playlist" aria-label="Abrir playlist de la radio"/);
     assert.match(overlayHtml, /rel="manifest" href="\/manifest\.webmanifest"/);
     assert.match(overlayHtml, /serviceWorker\.register\('\/service-worker\.js'\)/);
     assert.doesNotMatch(overlayHtml, /toggleOperatorPanelBtn|operatorPanel/);
