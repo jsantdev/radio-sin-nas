@@ -1,0 +1,19 @@
+{
+  "name": "servidor",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Base modular de radio TikTok Live, conector, overlay y panel administrativo",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test",
+    "test:coverage": "node --test --experimental-test-coverage"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^5.3.0",
+    "tiktok-live-connector": "^2.5.0"
+  }
+}

@@ -147,3 +147,6 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# Local runtime data (audio, playlist and TikTok configuration)
+data/

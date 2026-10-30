@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#101512">
+    <title>Playlist | Radio TikTok Live</title>
+    <style>
+      :root { color-scheme: dark; font: 16px "Segoe UI", sans-serif; color: #f1f3ed; background: #101512; --surface: #191f1b; --surface-2: #202822; --line: #303b33; --muted: #a4afa5; --accent: #c5f36b; --accent-ink: #17200c; }
+      * { box-sizing: border-box; }
+      body { max-width: 1080px; margin: auto; padding: 24px 20px 48px; }
+      header, .panel { border: 1px solid var(--line); border-radius: 18px; background: var(--surface); }
+      header { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 22px 24px; }
+      h1, h2, p { margin-top: 0; }
+      h1 { margin-bottom: 5px; font-size: clamp(1.45rem, 4vw, 2rem); letter-spacing: -.035em; }
+      h2 { margin-bottom: 5px; font-size: 1.12rem; }
+      a { color: var(--accent); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      .eyebrow, .muted, .hint { color: var(--muted); }
+      .eyebrow { margin-bottom: 6px; font-size: .78rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+      .header-links { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; font-size: .9rem; }
+      #playbackStatus { max-width: 320px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); color: var(--accent); font-size: .9rem; }
+      .panel { min-width: 0; padding: 22px; }
+      .upload-panel { margin-top: 18px; padding: clamp(20px, 4vw, 32px); background: linear-gradient(135deg, #202a20, #191f1b 65%); }
+      .upload-intro { max-width: 580px; margin-bottom: 22px; }
+      .hint { margin-bottom: 0; line-height: 1.5; font-size: .92rem; }
+      .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 22px; }
+      .step { display: flex; align-items: center; gap: 8px; color: #89958a; font-size: .84rem; }
+      .step-number { display: grid; width: 27px; height: 27px; flex: 0 0 27px; place-items: center; border: 1px solid #465047; border-radius: 50%; font-size: .78rem; }
+      .step.active { color: var(--accent); }
+      .step.active .step-number { border-color: var(--accent); background: #344322; color: var(--accent); }
+      label { display: grid; gap: 8px; font-weight: 650; }
+      .file-picker { position: relative; display: flex; min-height: 82px; align-items: center; gap: 14px; padding: 16px; border: 1px dashed #64715e; border-radius: 13px; background: #151a16; cursor: pointer; }
+      .file-picker:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+      .file-icon { display: grid; width: 44px; height: 44px; flex: 0 0 44px; place-items: center; border-radius: 12px; background: #303c29; color: var(--accent); font-size: 1.35rem; }
+      .file-picker-copy { display: grid; gap: 3px; }
+      .file-picker-copy strong { font-size: .96rem; }
+      .file-picker-copy small { color: var(--muted); font-weight: 400; }
+      #audioFiles { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+      .upload-fields { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 12px; margin-top: 16px; }
+      input[type="text"] { width: 100%; min-height: 48px; padding: 11px 13px; border: 1px solid #465047; border-radius: 10px; color: inherit; background: #111612; font: inherit; }
+      input[type="text"]:focus { border-color: var(--accent); outline: 2px solid #c5f36b33; }
+      .filename-preview { min-height: 1.3em; margin: 7px 0 0; overflow-wrap: anywhere; color: var(--muted); font-size: .82rem; }
+      .audio-preview { display: grid; gap: 8px; margin-top: 16px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: #111612; }
+      .audio-preview p { margin: 0; }
+      #selectedAudioPlayer { width: 100%; min-height: 48px; }
+      button { min-height: 42px; padding: 9px 14px; border: 1px solid transparent; border-radius: 10px; color: var(--accent-ink); background: var(--accent); font: inherit; font-weight: 750; cursor: pointer; transition: background .15s, transform .15s; }
+      button:hover { background: #d7fb96; }
+      button:active { transform: translateY(1px); }
+      button.secondary { border-color: var(--line); color: #f1f3ed; background: var(--surface-2); }
+      button.secondary:hover { background: #2b352d; }
+      button.danger { border-color: #614044; color: #ffc9cb; background: #382427; }
+      button:disabled { cursor: not-allowed; opacity: .48; }
+      .confirm-card { margin-top: 16px; padding: 16px; border: 1px solid #52623e; border-radius: 12px; background: #20291d; }
+      .confirm-title { margin-bottom: 4px; font-weight: 750; overflow-wrap: anywhere; }
+      .confirm-meta { margin-bottom: 14px; color: var(--muted); font-size: .87rem; }
+      .actions { display: flex; gap: 9px; flex-wrap: wrap; }
+      .layout { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
+      .section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+      .track-list { display: grid; gap: 9px; padding: 0; margin: 16px 0 0; list-style: none; }
+      .track { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: #151a16; }
+      .track-name { min-width: 0; overflow-wrap: anywhere; line-height: 1.4; }
+      .track-controls { display: flex; flex: 0 0 auto; gap: 6px; }
+      .track-controls button { min-width: 42px; min-height: 42px; padding: 7px 10px; }
+      #notice { min-height: 1.4em; margin: 12px 0 0; }
+      .error { color: #ff9298; }
+      .success { color: var(--accent); }
+      @media (max-width: 700px) {
+        body { padding: 12px 12px 32px; }
+        header { align-items: flex-start; flex-direction: column; gap: 14px; padding: 18px; border-radius: 15px; }
+        #playbackStatus { max-width: 100%; }
+        .panel { padding: 18px; border-radius: 15px; }
+        .upload-panel { margin-top: 12px; }
+        .steps { gap: 4px; }
+        .step { align-items: flex-start; flex-direction: column; gap: 5px; font-size: .75rem; }
+        .upload-fields { grid-template-columns: 1fr; }
+        .upload-fields button { width: 100%; min-height: 48px; }
+        .layout { grid-template-columns: 1fr; gap: 12px; margin-top: 12px; }
+        .track { align-items: stretch; flex-direction: column; gap: 10px; }
+        .track-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(42px, 1fr)); }
+        .track-controls button { min-width: 0; }
+        .actions button { flex: 1 1 140px; min-height: 46px; }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+        <p class="eyebrow">Tu radio · biblioteca musical</p>
+        <h1>Playlist de la radio</h1>
+        <nav class="header-links" aria-label="Navegación">
+          <a href="/">Abrir radio ↗</a>
+          <a href="/backend">Panel de administración</a>
+        </nav>
+      </div>
+      <div id="playbackStatus" class="muted">Cargando playlist…</div>
+    </header>
+    <p id="notice" role="status" aria-live="polite"></p>
+    <section class="panel upload-panel" aria-labelledby="uploadTitle">
+      <div class="upload-intro">
+        <p class="eyebrow">Agregar música</p>
+        <h2 id="uploadTitle">Sube tu próxima canción</h2>
+        <p class="hint">Elige un audio, ponle el nombre que verá tu audiencia y revisa cómo quedará antes de subirlo.</p>
+      </div>
+      <div class="steps" aria-label="Pasos para subir una canción">
+        <div class="step active" id="stepFile"><span class="step-number">1</span><span>Elegir audio</span></div>
+        <div class="step" id="stepName"><span class="step-number">2</span><span>Nombrar tema</span></div>
+        <div class="step" id="stepConfirm"><span class="step-number">3</span><span>Confirmar y subir</span></div>
+      </div>
+      <form id="uploadForm">
+        <label class="file-picker" for="audioFiles">
+          <span class="file-icon" aria-hidden="true">＋</span>
+          <span class="file-picker-copy"><strong id="filePickerTitle">Toca para elegir un archivo</strong><small id="filePickerHint">MP3, WAV, OGG, OPUS, M4A o AAC · Máximo 100 MB</small></span>
+          <input id="audioFiles" type="file" required>
+        </label>
+        <div id="uploadDetails" hidden>
+          <div id="audioPreviewCard" class="audio-preview" hidden>
+            <p class="eyebrow">Vista previa · solo tú puedes escucharla</p>
+            <p id="audioPreviewName" class="track-name"></p>
+            <audio id="selectedAudioPlayer" controls preload="metadata" aria-label="Escuchar el audio seleccionado antes de subirlo"></audio>
+          </div>
+          <div class="upload-fields">
+            <label for="trackTitle">Nombre del tema
+              <input id="trackTitle" type="text" maxlength="160" autocomplete="off" placeholder="Ej.: Mi canción favorita" required>
+              <span id="filenamePreview" class="filename-preview"></span>
+            </label>
+            <button id="reviewUpload" type="submit">Revisar subida</button>
+          </div>
+          <div id="uploadConfirmation" class="confirm-card" hidden>
+            <p class="eyebrow">Así aparecerá en tu biblioteca</p>
+            <p id="confirmFilename" class="confirm-title"></p>
+            <p id="confirmFileInfo" class="confirm-meta"></p>
+            <div class="actions">
+              <button id="cancelUpload" class="secondary" type="button">Seguir editando</button>
+              <button id="confirmUpload" type="button">Confirmar y subir</button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </section>
+    <main class="layout">
+      <section class="panel">
+        <div class="section-heading"><h2>Biblioteca</h2><span id="libraryCount" class="muted"></span></div>
+        <p class="hint">Canciones disponibles en el servidor.</p>
+        <ul id="availableTracks" class="track-list"></ul>
+      </section>
+      <section class="panel">
+        <div class="section-heading"><h2>Orden de reproducción</h2><span id="playlistCount" class="muted"></span></div>
+        <p class="hint">Ordena y elige qué canción suena. La radio avanza al terminar cada tema.</p>
+        <ol id="playlistTracks" class="track-list"></ol>
+      </section>
+    </main>
+    <script>
+      const notice = document.querySelector('#notice');
+      const availableTracks = document.querySelector('#availableTracks');
+      const playlistTracks = document.querySelector('#playlistTracks');
+      const playbackStatus = document.querySelector('#playbackStatus');
+      const audioFiles = document.querySelector('#audioFiles');
+      const trackTitle = document.querySelector('#trackTitle');
+      const uploadDetails = document.querySelector('#uploadDetails');
+      const uploadConfirmation = document.querySelector('#uploadConfirmation');
+      const filenamePreview = document.querySelector('#filenamePreview');
+      const audioPreviewCard = document.querySelector('#audioPreviewCard');
+      const selectedAudioPlayer = document.querySelector('#selectedAudioPlayer');
+      const audioPreviewName = document.querySelector('#audioPreviewName');
+      let available = [];
+      let state = null;
+      let pending = false;
+      let uploadReviewed = false;
+      let audioPreviewUrl = null;
+
+      function showNotice(message, kind = '') {
+        notice.className = kind;
+        notice.textContent = message;
+      }
+
+      async function requestJson(url, options) {
+        const response = await fetch(url, options);
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || 'La solicitud no se pudo completar.');
+        return result;
+      }
+
+      function setPending(value) {
+        pending = value;
+        document.querySelectorAll('button').forEach((button) => { button.disabled = value; });
+      }
+
+      async function refresh() {
+        const [library, snapshot] = await Promise.all([
+          requestJson('/api/radio/tracks'),
+          requestJson('/api/radio/playlist'),
+        ]);
+        available = library.tracks;
+        state = snapshot;
+        render();
+      }
+
+      function render() {
+        const queuedNames = new Set(state.queue.map((track) => track.name));
+        document.querySelector('#libraryCount').textContent = `${available.length} ${available.length === 1 ? 'tema' : 'temas'}`;
+        document.querySelector('#playlistCount').textContent = `${state.queue.length} ${state.queue.length === 1 ? 'tema' : 'temas'}`;
+        availableTracks.replaceChildren();
+        if (!available.length) {
+          const empty = document.createElement('li');
+          empty.className = 'muted';
+          empty.textContent = 'Todavía no hay archivos de audio cargados.';
+          availableTracks.append(empty);
+        }
+        available.forEach((track) => {
+          const row = document.createElement('li');
+          row.className = 'track';
+          const name = document.createElement('span');
+          name.className = 'track-name';
+          name.textContent = track.title;
+          const controls = document.createElement('div');
+          controls.className = 'track-controls';
+          const add = document.createElement('button');
+          add.type = 'button';
+          add.className = 'secondary';
+          add.textContent = queuedNames.has(track.name) ? 'En playlist' : 'Agregar';
+          add.disabled = pending || queuedNames.has(track.name);
+          add.addEventListener('click', () => updatePlaylist([...state.queue.map((item) => item.name), track.name]));
+          const removeFile = document.createElement('button');
+          removeFile.type = 'button';
+          removeFile.className = 'danger';
+          removeFile.textContent = 'Borrar archivo';
+          removeFile.disabled = pending;
+          removeFile.addEventListener('click', () => deleteFile(track));
+          controls.append(add, removeFile);
+          row.append(name, controls);
+          availableTracks.append(row);
+        });
+
+        playlistTracks.replaceChildren();
+        if (!state.queue.length) {
+          const empty = document.createElement('li');
+          empty.className = 'muted';
+          empty.textContent = 'La playlist está vacía.';
+          playlistTracks.append(empty);
+        }
+        state.queue.forEach((track, index) => {
+          const row = document.createElement('li');
+          row.className = 'track';
+          const name = document.createElement('span');
+          name.className = 'track-name';
+          name.textContent = `${index + 1}. ${track.title}${index === state.currentIndex ? ' · En reproducción' : ''}`;
+          const controls = document.createElement('div');
+          controls.className = 'track-controls';
+          const play = document.createElement('button');
+          play.type = 'button';
+          play.className = 'secondary';
+          play.textContent = 'Elegir';
+          play.title = 'Seleccionar esta canción';
+          play.setAttribute('aria-label', `Seleccionar ${track.title}`);
+          play.disabled = pending;
+          play.addEventListener('click', () => selectTrack(index));
+          const up = document.createElement('button');
+          up.type = 'button';
+          up.className = 'secondary';
+          up.textContent = '↑';
+          up.title = 'Subir';
+          up.disabled = pending || index === 0;
+          up.addEventListener('click', () => moveTrack(index, -1));
+          const down = document.createElement('button');
+          down.type = 'button';
+          down.className = 'secondary';
+          down.textContent = '↓';
+          down.title = 'Bajar';
+          down.disabled = pending || index === state.queue.length - 1;
+          down.addEventListener('click', () => moveTrack(index, 1));
+          const remove = document.createElement('button');
+          remove.type = 'button';
+          remove.className = 'danger';
+          remove.textContent = 'Quitar';
+          remove.disabled = pending;
+          remove.addEventListener('click', () => updatePlaylist(
+            state.queue.filter((_, trackIndex) => trackIndex !== index).map((item) => item.name),
+          ));
+          controls.append(play, up, down, remove);
+          row.append(name, controls);
+          playlistTracks.append(row);
+        });
+
+        playbackStatus.textContent = state.currentTrack
+          ? `${state.isPlaying ? 'Reproduciendo' : 'En pausa'}: ${state.currentTrack.title}`
+          : 'Sin canciones en la playlist';
+      }
+
+      async function runAction(action, successMessage) {
+        if (pending) return;
+        setPending(true);
+        try {
+          await action();
+          await refresh();
+          showNotice(successMessage, 'success');
+        } catch (error) {
+          showNotice(error.message, 'error');
+        } finally {
+          setPending(false);
+          render();
+        }
+      }
+
+      function updatePlaylist(tracks) {
+        return runAction(async () => {
+          const result = await requestJson('/api/radio/playlist', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tracks }),
+          });
+          state = result.state;
+        }, 'Playlist actualizada.');
+      }
+
+      function moveTrack(index, direction) {
+        const names = state.queue.map((track) => track.name);
+        const target = index + direction;
+        [names[index], names[target]] = [names[target], names[index]];
+        return updatePlaylist(names);
+      }
+
+      function selectTrack(index) {
+        return runAction(async () => {
+          const result = await requestJson('/api/radio/current', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ index }),
+          });
+          state = result.state;
+        }, 'Se seleccionó la canción.');
+      }
+
+      function deleteFile(track) {
+        if (!window.confirm(`¿Borrar "${track.title}" del disco y de la playlist?`)) return;
+        return runAction(async () => {
+          await requestJson(`/api/radio/tracks/${encodeURIComponent(track.name)}`, { method: 'DELETE' });
+        }, 'Archivo eliminado.');
+      }
+
+      function selectedFilename() {
+        const file = audioFiles.files[0];
+        if (!file) return '';
+        const extension = file.name.match(/\.[^.]+$/)?.[0] || '';
+        const cleanedTitle = trackTitle.value.trim()
+          .replace(/[<>:"/\\|?*\u0000-\u001f]/g, '')
+          .replace(/[. ]+$/g, '')
+          .slice(0, Math.max(0, 180 - extension.length));
+        return cleanedTitle ? `${cleanedTitle}${extension}` : '';
+      }
+
+      function updateUploadPreview() {
+        const file = audioFiles.files[0];
+        if (file && !/\.(aac|m4a|mp3|ogg|opus|wav)$/i.test(file.name)) {
+          audioFiles.value = '';
+          showNotice('Formato no admitido. Elige un archivo MP3, WAV, OGG, OPUS, M4A o AAC.', 'error');
+          updateUploadPreview();
+          return;
+        }
+        uploadDetails.hidden = !file;
+        uploadConfirmation.hidden = true;
+        uploadReviewed = false;
+        document.querySelector('#stepFile').classList.toggle('active', Boolean(file));
+        document.querySelector('#stepName').classList.toggle('active', Boolean(file));
+        document.querySelector('#stepConfirm').classList.remove('active');
+        if (!file) return;
+        document.querySelector('#filePickerTitle').textContent = file.name;
+        document.querySelector('#filePickerHint').textContent = `${formatFileSize(file.size)} · Archivo seleccionado`;
+        audioPreviewUrl = URL.createObjectURL(file);
+        selectedAudioPlayer.src = audioPreviewUrl;
+        selectedAudioPlayer.load();
+        audioPreviewName.textContent = file.name;
+        audioPreviewCard.hidden = false;
+        const baseName = file.name.replace(/\.[^.]+$/, '');
+        if (!trackTitle.value || trackTitle.dataset.sourceFile !== file.name) {
+          trackTitle.value = baseName;
+        }
+        trackTitle.dataset.sourceFile = file.name;
+        filenamePreview.textContent = `Se guardará como: ${selectedFilename() || 'Escribe un nombre válido'}`;
+      }
+
+      function formatFileSize(bytes) {
+        if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+      }
+
+      function clearAudioPreview() {
+        selectedAudioPlayer.pause();
+        selectedAudioPlayer.removeAttribute('src');
+        selectedAudioPlayer.load();
+        audioPreviewCard.hidden = true;
+        if (audioPreviewUrl) {
+          URL.revokeObjectURL(audioPreviewUrl);
+          audioPreviewUrl = null;
+        }
+      }
+
+      audioFiles.addEventListener('change', () => {
+        clearAudioPreview();
+        updateUploadPreview();
+      });
+      trackTitle.addEventListener('input', () => {
+        filenamePreview.textContent = `Se guardará como: ${selectedFilename() || 'Escribe un nombre válido'}`;
+        if (uploadReviewed) {
+          uploadConfirmation.hidden = true;
+          uploadReviewed = false;
+          document.querySelector('#stepConfirm').classList.remove('active');
+        }
+      });
+
+      document.querySelector('#uploadForm').addEventListener('submit', (event) => {
+        event.preventDefault();
+        if (!audioFiles.files.length) return;
+        const filename = selectedFilename();
+        if (!filename) {
+          showNotice('Escribe un nombre válido para el tema.', 'error');
+          trackTitle.focus();
+          return;
+        }
+        document.querySelector('#confirmFilename').textContent = filename;
+        document.querySelector('#confirmFileInfo').textContent =
+          `${audioFiles.files[0].name} · ${formatFileSize(audioFiles.files[0].size)}`;
+        uploadConfirmation.hidden = false;
+        uploadReviewed = true;
+        document.querySelector('#stepConfirm').classList.add('active');
+        document.querySelector('#confirmUpload').focus();
+      });
+
+      document.querySelector('#cancelUpload').addEventListener('click', () => {
+        uploadConfirmation.hidden = true;
+        uploadReviewed = false;
+        document.querySelector('#stepConfirm').classList.remove('active');
+        trackTitle.focus();
+      });
+
+      document.querySelector('#confirmUpload').addEventListener('click', async () => {
+        const file = audioFiles.files[0];
+        const filename = selectedFilename();
+        if (!file || !filename) return;
+        setPending(true);
+        document.querySelector('#confirmUpload').textContent = 'Subiendo…';
+        try {
+          await requestJson('/api/radio/tracks', {
+            method: 'POST',
+            headers: {
+              'Content-Type': file.type || 'application/octet-stream',
+              'X-File-Name': encodeURIComponent(filename),
+            },
+            body: file,
+          });
+          await refresh();
+          clearAudioPreview();
+          audioFiles.value = '';
+          trackTitle.value = '';
+          trackTitle.dataset.sourceFile = '';
+          uploadDetails.hidden = true;
+          uploadConfirmation.hidden = true;
+          uploadReviewed = false;
+          document.querySelector('#filePickerTitle').textContent = 'Toca para elegir un archivo';
+          document.querySelector('#filePickerHint').textContent = 'MP3, WAV, OGG, OPUS, M4A o AAC · Máximo 100 MB';
+          document.querySelector('#stepFile').classList.remove('active');
+          document.querySelector('#stepName').classList.remove('active');
+          document.querySelector('#stepConfirm').classList.remove('active');
+          showNotice('Canción subida a la biblioteca.', 'success');
+        } catch (error) {
+          showNotice(error.message, 'error');
+        } finally {
+          setPending(false);
+          document.querySelector('#confirmUpload').textContent = 'Confirmar y subir';
+          render();
+        }
+      });
+
+      const radioStream = new EventSource('/api/radio-state/stream');
+      function applySnapshot(snapshot) {
+        state = snapshot;
+        if (available.length || !pending) render();
+      }
+      radioStream.addEventListener('snapshot', (event) => applySnapshot(JSON.parse(event.data)));
+      radioStream.addEventListener('update', (event) => applySnapshot(JSON.parse(event.data)));
+      refresh().catch((error) => showNotice(error.message, 'error'));
+    </script>
+  </body>
+</html>

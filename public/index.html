@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#4c1d95">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <title>Radio TikTok Live | Panel</title>
+    <style>
+      :root { color-scheme: dark; font: 16px "Segoe UI", sans-serif; color: #e7edf5; background: #0b1118; }
+      * { box-sizing: border-box; }
+      body { max-width: 1000px; margin: auto; padding: 24px 16px; }
+      header, .panel { border: 1px solid #293747; border-radius: 12px; background: #111a24; }
+      header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 20px; }
+      h1, h2, p { margin-top: 0; }
+      h1 { margin-bottom: 6px; font-size: 1.6rem; }
+      h2 { font-size: 1.1rem; }
+      .muted, .hint { color: #9aabba; }
+      .status { padding: 8px 12px; border: 1px solid #354657; border-radius: 99px; color: #f0c674; }
+      .status.connected { color: #67d5b0; }
+      .status.disconnected, .error { color: #ff9298; }
+      a, button { font: inherit; }
+      a { color: #7de0be; }
+      button { padding: 10px 14px; border: 1px solid #3a5660; border-radius: 8px; color: #08130f; background: #67d5b0; font-weight: 700; cursor: pointer; }
+      button:hover { background: #8be5c8; }
+      .layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(250px, .7fr); gap: 16px; margin-top: 16px; }
+      .panel { min-width: 0; padding: 18px; }
+      label { display: grid; gap: 7px; }
+      input[type="text"] { width: 100%; padding: 10px; border: 1px solid #354657; border-radius: 7px; color: inherit; background: #0b1118; font: inherit; }
+      .event-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; max-height: 340px; overflow: auto; margin: 12px 0 16px; }
+      .event-option { display: flex; align-items: center; gap: 8px; padding: 9px; border: 1px solid #293747; border-radius: 7px; }
+      .event-option input { accent-color: #67d5b0; }
+      .feed { max-height: 540px; overflow: auto; }
+      .event { padding: 12px 0; border-top: 1px solid #293747; overflow-wrap: anywhere; }
+      .event-meta { display: flex; flex-wrap: wrap; gap: 8px; color: #9aabba; font-size: .88rem; }
+      .event-type { color: #67d5b0; font-weight: 700; }
+      .event-content { margin: 6px 0 0; }
+      #notice { min-height: 1.4em; margin: 10px 0; }
+      .wide { grid-column: 1 / -1; }
+      .settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+      .settings-grid input, .settings-grid select, .message-row input, #newMessage { width: 100%; padding: 10px; border: 1px solid #354657; border-radius: 7px; color: inherit; background: #0b1118; font: inherit; }
+      .message-list { display: grid; gap: 8px; margin: 12px 0; }
+      .message-row { display: flex; align-items: center; gap: 8px; }
+      .message-row button, .test-actions button, .message-add button { flex: 0 0 auto; }
+      .test-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+      .test-actions button, .message-add button { color: #e7edf5; border-color: #3a5660; background: #1b2733; }
+      .message-add { display: flex; gap: 8px; }
+      @media (max-width: 700px) {
+        .layout, .settings-grid { grid-template-columns: 1fr; }
+        .wide { grid-column: auto; }
+        .message-row button, .test-actions button, .message-add button { min-height: 44px; }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+        <p class="muted">Panel de administración</p>
+        <h1>Radio TikTok Live</h1>
+        <a href="/" target="_blank" rel="noopener">Abrir overlay ↗</a>
+        <span class="muted"> · </span>
+        <a href="/playlist">Administrar playlist</a>
+      </div>
+      <div id="status" class="status">Conectando…</div>
+    </header>
+    <p id="notice" role="status" aria-live="polite"></p>
+    <section class="panel" style="margin: 16px 0;">
+      <h2>Instalar Fe y Esperanza en Android</h2>
+      <p class="hint">Instala el overlay como aplicación desde Chrome. Abre esta página con una conexión HTTPS segura.</p>
+      <button id="installApp" type="button" hidden>Instalar aplicación</button>
+      <span id="installHelp" class="hint" role="status">Comprobando requisitos de instalación…</span>
+    </section>
+    <main class="layout">
+      <section class="panel">
+        <h2>Conector TikTok Live</h2>
+        <form id="configForm">
+          <label for="username">Usuario del directo
+            <input id="username" name="username" type="text" autocomplete="off" placeholder="@usuario">
+          </label>
+          <p class="hint">Selecciona los eventos que quieres recibir en el registro.</p>
+          <div id="eventOptions" class="event-options">Cargando eventos…</div>
+          <button type="submit">Guardar y conectar</button>
+        </form>
+      </section>
+      <section class="panel">
+        <h2>Radio</h2>
+        <p id="radioStatus" class="muted">Cargando estado…</p>
+        <p class="hint">Administra las canciones desde el <a href="/playlist">panel de playlist</a>.</p>
+      </section>
+      <section class="panel wide">
+        <h2>Configuración del overlay</h2>
+        <p class="hint">Ajusta las metas y los mensajes que se muestran en pantalla. Los cambios se aplican al overlay en vivo.</p>
+        <form id="overlaySettingsForm">
+          <div class="settings-grid">
+            <label for="tapGoal">Meta de Tap Tap (likes)
+              <select id="tapGoal">
+                <option value="1000">1.000 taps</option>
+                <option value="5000">5.000 taps</option>
+                <option value="10000">10.000 taps</option>
+                <option value="25000">25.000 taps</option>
+              </select>
+            </label>
+            <label for="coinGoal">Meta de monedas para pedir canción
+              <input id="coinGoal" type="number" min="1" max="1000000" step="50" required>
+            </label>
+          </div>
+          <h3>Mensajes rotativos</h3>
+          <div id="overlayMessages" class="message-list"></div>
+          <div class="message-add">
+            <input id="newMessage" type="text" maxlength="180" placeholder="Añadir mensaje para el overlay">
+            <button id="addMessage" type="button">Agregar</button>
+          </div>
+          <p class="hint">Hasta 20 mensajes. Cada uno puede tener hasta 180 caracteres.</p>
+          <button type="submit">Guardar ajustes del overlay</button>
+        </form>
+        <h3>Pruebas del overlay</h3>
+        <p class="hint">Envía eventos de prueba al overlay abierto.</p>
+        <div class="test-actions">
+          <button type="button" data-overlay-action="test-like">Probar +50 taps</button>
+          <button type="button" data-overlay-action="test-follow">Probar seguidor</button>
+          <button type="button" data-overlay-action="test-gift">Probar regalo</button>
+          <button type="button" data-overlay-action="test-epic-gift">Probar regalo especial</button>
+          <button type="button" data-overlay-action="test-song-goal">Probar meta de canción</button>
+          <button type="button" data-overlay-action="reset">Reiniciar contadores</button>
+        </div>
+      </section>
+      <section class="panel">
+        <h2>Eventos de TikTok Live</h2>
+        <div id="feed" class="feed"><p class="muted">Esperando eventos…</p></div>
+      </section>
+    </main>
+    <script>
+      const statusElement = document.querySelector('#status');
+      const notice = document.querySelector('#notice');
+      const eventOptions = document.querySelector('#eventOptions');
+      const feed = document.querySelector('#feed');
+      const entries = [];
+      let overlayMessages = [];
+      let installPrompt = null;
+      const installHelp = document.querySelector('#installHelp');
+
+      if (!window.isSecureContext) {
+        installHelp.textContent = 'Chrome bloquea la instalación porque esta página no usa HTTPS. Una dirección local como http://192.168.x.x no es suficiente; necesitas un dominio con certificado HTTPS válido y confiable en el teléfono.';
+      } else if (!('serviceWorker' in navigator)) {
+        installHelp.textContent = 'Este navegador no permite instalar la aplicación. Abre el panel con Google Chrome actualizado en Android.';
+      } else {
+        navigator.serviceWorker.register('/service-worker.js').then(() => {
+          installHelp.textContent = 'Requisitos web listos. Si Chrome no muestra el botón, abre el overlay, toca ⋮ y elige «Instalar aplicación» o «Agregar a pantalla principal».';
+        }).catch((error) => {
+          installHelp.textContent = `No se pudo preparar la instalación: ${error.message}`;
+        });
+      }
+
+      window.addEventListener('beforeinstallprompt', (event) => {
+        event.preventDefault();
+        installPrompt = event;
+        document.querySelector('#installApp').hidden = false;
+        installHelp.textContent = 'La aplicación está lista para instalarse.';
+      });
+
+      window.addEventListener('appinstalled', () => {
+        installPrompt = null;
+        document.querySelector('#installApp').hidden = true;
+        showNotice('Fe y Esperanza Radio quedó instalada.', 'success');
+      });
+
+      document.querySelector('#installApp').addEventListener('click', async () => {
+        if (!installPrompt) return;
+        installPrompt.prompt();
+        await installPrompt.userChoice;
+        installPrompt = null;
+        document.querySelector('#installApp').hidden = true;
+      });
+
+      function showNotice(message, kind = '') {
+        notice.className = kind;
+        notice.textContent = message;
+      }
+
+      async function requestJson(url, options) {
+        const response = await fetch(url, options);
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || 'La solicitud no se pudo completar.');
+        return result;
+      }
+
+      function renderOverlayMessages() {
+        const container = document.querySelector('#overlayMessages');
+        container.replaceChildren();
+        overlayMessages.forEach((message, index) => {
+          const row = document.createElement('div');
+          row.className = 'message-row';
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.maxLength = 180;
+          input.value = message;
+          input.setAttribute('aria-label', `Mensaje ${index + 1}`);
+          input.addEventListener('input', () => { overlayMessages[index] = input.value; });
+          const remove = document.createElement('button');
+          remove.type = 'button';
+          remove.className = 'danger';
+          remove.textContent = 'Quitar';
+          remove.addEventListener('click', () => {
+            overlayMessages.splice(index, 1);
+            renderOverlayMessages();
+          });
+          row.append(input, remove);
+          container.append(row);
+        });
+      }
+
+      async function loadOverlaySettings() {
+        const settings = await requestJson('/api/overlay/settings');
+        document.querySelector('#tapGoal').value = String(settings.tapGoal);
+        document.querySelector('#coinGoal').value = settings.coinGoal;
+        overlayMessages = settings.ctaMessages;
+        renderOverlayMessages();
+      }
+
+      function showStatus(status) {
+        const connected = Boolean(status.connected);
+        statusElement.textContent = connected
+          ? `Conectado a @${status.username || ''}`
+          : `TikTok: ${status.status || 'desconectado'}`;
+        statusElement.className = `status ${connected ? 'connected' : 'disconnected'}`;
+      }
+
+      function renderEvent(entry) {
+        const item = document.createElement('article');
+        item.className = 'event';
+        const meta = document.createElement('div');
+        meta.className = 'event-meta';
+        const type = document.createElement('span');
+        type.className = 'event-type';
+        type.textContent = entry.eventLabel || entry.type || 'Evento';
+        const username = document.createElement('span');
+        username.textContent = entry.username || 'Sistema';
+        const time = document.createElement('time');
+        time.dateTime = entry.time || '';
+        time.textContent = entry.time ? new Date(entry.time).toLocaleTimeString() : '';
+        meta.append(type, username, time);
+        item.append(meta);
+        if (entry.content) {
+          const content = document.createElement('p');
+          content.className = 'event-content';
+          content.textContent = entry.content;
+          item.append(content);
+        }
+        return item;
+      }
+
+      function renderFeed() {
+        feed.replaceChildren();
+        if (!entries.length) {
+          const empty = document.createElement('p');
+          empty.className = 'muted';
+          empty.textContent = 'Esperando eventos…';
+          feed.append(empty);
+          return;
+        }
+        entries.slice(0, 100).forEach((entry) => feed.append(renderEvent(entry)));
+      }
+
+      async function loadConfiguration() {
+        const response = await fetch('/api/config');
+        if (!response.ok) throw new Error('No se pudo cargar la configuración del conector.');
+        const configuration = await response.json();
+        document.querySelector('#username').value = configuration.username || '';
+        eventOptions.replaceChildren();
+        configuration.events.forEach((event) => {
+          const label = document.createElement('label');
+          label.className = 'event-option';
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.value = event.name;
+          checkbox.checked = event.enabled;
+          const name = document.createElement('span');
+          name.textContent = event.label;
+          label.append(checkbox, name);
+          eventOptions.append(label);
+        });
+      }
+
+      document.querySelector('#configForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        notice.className = '';
+        notice.textContent = '';
+        const username = document.querySelector('#username').value;
+        const ignoredEvents = [...eventOptions.querySelectorAll('input:not(:checked)')]
+          .map((checkbox) => checkbox.value);
+        try {
+          const response = await fetch('/api/config', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, ignoredEvents }),
+          });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.message || 'No se pudo guardar la configuración.');
+          showNotice(`Configuración guardada para @${result.username}.`, 'success');
+        } catch (error) {
+          showNotice(error.message, 'error');
+        }
+      });
+
+      document.querySelector('#addMessage').addEventListener('click', () => {
+        const input = document.querySelector('#newMessage');
+        const message = input.value.trim();
+        if (!message) return;
+        if (overlayMessages.length >= 20) {
+          showNotice('Puedes configurar hasta 20 mensajes.', 'error');
+          return;
+        }
+        overlayMessages.push(message);
+        input.value = '';
+        renderOverlayMessages();
+      });
+
+      document.querySelector('#overlaySettingsForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        try {
+          const { settings } = await requestJson('/api/overlay/settings', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              tapGoal: Number(document.querySelector('#tapGoal').value),
+              coinGoal: Number(document.querySelector('#coinGoal').value),
+              ctaMessages: overlayMessages.map((message) => message.trim()).filter(Boolean),
+            }),
+          });
+          overlayMessages = settings.ctaMessages;
+          renderOverlayMessages();
+          showNotice('Ajustes del overlay guardados y aplicados.', 'success');
+        } catch (error) {
+          showNotice(error.message, 'error');
+        }
+      });
+
+      document.querySelectorAll('[data-overlay-action]').forEach((button) => {
+        button.addEventListener('click', async () => {
+          const action = button.dataset.overlayAction;
+          if (action === 'reset' && !window.confirm('¿Reiniciar los contadores de taps y monedas?')) return;
+          try {
+            await requestJson('/api/overlay/operator', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action }),
+            });
+            showNotice(action === 'reset' ? 'Contadores reiniciados en el overlay.' : 'Prueba enviada al overlay.', 'success');
+          } catch (error) {
+            showNotice(error.message, 'error');
+          }
+        });
+      });
+
+      const eventStream = new EventSource('/api/events');
+      eventStream.addEventListener('status', (event) => showStatus(JSON.parse(event.data)));
+      eventStream.addEventListener('snapshot', (event) => {
+        entries.splice(0, entries.length, ...JSON.parse(event.data));
+        renderFeed();
+      });
+      eventStream.addEventListener('update', (event) => {
+        const payload = JSON.parse(event.data);
+        entries.splice(0, entries.length, ...payload.events);
+        renderFeed();
+      });
+      fetch('/api/radio-state')
+        .then((response) => response.json())
+        .then((state) => {
+          document.querySelector('#radioStatus').textContent =
+            `Estado: ${state.status} · Fuente prevista: archivos locales`;
+        });
+      loadConfiguration().catch((error) => {
+        showNotice(error.message, 'error');
+      });
+      loadOverlaySettings().catch((error) => showNotice(error.message, 'error'));
+    </script>
+  </body>
+</html>
