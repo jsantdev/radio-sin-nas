@@ -10,7 +10,7 @@ El lanzador abre `http://localhost:80/` para la radio y `http://localhost:80/pla
 
 ### Easypanel con Nixpacks
 
-Selecciona **Nixpacks** como proveedor de construcción. El proyecto no requiere compilación: Nixpacks instala las dependencias desde `package-lock.json` y ejecuta `npm start` (`node server.js`). El servidor escucha en `0.0.0.0` en el puerto de `PORT`, con `3000` como valor local predeterminado; configura el puerto interno del servicio como `3000`. Monta un volumen persistente en `/app/data` para conservar la playlist y la configuración entre despliegues. Si se usa la biblioteca local, ese volumen también conserva los audios. El usuario predeterminado de TikTok es `hnaevalopez`; `TIKTOK_USERNAME` puede fijarlo en el entorno y tiene prioridad sobre la configuración guardada.
+Selecciona **Nixpacks** como proveedor de construcción y deja la raíz del proyecto en el repositorio. El `nixpacks.toml` de la raíz indica a Nixpacks que instale desde `app/package-lock.json` y arranque con `npm start` dentro de `app/`; no configures una subcarpeta como raíz. El servidor escucha en `0.0.0.0` en el puerto de `PORT`, con `3000` como valor local predeterminado; configura el puerto interno del servicio como `3000`. Monta un volumen persistente en `/app/data` para conservar la playlist y la configuración entre despliegues. Si se usa la biblioteca local, ese volumen también conserva los audios. El usuario predeterminado de TikTok es `hnaevalopez`; `TIKTOK_USERNAME` puede fijarlo en el entorno y tiene prioridad sobre la configuración guardada.
 
 ### Servidor externo de temas
 

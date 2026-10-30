@@ -1,0 +1,7 @@
+providers = ["node"]
+
+[phases.install]
+cmds = ["cd app && npm ci"]
+
+[start]
+cmd = "cd app && npm start"
