@@ -4,13 +4,13 @@ Servidor Node.js modular para una radio vinculada a TikTok Live. Conserva el con
 
 ## Instalación y ejecución
 
-Se requiere Node.js 18 o posterior. En Windows, ejecuta [`iniciar-servidores.bat`](iniciar-servidores.bat): inicia el servidor de radio en el puerto 80 por defecto, espera a que responda y abre la radio y el panel de playlist en Chrome. Para iniciarlo manualmente, ejecuta `npm start` desde esta carpeta. Define `PORT` para cambiar el puerto del servidor.
+Se requiere Node.js 22 o posterior. En Windows, ejecuta [`iniciar-servidores.bat`](iniciar-servidores.bat): inicia el servidor de radio en el puerto 80 por defecto, espera a que responda y abre la radio y el panel de playlist en Chrome. Para iniciarlo manualmente, ejecuta `npm start` desde esta carpeta. Define `PORT` para cambiar el puerto del servidor.
 
 El lanzador abre `http://localhost:80/` para la radio y `http://localhost:80/playlist` para administrar el playlist y todos los ajustes del servidor. `/backend` redirige a la sección de ajustes de esa misma página. Si se configura una biblioteca externa, las cargas, lecturas y eliminaciones de audio se realizan allí; la playlist y su URL siguen guardándose en el disco de la aplicación.
 
 ### Easypanel con Nixpacks
 
-Selecciona **Nixpacks** como proveedor de construcción y deja la raíz del proyecto en el repositorio. El `nixpacks.toml` de la raíz indica a Nixpacks que instale desde `app/package-lock.json` y arranque con `npm start` dentro de `app/`; no configures una subcarpeta como raíz. El servidor escucha en `0.0.0.0` en el puerto de `PORT`, con `3000` como valor local predeterminado; configura el puerto interno del servicio como `3000`. Monta un volumen persistente en `/app/data` para conservar la playlist y la configuración entre despliegues. Si se usa la biblioteca local, ese volumen también conserva los audios. El usuario predeterminado de TikTok es `hnaevalopez`; `TIKTOK_USERNAME` puede fijarlo en el entorno y tiene prioridad sobre la configuración guardada.
+Selecciona **Nixpacks** como proveedor de construcción y deja la raíz del proyecto en el repositorio. El `nixpacks.toml` de la raíz fija Node.js 22, instala desde `app/package-lock.json` y arranca con `npm start` dentro de `app/`; no configures una subcarpeta como raíz. El servidor escucha en `0.0.0.0` en el puerto de `PORT`, con `3000` como valor local predeterminado; configura el puerto interno del servicio como `3000`. Monta un volumen persistente en `/app/data` para conservar la playlist y la configuración entre despliegues. Si se usa la biblioteca local, ese volumen también conserva los audios. El usuario predeterminado de TikTok es `hnaevalopez`; `TIKTOK_USERNAME` puede fijarlo en el entorno y tiene prioridad sobre la configuración guardada.
 
 ### Servidor externo de temas
 

@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
 const test = require('node:test');
-const { WebcastEvent } = require('tiktok-live-connector');
+const { WebcastEvent } = require('../modules/tiktok/eventConfig');
 const { createTikTokMonitorService, translateGiftName } = require('../modules/tiktok');
 
 class FakeTikTokConnection extends EventEmitter {

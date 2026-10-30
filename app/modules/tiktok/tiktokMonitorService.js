@@ -1,14 +1,24 @@
 const { randomUUID } = require('node:crypto');
-const { TikTokLiveConnection, WebcastEvent, ControlEvent } = require('tiktok-live-connector');
-const { eventNames, eventLabels, defaultEnabledEvents } = require('./eventConfig');
+const {
+  eventNames,
+  eventLabels,
+  defaultEnabledEvents,
+  WebcastEvent,
+  ControlEvent,
+} = require('./eventConfig');
 const { createEventFeedStore } = require('./eventFeedService');
 const { translateGiftName } = require('./giftTranslationService');
 
+function loadTikTokConnector() {
+  return import('tiktok-live-connector');
+}
+
 function createTikTokMonitorService({
   eventFeedStore = createEventFeedStore(),
-  TikTokLiveConnectionClass = TikTokLiveConnection,
+  TikTokLiveConnectionClass,
   webcastEvents = WebcastEvent,
   controlEvents = ControlEvent,
+  connectorLoader = loadTikTokConnector,
   retryBaseDelayMs = 1000,
   retryMaxDelayMs = 30000,
   connectTimeoutMs = 30000,
@@ -347,76 +357,96 @@ function createTikTokMonitorService({
     state.status = state.retryAttempt ? 'reconnecting' : 'connecting';
     state.isConnected = false;
     broadcastStatus();
-    let connection;
-    try {
-      connection = new TikTokLiveConnectionClass(username, {
-        processInitialData: true,
-        fetchRoomInfoOnConnect: true,
-        enableExtendedGiftInfo: false,
-      });
-    } catch (error) {
-      const message = getErrorMessage(error, 'No se pudo crear la conexión.');
-      scheduleReconnect(username, generation, message);
-      return;
-    }
-    state.connection = connection;
-    subscribe(connection);
-
-    const markConnected = () => {
-      if (generation !== connectionGeneration || state.connection !== connection || state.isConnected) return;
-      cancelConnectionTimeout();
-      cancelScheduledRetry();
-      state.retryAttempt = 0;
-      state.status = 'connected';
-      state.isConnected = true;
-      state.error = '';
-      connectedInGeneration = true;
-      addLog(`Conectado a @${username}.`);
-      broadcastStatus();
-    };
-
-    connection.on(controlEvents.CONNECTED, markConnected);
-    connection.on(controlEvents.DISCONNECTED, () => {
-      if (generation !== connectionGeneration || state.connection !== connection) return;
-      if (connectedInGeneration) {
-        cancelConnectionTimeout();
-        cancelScheduledRetry();
-        state.connectionEventListeners.delete(connection);
-        state.connection = null;
-        state.status = 'finalized';
-        state.isConnected = false;
-        state.retryAttempt = 0;
-        state.nextRetryAt = null;
-        state.error = '';
-        addLog(`El directo de @${username} finalizó. No se volverá a intentar conectar.`);
-        broadcastStatus();
+    const startConnection = (ConnectionClass) => {
+      if (generation !== connectionGeneration) return;
+      let connection;
+      try {
+        connection = new ConnectionClass(username, {
+          processInitialData: true,
+          fetchRoomInfoOnConnect: true,
+          enableExtendedGiftInfo: false,
+        });
+      } catch (error) {
+        const message = getErrorMessage(error, 'No se pudo crear la conexión.');
+        scheduleReconnect(username, generation, message);
         return;
       }
-      scheduleReconnect(username, generation, state.error);
-    });
-    connection.on(controlEvents.ERROR, (error) => {
-      if (generation !== connectionGeneration || state.connection !== connection) return;
-      const message = getErrorMessage(error, 'Error desconocido');
-      scheduleReconnect(username, generation, message);
-    });
+      state.connection = connection;
+      subscribe(connection);
 
-    connectTimer = scheduleTimeout(() => {
-      connectTimer = null;
-      if (generation !== connectionGeneration || state.connection !== connection || state.isConnected) return;
-      scheduleReconnect(username, generation, `Tiempo de espera agotado al conectar con @${username}.`, connection);
-    }, connectTimeoutMs);
+      const markConnected = () => {
+        if (generation !== connectionGeneration || state.connection !== connection || state.isConnected) return;
+        cancelConnectionTimeout();
+        cancelScheduledRetry();
+        state.retryAttempt = 0;
+        state.status = 'connected';
+        state.isConnected = true;
+        state.error = '';
+        connectedInGeneration = true;
+        addLog(`Conectado a @${username}.`);
+        broadcastStatus();
+      };
 
-    try {
-      Promise.resolve(connection.connect()).then(markConnected).catch((error) => {
+      connection.on(controlEvents.CONNECTED, markConnected);
+      connection.on(controlEvents.DISCONNECTED, () => {
+        if (generation !== connectionGeneration || state.connection !== connection) return;
+        if (connectedInGeneration) {
+          cancelConnectionTimeout();
+          cancelScheduledRetry();
+          state.connectionEventListeners.delete(connection);
+          state.connection = null;
+          state.status = 'finalized';
+          state.isConnected = false;
+          state.retryAttempt = 0;
+          state.nextRetryAt = null;
+          state.error = '';
+          addLog(`El directo de @${username} finalizó. No se volverá a intentar conectar.`);
+          broadcastStatus();
+          return;
+        }
+        scheduleReconnect(username, generation, state.error);
+      });
+      connection.on(controlEvents.ERROR, (error) => {
+        if (generation !== connectionGeneration || state.connection !== connection) return;
+        const message = getErrorMessage(error, 'Error desconocido');
+        scheduleReconnect(username, generation, message);
+      });
+
+      connectTimer = scheduleTimeout(() => {
+        connectTimer = null;
+        if (generation !== connectionGeneration || state.connection !== connection || state.isConnected) return;
+        scheduleReconnect(username, generation, `Tiempo de espera agotado al conectar con @${username}.`, connection);
+      }, connectTimeoutMs);
+
+      try {
+        Promise.resolve(connection.connect()).then(markConnected).catch((error) => {
+          if (generation !== connectionGeneration || state.connection !== connection) return;
+          const message = getErrorMessage(error, 'No se pudo conectar');
+          scheduleReconnect(username, generation, message);
+        });
+      } catch (error) {
         if (generation !== connectionGeneration || state.connection !== connection) return;
         const message = getErrorMessage(error, 'No se pudo conectar');
         scheduleReconnect(username, generation, message);
-      });
-    } catch (error) {
-      if (generation !== connectionGeneration || state.connection !== connection) return;
-      const message = getErrorMessage(error, 'No se pudo conectar');
-      scheduleReconnect(username, generation, message);
+      }
+    };
+
+    if (TikTokLiveConnectionClass) {
+      startConnection(TikTokLiveConnectionClass);
+      return;
     }
+
+    connectorLoader()
+      .then(({ TikTokLiveConnection: ConnectionClass }) => {
+        if (typeof ConnectionClass !== 'function') {
+          throw new Error('El conector de TikTok no exportó TikTokLiveConnection.');
+        }
+        startConnection(ConnectionClass);
+      })
+      .catch((error) => {
+        if (generation !== connectionGeneration) return;
+        scheduleReconnect(username, generation, getErrorMessage(error, 'No se pudo cargar el conector de TikTok.'));
+      });
   }
 
   function connectUser(username) {

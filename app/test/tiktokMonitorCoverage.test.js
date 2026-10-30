@@ -1,8 +1,7 @@
 const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
 const test = require('node:test');
-const { ControlEvent, WebcastEvent } = require('tiktok-live-connector');
-const { eventNames } = require('../modules/tiktok/eventConfig');
+const { ControlEvent, WebcastEvent, eventNames } = require('../modules/tiktok/eventConfig');
 const { createEventFeedStore } = require('../modules/tiktok/eventFeedService');
 const { createTikTokMonitorService } = require('../modules/tiktok/tiktokMonitorService');
 
@@ -70,6 +69,23 @@ function createMonitor(options = {}) {
   });
   return { monitor, timers };
 }
+
+test('monitor loads the TikTok connector through its ESM export', async () => {
+  const connector = await import('tiktok-live-connector');
+  assert.deepEqual(WebcastEvent, connector.WebcastEvent);
+  assert.deepEqual(ControlEvent, connector.ControlEvent);
+
+  const { monitor } = createMonitor({
+    TikTokLiveConnectionClass: undefined,
+    connectorLoader: async () => ({ ...connector, TikTokLiveConnection: FakeConnection }),
+  });
+  monitor.connectUser('hnaevalopez');
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.equal(FakeConnection.instances.length, 1);
+  assert.equal(monitor.state.status, 'connected');
+  monitor.disconnectUser();
+});
 
 test('monitor validates timing and subscription contracts', () => {
   for (const options of [
