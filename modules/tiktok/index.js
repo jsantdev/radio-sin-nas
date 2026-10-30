@@ -114,9 +114,22 @@ function createTikTokModule({
     return { ok: true, username, ignoredEvents: uniqueIgnoredEvents };
   }
 
+  function reconnectConfiguredUser() {
+    if (!configuration.username) {
+      return { ok: false, status: 409, message: 'Primero configura un usuario de TikTok en el panel de administración.' };
+    }
+    if (monitorService.state.isConnected
+      || ['connecting', 'reconnecting'].includes(monitorService.state.status)) {
+      return { ok: false, status: 409, message: 'La conexión ya está activa o intentando conectarse.' };
+    }
+    monitorService.connectUser(configuration.username);
+    return { ok: true, username: configuration.username };
+  }
+
   function getStatus() {
     return {
       ...state,
+      configuredUsername: configuration.username,
       eventCount: events.length,
       connector: monitorService.getStatusPayload(),
     };
@@ -130,7 +143,13 @@ function createTikTokModule({
   }
 
   function registerRoutes(app) {
-    registerTikTokRoutes(app, { getStatus, getConfiguration, saveConfiguration, openEventStream });
+    registerTikTokRoutes(app, {
+      getStatus,
+      getConfiguration,
+      saveConfiguration,
+      reconnectConfiguredUser,
+      openEventStream,
+    });
   }
 
   if (configuration.username) monitorService.connectUser(configuration.username);

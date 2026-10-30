@@ -20,6 +20,20 @@
       .eyebrow { margin-bottom: 6px; font-size: .78rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
       .header-links { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; font-size: .9rem; }
       #playbackStatus { max-width: 320px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); color: var(--accent); font-size: .9rem; }
+      .channel-panel { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 16px; padding: 20px 22px; }
+      .channel-status { display: flex; align-items: center; gap: 13px; min-width: 0; }
+      .channel-indicator { display: grid; width: 52px; height: 52px; flex: 0 0 52px; place-items: center; border: 2px solid #576057; border-radius: 50%; background: #282e29; color: #b7c0b7; font-size: 1.25rem; }
+      .channel-indicator.connected { border-color: #52da91; background: #163d2a; color: #73f5a9; box-shadow: 0 0 22px #52da9140; }
+      .channel-indicator.disconnected { border-color: #ef737a; background: #402327; color: #ff9298; }
+      .channel-indicator.pending { border-color: #f0c674; background: #40361f; color: #f0c674; }
+      .channel-copy { min-width: 0; }
+      .channel-copy h2 { margin: 0 0 4px; font-size: 1.08rem; }
+      #channelStatusText { margin: 0; font-size: 1.1rem; font-weight: 800; }
+      #channelStatusText.connected { color: #73f5a9; }
+      #channelStatusText.disconnected { color: #ff9298; }
+      #channelStatusText.pending { color: #f0c674; }
+      #channelDetails { margin: 4px 0 0; color: var(--muted); font-size: .85rem; overflow-wrap: anywhere; }
+      #reconnectChannel { min-height: 48px; min-width: 150px; }
       .panel { min-width: 0; padding: 22px; }
       .upload-panel { margin-top: 18px; padding: clamp(20px, 4vw, 32px); background: linear-gradient(135deg, #202a20, #191f1b 65%); }
       .upload-intro { max-width: 580px; margin-bottom: 22px; }
@@ -70,6 +84,8 @@
         header { align-items: flex-start; flex-direction: column; gap: 14px; padding: 18px; border-radius: 15px; }
         #playbackStatus { max-width: 100%; }
         .panel { padding: 18px; border-radius: 15px; }
+        .channel-panel { align-items: stretch; flex-direction: column; gap: 14px; margin-top: 12px; padding: 18px; }
+        #reconnectChannel { width: 100%; }
         .upload-panel { margin-top: 12px; }
         .steps { gap: 4px; }
         .step { align-items: flex-start; flex-direction: column; gap: 5px; font-size: .75rem; }
@@ -96,6 +112,17 @@
       <div id="playbackStatus" class="muted">Cargando playlist…</div>
     </header>
     <p id="notice" role="status" aria-live="polite"></p>
+    <section class="panel channel-panel" aria-labelledby="channelHeading">
+      <div class="channel-status">
+        <span id="channelIndicator" class="channel-indicator pending" aria-hidden="true">●</span>
+        <div class="channel-copy">
+          <h2 id="channelHeading">Conexión al canal de TikTok</h2>
+          <p id="channelStatusText" class="pending" aria-live="polite">Comprobando conexión…</p>
+          <p id="channelDetails">Leyendo estado del servidor.</p>
+        </div>
+      </div>
+      <button id="reconnectChannel" type="button" class="secondary">Reconectar canal</button>
+    </section>
     <section class="panel upload-panel" aria-labelledby="uploadTitle">
       <div class="upload-intro">
         <p class="eyebrow">Agregar música</p>
@@ -163,11 +190,16 @@
       const audioPreviewCard = document.querySelector('#audioPreviewCard');
       const selectedAudioPlayer = document.querySelector('#selectedAudioPlayer');
       const audioPreviewName = document.querySelector('#audioPreviewName');
+      const channelIndicator = document.querySelector('#channelIndicator');
+      const channelStatusText = document.querySelector('#channelStatusText');
+      const channelDetails = document.querySelector('#channelDetails');
+      const reconnectChannel = document.querySelector('#reconnectChannel');
       let available = [];
       let state = null;
       let pending = false;
       let uploadReviewed = false;
       let audioPreviewUrl = null;
+      let channelState = null;
 
       function showNotice(message, kind = '') {
         notice.className = kind;
@@ -184,6 +216,7 @@
       function setPending(value) {
         pending = value;
         document.querySelectorAll('button').forEach((button) => { button.disabled = value; });
+        if (channelState) renderChannelStatus(channelState);
       }
 
       async function refresh() {
@@ -384,6 +417,43 @@
         return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
       }
 
+      function renderChannelStatus(status) {
+        channelState = status;
+        const connector = status.connector || {};
+        const isConnected = Boolean(status.connected || connector.isConnected);
+        const currentStatus = connector.status || status.status || 'desconectado';
+        const isPending = !isConnected && ['connecting', 'reconnecting'].includes(currentStatus);
+        const style = isConnected ? 'connected' : isPending ? 'pending' : 'disconnected';
+        channelIndicator.className = `channel-indicator ${style}`;
+        channelIndicator.textContent = isConnected ? '✓' : isPending ? '…' : '!';
+        channelStatusText.className = style;
+        channelStatusText.textContent = isConnected
+          ? 'CONECTADO AL CANAL'
+          : isPending ? 'CONECTANDO…' : 'NO CONECTADO';
+        const username = connector.username || status.username || status.configuredUsername;
+        const attempts = connector.connectionAttempts;
+        const maxAttempts = connector.maxConnectionAttempts || 3;
+        const attemptInfo = Number.isInteger(attempts) && !isConnected
+          ? `Intento ${Math.min(attempts, maxAttempts)} de ${maxAttempts}.`
+          : '';
+        const error = connector.error || status.error || '';
+        channelDetails.textContent = [
+          username ? `@${username}` : 'Configura el usuario del canal desde el panel de administración.',
+          attemptInfo,
+          isPending && connector.nextRetryAt ? 'Se reintentará automáticamente.' : '',
+          !isConnected && !isPending && attempts >= maxAttempts
+            ? 'Se detuvieron los reintentos automáticos.' : '',
+          error,
+        ].filter(Boolean).join(' ');
+        reconnectChannel.disabled = pending || isConnected || isPending || !username;
+        reconnectChannel.textContent = isConnected ? 'Canal conectado' : isPending ? 'Intentando conectar…' : 'Reconectar canal';
+      }
+
+      async function refreshChannelStatus() {
+        const status = await requestJson('/api/status');
+        renderChannelStatus(status);
+      }
+
       function clearAudioPreview() {
         selectedAudioPlayer.pause();
         selectedAudioPlayer.removeAttribute('src');
@@ -433,6 +503,19 @@
         trackTitle.focus();
       });
 
+      reconnectChannel.addEventListener('click', async () => {
+        reconnectChannel.disabled = true;
+        reconnectChannel.textContent = 'Reconectando…';
+        try {
+          await requestJson('/api/reconnect', { method: 'POST' });
+          await refreshChannelStatus();
+          showNotice('Reconexión iniciada. El servidor hará hasta 3 intentos y luego se detendrá.', 'success');
+        } catch (error) {
+          showNotice(error.message, 'error');
+          await refreshChannelStatus().catch((statusError) => showNotice(statusError.message, 'error'));
+        }
+      });
+
       document.querySelector('#confirmUpload').addEventListener('click', async () => {
         const file = audioFiles.files[0];
         const filename = selectedFilename();
@@ -478,6 +561,13 @@
       }
       radioStream.addEventListener('snapshot', (event) => applySnapshot(JSON.parse(event.data)));
       radioStream.addEventListener('update', (event) => applySnapshot(JSON.parse(event.data)));
+      const channelStream = new EventSource('/api/events');
+      channelStream.addEventListener('status', (event) => renderChannelStatus(JSON.parse(event.data)));
+      refreshChannelStatus().catch((error) => {
+        channelStatusText.className = 'disconnected';
+        channelStatusText.textContent = 'NO SE PUDO LEER EL ESTADO';
+        channelDetails.textContent = error.message;
+      });
       refresh().catch((error) => showNotice(error.message, 'error'));
     </script>
   </body>

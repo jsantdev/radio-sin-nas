@@ -1,4 +1,10 @@
-function registerTikTokRoutes(app, { getStatus, getConfiguration, saveConfiguration, openEventStream }) {
+function registerTikTokRoutes(app, {
+  getStatus,
+  getConfiguration,
+  saveConfiguration,
+  reconnectConfiguredUser,
+  openEventStream,
+}) {
   app.get('/api/status', (request, response) => {
     response.json(getStatus());
   });
@@ -11,6 +17,15 @@ function registerTikTokRoutes(app, { getStatus, getConfiguration, saveConfigurat
     const result = saveConfiguration(request.body);
     if (!result.ok) {
       response.status(400).json(result);
+      return;
+    }
+    response.json(result);
+  });
+
+  app.post('/api/reconnect', (request, response) => {
+    const result = reconnectConfiguredUser();
+    if (!result.ok) {
+      response.status(result.status).json({ ok: false, message: result.message });
       return;
     }
     response.json(result);

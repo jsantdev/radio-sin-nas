@@ -163,6 +163,11 @@ test('radio server keeps TikTok configuration, event monitoring, and radio state
     assert.equal(playlistPage.status, 200);
     const playlistHtml = await playlistPage.text();
     assert.match(playlistHtml, /Orden de reproducción/);
+    assert.match(playlistHtml, /Conexión al canal de TikTok/);
+    assert.match(playlistHtml, /NO CONECTADO/);
+    assert.match(playlistHtml, /Reconectar canal/);
+    assert.match(playlistHtml, /\/api\/reconnect/);
+    assert.match(playlistHtml, /hasta 3 intentos/);
     assert.match(playlistHtml, /type="file" required/);
     assert.doesNotMatch(playlistHtml, /accept="audio\/\*"/);
     assert.match(playlistHtml, /id="selectedAudioPlayer" controls/);
@@ -192,11 +197,20 @@ test('radio server keeps TikTok configuration, event monitoring, and radio state
     const config = await fetch(`${baseUrl}/api/config`).then((response) => response.json());
     assert.equal(config.events.find((event) => event.name === 'gift').enabled, true);
 
+    const reconnectWithoutUser = await sendJson('/api/reconnect', 'POST', {});
+    assert.equal(reconnectWithoutUser.status, 409);
+
     const connect = await sendJson('/api/config', 'PUT', {
-      username: '@radiohost',
+      username: '@hnaevalopez',
       ignoredEvents: ['follow'],
     }).then((response) => response.json());
-    assert.equal(connect.username, 'radiohost');
+    assert.equal(connect.username, 'hnaevalopez');
+    const reconnectWhileConnected = await sendJson('/api/reconnect', 'POST', {});
+    assert.equal(reconnectWhileConnected.status, 409);
+    monitorService.disconnectUser();
+    const reconnect = await sendJson('/api/reconnect', 'POST', {});
+    assert.equal(reconnect.status, 200);
+    assert.equal((await reconnect.json()).username, 'hnaevalopez');
 
     monitorService.emit({
       type: 'gift',
@@ -217,7 +231,7 @@ test('radio server keeps TikTok configuration, event monitoring, and radio state
 
     const status = await fetch(`${baseUrl}/api/status`).then((response) => response.json());
     assert.equal(status.connected, true);
-    assert.equal(status.connector.username, 'radiohost');
+    assert.equal(status.connector.username, 'hnaevalopez');
 
     const invalidConfig = await sendJson('/api/config', 'PUT', { username: '', ignoredEvents: [] });
     assert.equal(invalidConfig.status, 400);

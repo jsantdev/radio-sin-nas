@@ -218,13 +218,37 @@ function createTikTokMonitorService({
     }
   }
 
+  function getErrorMessage(error, fallback) {
+    if (typeof error === 'string' && error.trim()) return error;
+    if (error instanceof Error && typeof error.message === 'string' && error.message.trim()) {
+      return error.message;
+    }
+    if (error && typeof error === 'object') {
+      const detail = error.message;
+      if (typeof detail === 'string' && detail.trim()) return detail;
+      if (detail && typeof detail === 'object') {
+        try {
+          return JSON.stringify(detail);
+        } catch {
+          return fallback;
+        }
+      }
+      try {
+        return JSON.stringify(error);
+      } catch {
+        return fallback;
+      }
+    }
+    return fallback;
+  }
+
   function disconnectConnection(connection) {
     try {
       Promise.resolve(connection.disconnect()).catch((error) => {
-        addLog(`No se pudo cerrar la conexión: ${error.message || error}`);
+        addLog(`No se pudo cerrar la conexión: ${getErrorMessage(error, 'Error desconocido')}`);
       });
     } catch (error) {
-      addLog(`No se pudo cerrar la conexión: ${error.message || error}`);
+      addLog(`No se pudo cerrar la conexión: ${getErrorMessage(error, 'Error desconocido')}`);
     }
   }
 
@@ -277,7 +301,7 @@ function createTikTokMonitorService({
         enableExtendedGiftInfo: false,
       });
     } catch (error) {
-      const message = error && error.message ? error.message : String(error || 'No se pudo crear la conexión');
+      const message = getErrorMessage(error, 'No se pudo crear la conexión.');
       scheduleReconnect(username, generation, message);
       return;
     }
@@ -318,7 +342,7 @@ function createTikTokMonitorService({
     });
     connection.on(controlEvents.ERROR, (error) => {
       if (generation !== connectionGeneration || state.connection !== connection) return;
-      const message = error && error.message ? error.message : String(error || 'Error desconocido');
+      const message = getErrorMessage(error, 'Error desconocido');
       scheduleReconnect(username, generation, message);
     });
 
@@ -331,12 +355,12 @@ function createTikTokMonitorService({
     try {
       Promise.resolve(connection.connect()).then(markConnected).catch((error) => {
         if (generation !== connectionGeneration || state.connection !== connection) return;
-        const message = error && error.message ? error.message : String(error || 'No se pudo conectar');
+        const message = getErrorMessage(error, 'No se pudo conectar');
         scheduleReconnect(username, generation, message);
       });
     } catch (error) {
       if (generation !== connectionGeneration || state.connection !== connection) return;
-      const message = error && error.message ? error.message : String(error || 'No se pudo conectar');
+      const message = getErrorMessage(error, 'No se pudo conectar');
       scheduleReconnect(username, generation, message);
     }
   }

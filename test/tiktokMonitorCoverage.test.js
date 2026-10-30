@@ -82,11 +82,26 @@ test('monitor validates timing and subscription contracts', () => {
   }
 
   const { monitor } = createMonitor();
+  assert.equal(monitor.getStatusPayload().maxConnectionAttempts, 3);
   assert.throws(() => monitor.subscribeToEvents(null), /suscriptor de eventos/);
   assert.throws(() => monitor.subscribeToStatus(null), /suscriptor de estado/);
   assert.throws(() => monitor.connectUser('  '), /indicar un usuario/);
   assert.deepEqual(monitor.setEnabledEvents(null), []);
   assert.deepEqual(monitor.getAvailableEventsPayload().enabled, []);
+  monitor.disconnectUser();
+});
+
+test('monitor converts structured TikTok connection errors to readable messages', () => {
+  const { monitor } = createMonitor({ maxConnectionAttempts: 1 });
+  FakeConnection.connectBehavior = 'pending';
+  monitor.connectUser('hnaevalopez');
+  FakeConnection.instances[0].emit(ControlEvent.ERROR, {
+    message: { code: 'ROOM_UNAVAILABLE', detail: 'The live is not active.' },
+  });
+  assert.equal(monitor.state.username, 'hnaevalopez');
+  assert.equal(monitor.state.status, 'failed');
+  assert.equal(monitor.state.error, '{"code":"ROOM_UNAVAILABLE","detail":"The live is not active."}');
+  assert.doesNotMatch(monitor.state.error, /\[object Object\]/);
   monitor.disconnectUser();
 });
 
