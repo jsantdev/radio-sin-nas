@@ -62,14 +62,10 @@ test('radio server keeps TikTok configuration, event monitoring, and radio state
   const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), `radio-config-${randomUUID()}-`));
   const configurationPath = path.join(storagePath, 'monitor-config.json');
   const overlaySettingsPath = path.join(storagePath, 'overlay-settings.json');
-  const audioDirectory = path.join(storagePath, 'music');
-  const playlistPath = path.join(storagePath, 'playlist.json');
   const { server } = createWebserver({
     monitorService,
     configurationPath,
     overlaySettingsPath,
-    audioDirectory,
-    playlistPath,
   });
   const baseUrl = await listen(server);
   let radioReader;
@@ -97,7 +93,7 @@ test('radio server keeps TikTok configuration, event monitoring, and radio state
     assert.match(overlayHtml, /id="tapProgressBar"/);
     assert.match(overlayHtml, /Faltan .* likes para la pr/);
     assert.match(overlayHtml, /topContributors/);
-    assert.doesNotMatch(overlayHtml, /href="\/playlist"|previousTrack|nextTrack/);
+    assert.doesNotMatch(overlayHtml, /href="\/playlist"/);
     assert.match(overlayHtml, /rel="manifest" href="\/manifest\.webmanifest"/);
     assert.match(overlayHtml, /serviceWorker\.register\('\/service-worker\.js'\)/);
     assert.doesNotMatch(overlayHtml, /toggleOperatorPanelBtn|operatorPanel/);
@@ -107,9 +103,14 @@ test('radio server keeps TikTok configuration, event monitoring, and radio state
     assert.match(overlayHtml, /avatar: entry\.avatar/);
     assert.doesNotMatch(overlayHtml, /renderOperatorMessagesList/);
 
-    const backendPage = await fetch(`${baseUrl}/backend`, { redirect: 'manual' });
-    assert.equal(backendPage.status, 308);
-    assert.equal(backendPage.headers.get('location'), '/playlist#serverSettings');
+    const backendPage = await fetch(`${baseUrl}/backend`);
+    assert.equal(backendPage.status, 200);
+    const backendHtml = await backendPage.text();
+    assert.match(backendHtml, /Panel técnico/);
+    assert.match(backendHtml, /id="tiktokConfigForm"/);
+    assert.match(backendHtml, /id="externalStorageForm"/);
+    assert.doesNotMatch(backendHtml, /playlistTracks|scheduleForm|togglePlayback/);
+    assert.equal((await fetch(`${baseUrl}/playlist`)).status, 404);
 
     const manifestResponse = await fetch(`${baseUrl}/manifest.webmanifest`);
     assert.equal(manifestResponse.status, 200);
@@ -168,34 +169,24 @@ test('radio server keeps TikTok configuration, event monitoring, and radio state
     assert.match(operatorCommand, /test-like/);
     assert.equal((await sendJson('/api/overlay/operator', 'POST', { action: 'invalid' })).status, 400);
 
-    const playlistPage = await fetch(`${baseUrl}/playlist`);
-    assert.equal(playlistPage.status, 200);
-    const playlistHtml = await playlistPage.text();
-    assert.match(playlistHtml, /Orden de reproducción/);
-    assert.match(playlistHtml, /Conexión al canal de TikTok/);
-    assert.match(playlistHtml, /NO CONECTADO/);
-    assert.match(playlistHtml, /Reconectar canal/);
-    assert.match(playlistHtml, /\/api\/reconnect/);
-    assert.match(playlistHtml, /hasta 3 intentos/);
-    assert.match(playlistHtml, /type="file" required/);
-    assert.doesNotMatch(playlistHtml, /accept="audio\/\*"/);
-    assert.match(playlistHtml, /id="selectedAudioPlayer" controls/);
-    assert.match(playlistHtml, /id="togglePlayback"/);
-    assert.match(playlistHtml, /URL\.createObjectURL\(file\)/);
-    assert.match(playlistHtml, /URL\.revokeObjectURL\(audioPreviewUrl\)/);
-    assert.match(playlistHtml, /id="serverSettings"/);
-    assert.match(playlistHtml, /id="tiktokConfigForm"/);
-    assert.match(playlistHtml, /id="overlaySettingsForm"/);
-    assert.match(playlistHtml, /option value="20000"/);
-    assert.match(playlistHtml, /id="ctaIntervalSeconds"/);
-    assert.match(playlistHtml, /data-overlay-action="test-like"/);
-    assert.match(playlistHtml, /loadTikTokConfiguration\(\)/);
+    assert.match(backendHtml, /Conexión al canal de TikTok/);
+    assert.match(backendHtml, /NO CONECTADO/);
+    assert.match(backendHtml, /Reconectar canal/);
+    assert.match(backendHtml, /\/api\/reconnect/);
+    assert.match(backendHtml, /hasta 3 intentos/);
+    assert.match(backendHtml, /id="serverSettings"/);
+    assert.match(backendHtml, /id="overlaySettingsForm"/);
+    assert.match(backendHtml, /option value="20000"/);
+    assert.match(backendHtml, /id="ctaIntervalSeconds"/);
+    assert.match(backendHtml, /data-overlay-action="test-like"/);
+    assert.match(backendHtml, /loadTikTokConfiguration\(\)/);
 
     const radioState = await fetch(`${baseUrl}/api/radio-state`).then((response) => response.json());
     assert.deepEqual(radioState, {
       status: 'empty',
-      audioSource: 'local-files',
+      audioSource: 'external-library',
       isPlaying: false,
+      repeat: true,
       currentIndex: null,
       currentTrack: null,
       queue: [],
@@ -288,50 +279,9 @@ test('radio server keeps TikTok configuration, event monitoring, and radio state
     assert.equal(invalidConfig.status, 400);
     assert.equal((await invalidConfig.json()).ok, false);
 
-    const audio = Buffer.from('fake mp3 bytes');
-    const uploaded = await fetch(`${baseUrl}/api/radio/tracks`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'audio/mpeg',
-        'X-File-Name': encodeURIComponent('Canción uno.mp3'),
-      },
-      body: audio,
-    });
-    assert.equal(uploaded.status, 201);
-    assert.equal((await uploaded.json()).track.title, 'Canción uno');
-
-    const audioResponse = await fetch(`${baseUrl}/audio/${encodeURIComponent('Canción uno.mp3')}`);
-    assert.equal(audioResponse.status, 200);
-    assert.deepEqual(Buffer.from(await audioResponse.arrayBuffer()), audio);
-
-    const invalidUpload = await fetch(`${baseUrl}/api/radio/tracks`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'audio/mpeg', 'X-File-Name': encodeURIComponent('..\\outside.mp3') },
-      body: audio,
-    });
-    assert.equal(invalidUpload.status, 400);
-
-    const setPlaylist = await sendJson('/api/radio/playlist', 'PUT', { tracks: ['Canción uno.mp3'] });
-    assert.equal(setPlaylist.status, 200);
-    const queued = await setPlaylist.json();
-    assert.equal(queued.state.currentTrack.title, 'Canción uno');
-    assert.deepEqual(JSON.parse(fs.readFileSync(playlistPath, 'utf8')), ['Canción uno.mp3']);
-
-    const play = await sendJson('/api/radio/playback', 'POST', { isPlaying: true });
-    assert.equal((await play.json()).state.isPlaying, true);
-
-    const next = await sendJson('/api/radio/next', 'POST', {});
-    assert.equal(next.status, 200);
-    assert.equal((await next.json()).state.currentIndex, 0);
-
-    const invalidPlaylist = await sendJson('/api/radio/playlist', 'PUT', { tracks: ['missing.mp3'] });
-    assert.equal(invalidPlaylist.status, 400);
-
-    const removed = await fetch(`${baseUrl}/api/radio/tracks/${encodeURIComponent('Canción uno.mp3')}`, {
-      method: 'DELETE',
-    });
-    assert.equal(removed.status, 200);
-    assert.deepEqual((await removed.json()).state.queue, []);
+    assert.equal((await fetch(`${baseUrl}/api/radio/playlist`)).status, 404);
+    assert.equal((await fetch(`${baseUrl}/api/radio/tracks`)).status, 404);
+    assert.equal((await fetch(`${baseUrl}/audio/current`)).status, 409);
 
     const oldGameApi = await fetch(`${baseUrl}/api/game-state`);
     assert.equal(oldGameApi.status, 404);

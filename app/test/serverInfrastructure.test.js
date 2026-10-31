@@ -154,11 +154,18 @@ test('startServer reports its address, falls back to requested port, and handles
 test('radio module exposes an empty playlist snapshot and closes cleanly', () => {
   const stream = createSseHub();
   assert.throws(() => createRadioModule(), /canal de actualizaciones/);
-  const radio = createRadioModule({ stream });
+  const radio = createRadioModule({
+    stream,
+    externalLibrary: {
+      getServerUrl: () => '',
+      setServerUrl: () => ({ serverUrl: '' }),
+    },
+  });
   assert.deepEqual(radio.getSnapshot(), {
     status: 'empty',
-    audioSource: 'local-files',
+    audioSource: 'external-library',
     isPlaying: false,
+    repeat: true,
     currentIndex: null,
     currentTrack: null,
     queue: [],

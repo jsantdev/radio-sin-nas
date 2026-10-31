@@ -309,6 +309,7 @@
             <p class="text-[9px] uppercase tracking-wider text-amber-200 font-bold">Radio en vivo</p>
             <p id="radioTrackTitle" class="text-xs font-extrabold text-white truncate">Conectando con la radio…</p>
             <p id="radioHint" class="text-[10px] text-pink-200/80">Esperando estado…</p>
+            <button id="enableRadioAudio" type="button" class="mt-1 rounded bg-amber-300 px-2 py-1 text-[10px] font-bold text-black" hidden>Activar audio</button>
           </div>
         </div>
         <audio id="radioPlayer" preload="metadata" aria-hidden="true" class="hidden"></audio>
@@ -903,6 +904,7 @@
       const player = document.getElementById('radioPlayer');
       const trackTitle = document.getElementById('radioTrackTitle');
       const radioHint = document.getElementById('radioHint');
+      const enableAudio = document.getElementById('enableRadioAudio');
       let currentUrl = '';
       let triedAutoplay = false;
 
@@ -919,7 +921,8 @@
       function playAudio() {
         triedAutoplay = true;
         player.play().catch(() => {
-          radioHint.textContent = 'Inicia la reproducción desde los controles de /playlist.';
+          radioHint.textContent = 'Toca para habilitar el audio de la biblioteca.';
+          enableAudio.hidden = false;
         });
       }
 
@@ -930,8 +933,9 @@
           player.pause();
           player.removeAttribute('src');
           player.load();
-          trackTitle.textContent = 'Agrega canciones desde el panel de playlist.';
+          trackTitle.textContent = 'Agrega canciones desde la biblioteca musical.';
           radioHint.textContent = 'La playlist está vacía.';
+          enableAudio.hidden = true;
           return;
         }
 
@@ -951,6 +955,7 @@
       }
 
       player.addEventListener('play', () => {
+        enableAudio.hidden = true;
         postPlayback(true).catch((error) => { radioHint.textContent = error.message; });
       });
       player.addEventListener('pause', () => {
@@ -963,6 +968,7 @@
           if (!response.ok) throw new Error(result.message || 'No se pudo avanzar a la siguiente canción.');
         }).catch((error) => { radioHint.textContent = error.message; });
       });
+      enableAudio.addEventListener('click', () => playAudio());
       const radioStream = new EventSource('/api/radio-state/stream');
       radioStream.addEventListener('snapshot', (event) => showRadioState(JSON.parse(event.data)));
       radioStream.addEventListener('update', (event) => showRadioState(JSON.parse(event.data)));

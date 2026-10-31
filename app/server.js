@@ -23,8 +23,6 @@ function createErrorHandler() {
 function createWebserver({
   configurationPath = process.env.WEBSERVER_CONFIG_PATH || path.join(__dirname, 'data', 'monitor-config.json'),
   overlaySettingsPath = path.join(__dirname, 'data', 'overlay-settings.json'),
-  audioDirectory = path.join(__dirname, 'data', 'music'),
-  playlistPath = path.join(__dirname, 'data', 'radio-playlist.json'),
   externalLibraryConfigurationPath = path.join(__dirname, 'data', 'external-library-config.json'),
   externalLibrary = createExternalLibraryClient({ configurationPath: externalLibraryConfigurationPath }),
   monitorService = createTikTokMonitorService(),
@@ -34,7 +32,7 @@ function createWebserver({
   const radioStream = createSseHub();
   const activityStream = createSseHub();
   const overlayStream = createSseHub();
-  const radioModule = createRadioModule({ stream: radioStream, audioDirectory, playlistPath, externalLibrary });
+  const radioModule = createRadioModule({ stream: radioStream, externalLibrary });
   const overlayModule = createOverlayModule({ stream: overlayStream, settingsPath: overlaySettingsPath });
   const tiktokModule = createTikTokModule({
     stream: activityStream,
@@ -48,10 +46,7 @@ function createWebserver({
   radioModule.registerRoutes(app);
 
   app.get(['/backend', '/backend/', '/backend/index.html'], (request, response) => {
-    response.redirect(308, '/playlist#serverSettings');
-  });
-  app.get(['/playlist', '/playlist/', '/playlist/index.html'], (request, response) => {
-    response.sendFile(path.join(__dirname, 'public', 'playlist.html'));
+    response.sendFile(path.join(__dirname, 'public', 'backend.html'));
   });
   app.get(['/panel', '/panel/', '/panel/index.html'], (request, response) => {
     response.redirect(308, '/backend');

@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#101512">
+    <title>Panel técnico | Radio TikTok Live</title>
+    <style>
+      :root { color-scheme: dark; font: 16px "Segoe UI", sans-serif; color: #edf1ec; background: #0e120f; --surface: #151a16; --surface-2: #1b221d; --line: #29312b; --muted: #9aa59c; --accent: #c5f36b; --accent-ink: #17200c; }
+      * { box-sizing: border-box; }
+      body { max-width: 1120px; margin: auto; padding: 28px 22px 56px; }
+      header, .panel { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+      header { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 24px 26px; }
+      h1, h2, p { margin-top: 0; }
+      h1 { margin-bottom: 4px; font-size: clamp(1.55rem, 4vw, 2.15rem); letter-spacing: -.04em; }
+      h2 { margin-bottom: 6px; font-size: 1.08rem; letter-spacing: -.015em; }
+      a { color: var(--accent); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      .eyebrow, .muted, .hint { color: var(--muted); }
+      .eyebrow { margin-bottom: 6px; font-size: .78rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+      .header-links { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; font-size: .9rem; }
+      .channel-panel { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 14px; padding: 15px 18px; }
+      .channel-status { display: flex; align-items: center; gap: 11px; min-width: 0; }
+      .channel-indicator { display: grid; width: 36px; height: 36px; flex: 0 0 36px; place-items: center; border: 1px solid #576057; border-radius: 50%; background: #202721; color: #b7c0b7; font-size: .95rem; }
+      .channel-indicator.connected { border-color: #52da91; background: #163d2a; color: #73f5a9; }
+      .channel-indicator.disconnected { border-color: #ef737a; background: #402327; color: #ff9298; }
+      .channel-indicator.pending { border-color: #f0c674; background: #40361f; color: #f0c674; }
+      .channel-copy { min-width: 0; }
+      .channel-copy h2 { margin: 0 0 4px; font-size: 1.08rem; }
+      #channelStatusText { margin: 0; font-size: .96rem; font-weight: 750; }
+      #channelStatusText.connected { color: #73f5a9; }
+      #channelStatusText.disconnected { color: #ff9298; }
+      #channelStatusText.pending { color: #f0c674; }
+      #channelDetails { margin: 4px 0 0; color: var(--muted); font-size: .85rem; overflow-wrap: anywhere; }
+      #reconnectChannel { min-height: 42px; min-width: 140px; }
+      .admin-panel { margin-top: 18px; }
+      .admin-panel > summary { cursor: pointer; font-size: 1.02rem; font-weight: 700; }
+      .admin-section { margin-top: 12px; padding: 14px; border: 1px solid var(--line); border-radius: 9px; background: #121713; }
+      .admin-section > summary { cursor: pointer; font-weight: 700; }
+      .admin-section-content { margin-top: 14px; }
+      .settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+      .settings-grid input, .settings-grid select, .message-row input, #newMessage, #tiktokUsername { width: 100%; min-height: 46px; padding: 10px 12px; border: 1px solid #465047; border-radius: 9px; color: inherit; background: #111612; font: inherit; }
+      .event-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; max-height: 340px; overflow: auto; margin: 12px 0 16px; }
+      .event-option { display: flex; align-items: center; gap: 8px; padding: 9px; border: 1px solid var(--line); border-radius: 8px; }
+      .event-option input { accent-color: var(--accent); }
+      .message-list { display: grid; gap: 8px; margin: 12px 0; }
+      .message-row, .message-add { display: flex; align-items: center; gap: 8px; }
+      .message-row input, .message-add input { flex: 1; min-width: 0; }
+      .message-add { margin: 12px 0; }
+      .test-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+      .test-actions button, .message-row button, .message-add button { min-height: 44px; }
+      .admin-status { display: inline-flex; margin: 8px 0 12px; padding: 6px 9px; border: 1px solid var(--line); border-radius: 99px; color: #f0c674; font-size: .86rem; }
+      .admin-status.connected { color: #73f5a9; }
+      .admin-status.disconnected { color: #ff9298; }
+      #externalStorageUrl { width: 100%; min-height: 46px; padding: 10px 12px; border: 1px solid #465047; border-radius: 9px; color: inherit; background: #111612; font: inherit; }
+      .event-feed { max-height: 340px; overflow: auto; }
+      .event-feed-item { padding: 11px 0; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
+      .event-feed-meta { display: flex; flex-wrap: wrap; gap: 8px; color: var(--muted); font-size: .86rem; }
+      .event-feed-type { color: var(--accent); font-weight: 700; }
+      .event-feed-content { margin: 5px 0 0; }
+      .panel { min-width: 0; padding: 20px; }
+      .hint { margin-bottom: 0; line-height: 1.5; font-size: .92rem; }
+      label { display: grid; gap: 8px; font-weight: 650; }
+      input[type="text"] { width: 100%; min-height: 48px; padding: 11px 13px; border: 1px solid #465047; border-radius: 10px; color: inherit; background: #111612; font: inherit; }
+      input[type="text"]:focus { border-color: var(--accent); outline: 2px solid #c5f36b33; }
+      button { min-height: 40px; padding: 8px 13px; border: 1px solid transparent; border-radius: 8px; color: var(--accent-ink); background: var(--accent); font: inherit; font-weight: 700; cursor: pointer; transition: background .15s, transform .15s; }
+      button:hover { background: #d7fb96; }
+      button:active { transform: translateY(1px); }
+      button.secondary { border-color: var(--line); color: #f1f3ed; background: var(--surface-2); }
+      button.secondary:hover { background: #2b352d; }
+      button.danger { border-color: #614044; color: #ffc9cb; background: #382427; }
+      button:disabled { cursor: not-allowed; opacity: .48; }
+      #notice { min-height: 1.4em; margin: 12px 0 0; }
+      .error { color: #ff9298; }
+      .success { color: var(--accent); }
+      @media (max-width: 700px) {
+        body { padding: 12px 12px 32px; }
+        header { align-items: flex-start; flex-direction: column; gap: 14px; padding: 18px; }
+        #playbackStatus { max-width: 100%; }
+        .panel { padding: 18px; border-radius: 15px; }
+        .channel-panel { align-items: stretch; flex-direction: column; gap: 14px; margin-top: 12px; padding: 18px; }
+        #reconnectChannel { width: 100%; }
+        .settings-grid { grid-template-columns: 1fr; }
+        .message-row, .message-add { align-items: stretch; flex-direction: column; }
+        .test-actions button { flex: 1 1 140px; }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+        <p class="eyebrow">FE Y ESPERANZA · RADIO</p>
+        <h1>Panel técnico</h1>
+        <nav class="header-links" aria-label="Navegación">
+          <a href="/">Abrir radio ↗</a>
+          <a id="libraryLink" href="#" target="_blank" rel="noopener" hidden>Gestionar biblioteca musical ↗</a>
+          <a href="#serverSettings">Ajustes del servidor</a>
+        </nav>
+      </div>
+    </header>
+    <p id="notice" role="status" aria-live="polite"></p>
+    <section class="panel channel-panel" aria-labelledby="channelHeading">
+      <div class="channel-status">
+        <span id="channelIndicator" class="channel-indicator pending" aria-hidden="true">●</span>
+        <div class="channel-copy">
+          <h2 id="channelHeading">Conexión al canal de TikTok</h2>
+          <p id="channelStatusText" class="pending" aria-live="polite">Comprobando conexión…</p>
+          <p id="channelDetails">Leyendo estado del servidor.</p>
+        </div>
+      </div>
+      <button id="reconnectChannel" type="button" class="secondary">Reconectar canal</button>
+    </section>
+    <details id="serverSettings" class="panel admin-panel">
+      <summary>Ajustes del servidor</summary>
+      <p class="hint" style="margin-top: 10px;">Configura el canal de TikTok, los eventos y el overlay desde esta misma página.</p>
+      <details class="admin-section" id="externalStorageSection">
+        <summary>Biblioteca externa de temas</summary>
+        <div class="admin-section-content">
+          <p id="externalStorageStatus" class="admin-status">Comprobando biblioteca…</p>
+          <form id="externalStorageForm">
+            <label for="externalStorageUrl">URL base de la biblioteca musical
+              <input id="externalStorageUrl" type="url" autocomplete="url" placeholder="https://biblioteca.ejemplo.com">
+            </label>
+            <p class="hint" style="margin: 10px 0;">La radio obtiene de esta biblioteca el audio, la canción actual y el estado de reproducción.</p>
+            <button type="submit">Conectar y guardar</button>
+          </form>
+        </div>
+      </details>
+      <details class="admin-section">
+        <summary>Conexión y eventos de TikTok</summary>
+        <div class="admin-section-content">
+          <p id="adminTikTokStatus" class="admin-status">Conectando…</p>
+          <form id="tiktokConfigForm">
+            <label for="tiktokUsername">Usuario del directo
+              <input id="tiktokUsername" name="username" type="text" autocomplete="off" placeholder="@hnaevalopez" required>
+            </label>
+            <p class="hint" style="margin-top: 10px;">Canal predeterminado: @hnaevalopez. Marca los eventos que quieres recibir y mostrar.</p>
+            <div id="eventOptions" class="event-options">Cargando eventos…</div>
+            <button type="submit">Guardar y conectar</button>
+          </form>
+          <h3>Eventos recibidos</h3>
+          <div id="eventFeed" class="event-feed" aria-live="polite"><p class="muted">Esperando eventos…</p></div>
+        </div>
+      </details>
+      <details class="admin-section">
+        <summary>Metas y mensajes del overlay</summary>
+        <div class="admin-section-content">
+          <form id="overlaySettingsForm">
+            <div class="settings-grid">
+              <label for="tapGoal">Meta de Tap Tap (likes)
+                <select id="tapGoal">
+                  <option value="1000">1.000 taps</option>
+                  <option value="5000">5.000 taps</option>
+                  <option value="10000">10.000 taps</option>
+                  <option value="20000">20.000 taps</option>
+                </select>
+              </label>
+              <label for="coinGoal">Meta de monedas para pedir canción
+                <input id="coinGoal" type="number" min="1" max="1000000" step="50" required>
+              </label>
+              <label for="ctaIntervalSeconds">Frecuencia de mensajes automáticos
+                <select id="ctaIntervalSeconds">
+                  <option value="20">Cada 20 segundos</option>
+                  <option value="25">Cada 25 segundos</option>
+                  <option value="30">Cada 30 segundos</option>
+                </select>
+              </label>
+            </div>
+            <h3>Mensajes rotativos</h3>
+            <div id="overlayMessages" class="message-list"></div>
+            <div class="message-add">
+              <input id="newMessage" type="text" maxlength="180" placeholder="Añadir mensaje para el overlay">
+              <button id="addMessage" type="button" class="secondary">Agregar</button>
+            </div>
+            <p class="hint">Hasta 20 mensajes. Cada uno puede tener hasta 180 caracteres.</p>
+            <button type="submit" style="margin-top: 14px;">Guardar ajustes del overlay</button>
+          </form>
+        </div>
+      </details>
+      <details class="admin-section">
+        <summary>Pruebas del overlay</summary>
+        <div class="admin-section-content">
+          <p class="hint">Comprueba los eventos visuales en el overlay abierto.</p>
+          <div class="test-actions">
+            <button type="button" class="secondary" data-overlay-action="test-like">Probar +50 taps</button>
+            <button type="button" class="secondary" data-overlay-action="test-follow">Probar seguidor</button>
+            <button type="button" class="secondary" data-overlay-action="test-gift">Probar regalo</button>
+            <button type="button" class="secondary" data-overlay-action="test-epic-gift">Probar regalo especial</button>
+            <button type="button" class="secondary" data-overlay-action="test-song-goal">Probar meta de canción</button>
+            <button type="button" class="secondary" data-overlay-action="reset">Reiniciar contadores</button>
+          </div>
+        </div>
+      </details>
+    </details>
+    <script>
+      const notice = document.querySelector('#notice');
+      const externalStorageStatus = document.querySelector('#externalStorageStatus');
+      const libraryLink = document.querySelector('#libraryLink');
+      const channelIndicator = document.querySelector('#channelIndicator');
+      const channelStatusText = document.querySelector('#channelStatusText');
+      const channelDetails = document.querySelector('#channelDetails');
+      const reconnectChannel = document.querySelector('#reconnectChannel');
+      const eventOptions = document.querySelector('#eventOptions');
+      const eventFeed = document.querySelector('#eventFeed');
+      const adminTikTokStatus = document.querySelector('#adminTikTokStatus');
+      let overlayMessages = [];
+      const receivedEvents = [];
+      let pending = false;
+      let channelState = null;
+
+      function showNotice(message, kind = '') {
+        notice.className = kind;
+        notice.textContent = message;
+      }
+
+      async function requestJson(url, options) {
+        const response = await fetch(url, options);
+        const result = await response.json();
+        if (!response.ok) {
+          const error = new Error(result.message || 'La solicitud no se pudo completar.');
+          error.configuration = result.configuration;
+          throw error;
+        }
+        return result;
+      }
+
+      function setPending(value) {
+        pending = value;
+        document.querySelectorAll('button').forEach((button) => { button.disabled = value; });
+      }
+
+      async function runAction(action, successMessage) {
+        if (pending) return;
+        setPending(true);
+        try {
+          await action();
+          showNotice(successMessage, 'success');
+        } catch (error) {
+          if (error.configuration) updateStorageStatus(error.configuration);
+          showNotice(error.message, 'error');
+        } finally {
+          setPending(false);
+        }
+      }
+
+      function renderChannelStatus(status) {
+        channelState = status;
+        const connector = status.connector || {};
+        const isConnected = Boolean(status.connected || connector.isConnected);
+        const currentStatus = connector.status || status.status || 'desconectado';
+        const isPending = !isConnected && ['connecting', 'reconnecting'].includes(currentStatus);
+        const style = isConnected ? 'connected' : isPending ? 'pending' : 'disconnected';
+        channelIndicator.className = `channel-indicator ${style}`;
+        channelIndicator.textContent = isConnected ? '✓' : isPending ? '…' : '!';
+        channelStatusText.className = style;
+        channelStatusText.textContent = isConnected
+          ? 'CONECTADO AL CANAL'
+          : isPending ? 'CONECTANDO…' : 'NO CONECTADO';
+        const username = connector.username || status.username || status.configuredUsername;
+        adminTikTokStatus.className = `admin-status ${style}`;
+        adminTikTokStatus.textContent = isConnected
+          ? `Conectado a @${username || ''}`
+          : isPending ? `Conectando a @${username || 'hnaevalopez'}…`
+            : `TikTok: ${status.status || currentStatus}`;
+        const attempts = connector.connectionAttempts;
+        const maxAttempts = connector.maxConnectionAttempts || 3;
+        const attemptInfo = Number.isInteger(attempts) && !isConnected
+          ? `Intento ${Math.min(attempts, maxAttempts)} de ${maxAttempts}.`
+          : '';
+        const error = connector.error || status.error || '';
+        channelDetails.textContent = [
+          username ? `@${username}` : 'Configura el usuario del canal desde el panel de administración.',
+          attemptInfo,
+          isPending && connector.nextRetryAt ? 'Se reintentará automáticamente.' : '',
+          !isConnected && !isPending && attempts >= maxAttempts
+            ? 'Se detuvieron los reintentos automáticos.' : '',
+          error,
+        ].filter(Boolean).join(' ');
+        reconnectChannel.disabled = pending || isConnected || isPending || !username;
+        reconnectChannel.textContent = isConnected ? 'Canal conectado' : isPending ? 'Intentando conectar…' : 'Reconectar canal';
+      }
+
+      function renderEvent(entry) {
+        const item = document.createElement('article');
+        item.className = 'event-feed-item';
+        const meta = document.createElement('div');
+        meta.className = 'event-feed-meta';
+        const type = document.createElement('span');
+        type.className = 'event-feed-type';
+        type.textContent = entry.eventLabel || entry.type || 'Evento';
+        const username = document.createElement('span');
+        username.textContent = entry.username || 'Sistema';
+        const time = document.createElement('time');
+        time.dateTime = entry.time || '';
+        time.textContent = entry.time ? new Date(entry.time).toLocaleTimeString() : '';
+        meta.append(type, username, time);
+        item.append(meta);
+        if (entry.content) {
+          const content = document.createElement('p');
+          content.className = 'event-feed-content';
+          content.textContent = entry.content;
+          item.append(content);
+        }
+        return item;
+      }
+
+      function renderEventFeed() {
+        eventFeed.replaceChildren();
+        if (!receivedEvents.length) {
+          const empty = document.createElement('p');
+          empty.className = 'muted';
+          empty.textContent = 'Esperando eventos…';
+          eventFeed.append(empty);
+          return;
+        }
+        receivedEvents.slice(0, 40).forEach((entry) => eventFeed.append(renderEvent(entry)));
+      }
+
+      async function loadTikTokConfiguration() {
+        const configuration = await requestJson('/api/config');
+        document.querySelector('#tiktokUsername').value = configuration.username || 'hnaevalopez';
+        eventOptions.replaceChildren();
+        configuration.events.forEach((event) => {
+          const label = document.createElement('label');
+          label.className = 'event-option';
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.value = event.name;
+          checkbox.checked = event.enabled;
+          const name = document.createElement('span');
+          name.textContent = event.label;
+          label.append(checkbox, name);
+          eventOptions.append(label);
+        });
+      }
+
+      async function loadOverlaySettings() {
+        const settings = await requestJson('/api/overlay/settings');
+        document.querySelector('#tapGoal').value = String(settings.tapGoal);
+        document.querySelector('#coinGoal').value = settings.coinGoal;
+        document.querySelector('#ctaIntervalSeconds').value = String(settings.ctaIntervalSeconds || 25);
+        overlayMessages = settings.ctaMessages;
+        renderOverlayMessages();
+      }
+
+      function renderOverlayMessages() {
+        const container = document.querySelector('#overlayMessages');
+        container.replaceChildren();
+        overlayMessages.forEach((message, index) => {
+          const row = document.createElement('div');
+          row.className = 'message-row';
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.maxLength = 180;
+          input.value = message;
+          input.setAttribute('aria-label', `Mensaje ${index + 1}`);
+          input.addEventListener('input', () => { overlayMessages[index] = input.value; });
+          const remove = document.createElement('button');
+          remove.type = 'button';
+          remove.className = 'danger';
+          remove.textContent = 'Quitar';
+          remove.addEventListener('click', () => {
+            overlayMessages.splice(index, 1);
+            renderOverlayMessages();
+          });
+          row.append(input, remove);
+          container.append(row);
+        });
+      }
+
+      async function refreshChannelStatus() {
+        const status = await requestJson('/api/status');
+        renderChannelStatus(status);
+      }
+
+      reconnectChannel.addEventListener('click', async () => {
+        reconnectChannel.disabled = true;
+        reconnectChannel.textContent = 'Reconectando…';
+        try {
+          await requestJson('/api/reconnect', { method: 'POST' });
+          await refreshChannelStatus();
+          showNotice('Reconexión iniciada. El servidor hará hasta 3 intentos y luego se detendrá.', 'success');
+        } catch (error) {
+          showNotice(error.message, 'error');
+          await refreshChannelStatus().catch((statusError) => showNotice(statusError.message, 'error'));
+        }
+      });
+
+      document.querySelector('#tiktokConfigForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const username = document.querySelector('#tiktokUsername').value;
+        const ignoredEvents = [...eventOptions.querySelectorAll('input:not(:checked)')]
+          .map((checkbox) => checkbox.value);
+        try {
+          const result = await requestJson('/api/config', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, ignoredEvents }),
+          });
+          showNotice(`Configuración guardada para @${result.username}.`, 'success');
+          await refreshChannelStatus();
+        } catch (error) {
+          showNotice(error.message, 'error');
+        }
+      });
+
+      document.querySelector('#externalStorageForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        await runAction(async () => {
+          const configuration = await requestJson('/api/radio/storage', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ serverUrl: document.querySelector('#externalStorageUrl').value }),
+          });
+          document.querySelector('#externalStorageUrl').value = configuration.serverUrl;
+          updateStorageStatus(configuration);
+        }, 'Biblioteca externa guardada y conectada.');
+      });
+
+      function updateStorageStatus(configuration) {
+        libraryLink.hidden = !configuration.serverUrl;
+        if (configuration.serverUrl) libraryLink.href = configuration.serverUrl;
+        externalStorageStatus.className = `admin-status ${configuration.external && configuration.connected ? 'connected' : configuration.external ? 'disconnected' : ''}`;
+        externalStorageStatus.textContent = configuration.external
+          ? configuration.connected
+            ? `Conectada · ${configuration.discCount} discos · ${configuration.trackCount} temas`
+            : `Desconectada${configuration.error ? `: ${configuration.error}` : ''}`
+          : 'Usando la biblioteca local. Configura una URL para guardar temas en otro servidor.';
+      }
+
+      async function loadStorageConfiguration() {
+        const configuration = await requestJson('/api/radio/storage');
+        document.querySelector('#externalStorageUrl').value = configuration.serverUrl;
+        updateStorageStatus(configuration);
+      }
+
+      document.querySelector('#addMessage').addEventListener('click', () => {
+        const input = document.querySelector('#newMessage');
+        const message = input.value.trim();
+        if (!message) return;
+        if (overlayMessages.length >= 20) {
+          showNotice('Puedes configurar hasta 20 mensajes.', 'error');
+          return;
+        }
+        overlayMessages.push(message);
+        input.value = '';
+        renderOverlayMessages();
+      });
+
+      document.querySelector('#overlaySettingsForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        try {
+          const { settings } = await requestJson('/api/overlay/settings', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              tapGoal: Number(document.querySelector('#tapGoal').value),
+              coinGoal: Number(document.querySelector('#coinGoal').value),
+              ctaIntervalSeconds: Number(document.querySelector('#ctaIntervalSeconds').value),
+              ctaMessages: overlayMessages.map((message) => message.trim()).filter(Boolean),
+            }),
+          });
+          overlayMessages = settings.ctaMessages;
+          renderOverlayMessages();
+          showNotice('Ajustes del overlay guardados y aplicados.', 'success');
+        } catch (error) {
+          showNotice(error.message, 'error');
+        }
+      });
+
+      document.querySelectorAll('[data-overlay-action]').forEach((button) => {
+        button.addEventListener('click', async () => {
+          const action = button.dataset.overlayAction;
+          if (action === 'reset' && !window.confirm('¿Reiniciar los contadores de taps y monedas?')) return;
+          try {
+            await requestJson('/api/overlay/operator', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action }),
+            });
+            showNotice(action === 'reset' ? 'Contadores reiniciados en el overlay.' : 'Prueba enviada al overlay.', 'success');
+          } catch (error) {
+            showNotice(error.message, 'error');
+          }
+        });
+      });
+
+      const channelStream = new EventSource('/api/events');
+      channelStream.addEventListener('status', (event) => renderChannelStatus(JSON.parse(event.data)));
+      channelStream.addEventListener('snapshot', (event) => {
+        receivedEvents.splice(0, receivedEvents.length, ...JSON.parse(event.data));
+        renderEventFeed();
+      });
+      channelStream.addEventListener('update', (event) => {
+        const payload = JSON.parse(event.data);
+        receivedEvents.splice(0, receivedEvents.length, ...payload.events);
+        renderEventFeed();
+      });
+      loadTikTokConfiguration().catch((error) => showNotice(error.message, 'error'));
+      loadOverlaySettings().catch((error) => showNotice(error.message, 'error'));
+      loadStorageConfiguration().catch((error) => showNotice(error.message, 'error'));
+      refreshChannelStatus().catch((error) => {
+        channelStatusText.className = 'disconnected';
+        channelStatusText.textContent = 'NO SE PUDO LEER EL ESTADO';
+        channelDetails.textContent = error.message;
+      });
+    </script>
+  </body>
+</html>

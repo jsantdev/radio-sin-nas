@@ -44,14 +44,14 @@ function createExternalLibraryClient({
     return { serverUrl };
   }
 
-  async function request(url, options = {}) {
+  async function request(url, options = {}, timeout = 30000) {
     if (typeof fetchImpl !== 'function') {
       throw new Error('No está disponible el cliente HTTP para conectar con la biblioteca externa.');
     }
     try {
       return await fetchImpl(url, {
         ...options,
-        signal: AbortSignal.timeout(30000),
+        ...(timeout ? { signal: AbortSignal.timeout(timeout) } : {}),
       });
     } catch (error) {
       throw new Error(`No se pudo conectar con el servidor de biblioteca: ${error.message}`);
@@ -107,84 +107,92 @@ function createExternalLibraryClient({
     });
   }
 
-  async function createDisc(name) {
-    if (!serverUrl) throw new Error('Configura primero la URL del servidor de biblioteca.');
-    const response = await request(`${serverUrl}/api/discs`, {
+  async function fetchPlaybackState() {
+    if (!serverUrl) {
+      const error = new Error('Configura primero la URL de la biblioteca musical.');
+      error.status = 409;
+      throw error;
+    }
+    const response = await request(`${serverUrl}/api/player/state`);
+    let payload;
+    try {
+      payload = await response.json();
+    } catch {
+      throw new Error('La biblioteca no devolvió un estado de reproducción válido.');
+    }
+    if (!response.ok || !payload || !Array.isArray(payload.queue)
+      || !(payload.currentIndex === null || Number.isInteger(payload.currentIndex))
+      || typeof payload.isPlaying !== 'boolean' || typeof payload.repeat !== 'boolean') {
+      throw new Error(payload?.message || 'La biblioteca no devolvió un estado de reproducción válido.');
+    }
+    const queue = payload.queue.map((track) => {
+      if (!track || typeof track.id !== 'string' || typeof track.title !== 'string'
+        || typeof track.discName !== 'string') {
+        throw new Error('La biblioteca devolvió un tema de reproducción inválido.');
+      }
+      return {
+        name: track.id,
+        title: track.title,
+        discName: track.discName,
+        url: '/audio/current',
+      };
+    });
+    if (payload.currentIndex !== null && (payload.currentIndex < 0 || payload.currentIndex >= queue.length)) {
+      throw new Error('La biblioteca devolvió un índice de reproducción inválido.');
+    }
+    return {
+      status: queue.length ? 'ready' : 'empty',
+      audioSource: 'external-library',
+      queue,
+      currentIndex: payload.currentIndex,
+      currentTrack: payload.currentIndex === null ? null : queue[payload.currentIndex],
+      isPlaying: payload.isPlaying,
+      repeat: payload.repeat,
+    };
+  }
+
+  async function playerAction(action, body = {}) {
+    if (!serverUrl) {
+      const error = new Error('Configura primero la URL de la biblioteca musical.');
+      error.status = 409;
+      throw error;
+    }
+    const response = await request(`${serverUrl}/api/player/${action}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name }),
+      body: JSON.stringify(body),
     });
     let payload;
     try {
       payload = await response.json();
     } catch {
-      throw new Error('El servidor de biblioteca no devolvió JSON válido.');
+      throw new Error('La biblioteca no devolvió una respuesta válida.');
     }
     if (!response.ok) {
-      const error = new Error(payload.message || `El servidor de biblioteca respondió HTTP ${response.status}.`);
+      const error = new Error(payload.message || `La biblioteca respondió HTTP ${response.status}.`);
       error.status = response.status;
       throw error;
     }
-    if (!payload.disc || typeof payload.disc.id !== 'string'
-      || typeof payload.disc.name !== 'string' || typeof payload.created !== 'boolean') {
-      throw new Error('El servidor de biblioteca no devolvió un disco válido.');
-    }
-    return payload;
+    return fetchPlaybackState();
   }
 
-  async function uploadTrack(discName, filename, contents) {
-    if (!serverUrl) throw new Error('Configura primero la URL del servidor de biblioteca.');
-    const url = new URL(`${serverUrl}/api/tracks`);
-    url.searchParams.set('disc', discName);
-    const response = await request(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/octet-stream',
-        'X-File-Name': encodeURIComponent(filename),
-      },
-      body: contents,
-    });
-    let payload;
-    try {
-      payload = await response.json();
-    } catch {
-      throw new Error('El servidor de biblioteca no devolvió JSON válido.');
+  async function fetchCurrentTrack(range) {
+    if (!serverUrl) {
+      const error = new Error('Configura primero la URL de la biblioteca musical.');
+      error.status = 409;
+      throw error;
     }
-    if (!response.ok) throw new Error(payload.message || `El servidor de biblioteca respondió HTTP ${response.status}.`);
-    return payload.track;
-  }
-
-  async function deleteTrack(id) {
-    if (!serverUrl) throw new Error('Configura primero la URL del servidor de biblioteca.');
-    const url = new URL(`${serverUrl}/api/tracks`);
-    url.searchParams.set('id', id);
-    const response = await request(url, { method: 'DELETE' });
+    const response = await request(`${serverUrl}/api/player/audio`, {
+      headers: range ? { Range: range } : {},
+    }, 0);
     if (!response.ok) {
       let payload = {};
       try {
         payload = await response.json();
       } catch {
-        throw new Error('El servidor de biblioteca no devolvió JSON válido.');
+        throw new Error('La biblioteca no devolvió una respuesta de audio válida.');
       }
-      const error = new Error(payload.message || `El servidor de biblioteca respondió HTTP ${response.status}.`);
-      error.status = response.status;
-      throw error;
-    }
-  }
-
-  async function fetchTrack(id, range) {
-    if (!serverUrl) throw new Error('Configura primero la URL del servidor de biblioteca.');
-    const url = new URL(`${serverUrl}/api/audio`);
-    url.searchParams.set('id', id);
-    const response = await request(url, { headers: range ? { Range: range } : {} });
-    if (!response.ok) {
-      let payload = {};
-      try {
-        payload = await response.json();
-      } catch {
-        throw new Error('El servidor de biblioteca no devolvió JSON válido.');
-      }
-      const error = new Error(payload.message || `El servidor de biblioteca respondió HTTP ${response.status}.`);
+      const error = new Error(payload.message || `La biblioteca respondió HTTP ${response.status}.`);
       error.status = response.status;
       throw error;
     }
@@ -193,12 +201,11 @@ function createExternalLibraryClient({
 
   return {
     fetchDiscs,
-    fetchTrack,
-    createDisc,
+    fetchCurrentTrack,
+    fetchPlaybackState,
     getServerUrl: () => serverUrl,
+    playerAction,
     setServerUrl,
-    uploadTrack,
-    deleteTrack,
   };
 }
 
