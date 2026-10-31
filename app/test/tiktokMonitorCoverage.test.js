@@ -79,7 +79,7 @@ test('monitor loads the TikTok connector through its ESM export', async () => {
     TikTokLiveConnectionClass: undefined,
     connectorLoader: async () => ({ ...connector, TikTokLiveConnection: FakeConnection }),
   });
-  monitor.connectUser('hnaevalopez');
+  monitor.connectUser('radio-test-channel');
   await new Promise((resolve) => setImmediate(resolve));
 
   assert.equal(FakeConnection.instances.length, 1);
@@ -110,11 +110,11 @@ test('monitor validates timing and subscription contracts', () => {
 test('monitor converts structured TikTok connection errors to readable messages', () => {
   const { monitor } = createMonitor({ maxConnectionAttempts: 1 });
   FakeConnection.connectBehavior = 'pending';
-  monitor.connectUser('hnaevalopez');
+  monitor.connectUser('radio-test-channel');
   FakeConnection.instances[0].emit(ControlEvent.ERROR, {
     message: { code: 'ROOM_UNAVAILABLE', detail: 'The live is not active.' },
   });
-  assert.equal(monitor.state.username, 'hnaevalopez');
+  assert.equal(monitor.state.username, 'radio-test-channel');
   assert.equal(monitor.state.status, 'failed');
   assert.equal(monitor.state.error, '{"code":"ROOM_UNAVAILABLE","detail":"The live is not active."}');
   assert.doesNotMatch(monitor.state.error, /\[object Object\]/);
@@ -125,7 +125,7 @@ test('monitor deduplicates provider message IDs and counts gift combo deltas onc
   const { monitor } = createMonitor();
   const received = [];
   monitor.subscribeToEvents((entry) => received.push(entry));
-  monitor.connectUser('hnaevalopez');
+  monitor.connectUser('radio-test-channel');
   await new Promise((resolve) => setImmediate(resolve));
   const connection = FakeConnection.instances[0];
 

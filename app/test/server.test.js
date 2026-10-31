@@ -203,7 +203,7 @@ test('radio server keeps TikTok configuration, event monitoring, and radio state
     assert.match(initialEvents, /event: snapshot/);
 
     const config = await fetch(`${baseUrl}/api/config`).then((response) => response.json());
-    assert.equal(config.username, 'hnaevalopez');
+    assert.equal(config.username, '');
     assert.equal(config.events.find((event) => event.name === 'gift').enabled, true);
     assert.equal(config.events.find((event) => event.name === 'subNotify').enabled, true);
 
@@ -211,10 +211,10 @@ test('radio server keeps TikTok configuration, event monitoring, and radio state
     assert.equal(reconnectWithoutUser.status, 409);
 
     const connect = await sendJson('/api/config', 'PUT', {
-      username: '@hnaevalopez',
+      username: '@radio-test-channel',
       ignoredEvents: ['follow'],
     }).then((response) => response.json());
-    assert.equal(connect.username, 'hnaevalopez');
+    assert.equal(connect.username, 'radio-test-channel');
     assert.equal(JSON.parse(fs.readFileSync(configurationPath, 'utf8')).usernameConfigured, true);
     const configuredEvents = await fetch(`${baseUrl}/api/config`).then((response) => response.json());
     assert.equal(configuredEvents.events.find((event) => event.name === 'chat').enabled, true);
@@ -224,7 +224,7 @@ test('radio server keeps TikTok configuration, event monitoring, and radio state
     monitorService.disconnectUser();
     const reconnect = await sendJson('/api/reconnect', 'POST', {});
     assert.equal(reconnect.status, 200);
-    assert.equal((await reconnect.json()).username, 'hnaevalopez');
+    assert.equal((await reconnect.json()).username, 'radio-test-channel');
 
     monitorService.emit({
       type: 'gift',
@@ -273,7 +273,7 @@ test('radio server keeps TikTok configuration, event monitoring, and radio state
 
     const status = await fetch(`${baseUrl}/api/status`).then((response) => response.json());
     assert.equal(status.connected, true);
-    assert.equal(status.connector.username, 'hnaevalopez');
+    assert.equal(status.connector.username, 'radio-test-channel');
 
     const invalidConfig = await sendJson('/api/config', 'PUT', { username: '', ignoredEvents: [] });
     assert.equal(invalidConfig.status, 400);
@@ -313,7 +313,7 @@ test('server reports malformed saved TikTok configuration', () => {
   }
 });
 
-test('server migrates legacy TikTok settings to the default channel and preserves event filters', () => {
+test('server clears legacy implicit TikTok defaults and preserves event filters', () => {
   const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), `radio-config-${randomUUID()}-`));
   const configurationPath = path.join(storagePath, 'monitor-config.json');
   fs.writeFileSync(configurationPath, JSON.stringify({
@@ -330,9 +330,9 @@ test('server migrates legacy TikTok settings to the default channel and preserve
       audioDirectory: path.join(storagePath, 'music'),
       playlistPath: path.join(storagePath, 'playlist.json'),
     });
-    assert.equal(monitorService.state.username, 'hnaevalopez');
+    assert.equal(monitorService.state.username, '');
     assert.deepEqual(JSON.parse(fs.readFileSync(configurationPath, 'utf8')), {
-      username: 'hnaevalopez',
+      username: '',
       ignoredEvents: ['gift'],
       usernameConfigured: false,
     });

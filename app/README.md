@@ -6,11 +6,13 @@ Servidor Node.js modular para una radio vinculada a TikTok Live. Sirve el overla
 
 Se requiere Node.js 22 o posterior. En Windows, ejecuta [`iniciar-servidores.bat`](iniciar-servidores.bat): inicia el servidor de radio en el puerto 80 y abre la radio y el panel técnico en Chrome. Para iniciarlo manualmente, ejecuta `npm start` desde esta carpeta. Define `PORT` para cambiar el puerto del servidor (predeterminado: `3000`).
 
+Las variables necesarias están documentadas en [`.env.example`](.env.example) para Radio y [`../biblioteca/.env.example`](../biblioteca/.env.example) para Biblioteca. En Easypanel configura los valores en las variables de entorno de cada servicio; no copies secretos reales al repositorio ni uses valores de ejemplo en producción.
+
 La radio está en `/`; el panel técnico está en `/backend` (`/panel` redirige allí). El panel configura TikTok, el overlay y la URL de Biblioteca. La administración de discos, archivos y playlist se hace en el panel de Biblioteca, no en la Radio.
 
 ### Easypanel con Nixpacks
 
-Selecciona **Nixpacks** como proveedor de construcción y deja la raíz del proyecto en el repositorio. El `nixpacks.toml` de la raíz fija Node.js 22, instala desde `app/package-lock.json` y arranca con `npm start` dentro de `app/`; no configures una subcarpeta como raíz. El servidor escucha en `0.0.0.0` en el puerto de `PORT`, con `3000` como valor local predeterminado; configura el puerto interno del servicio como `3000`. Monta un volumen persistente en `/app/data` para conservar la configuración de TikTok, del overlay y la URL de Biblioteca. El usuario predeterminado de TikTok es `hnaevalopez`; `TIKTOK_USERNAME` puede fijarlo en el entorno y tiene prioridad sobre la configuración guardada.
+Selecciona **Nixpacks** como proveedor de construcción y deja la raíz del proyecto en el repositorio. El `nixpacks.toml` de la raíz fija Node.js 22, instala desde `app/package-lock.json` y arranca con `npm start` dentro de `app/`; no configures una subcarpeta como raíz. El servidor escucha en `0.0.0.0` en el puerto de `PORT`, con `3000` como valor local predeterminado; configura el puerto interno del servicio como `3000`. Monta un volumen persistente en `/app/data` para conservar la configuración de TikTok, del overlay y la URL de Biblioteca. Configura la cuenta con `TIKTOK_USERNAME` o desde el panel; si no hay una configurada, Radio no se conecta a ninguna cuenta.
 
 ### Biblioteca externa y migración
 
@@ -71,10 +73,3 @@ El conector escucha los eventos que declara `tiktok-live-connector`: `like`, `gi
 ## Pruebas
 
 Ejecuta `npm test` para las pruebas o `npm run test:coverage` para generar el resumen de cobertura de Node.js.
-
-## Servicios de programación
-
-¿Necesitas desarrollar o mejorar un proyecto? Contacta a **jsantdev**:
-
-- Correo: [jsantdev.automation@gmail.com](mailto:jsantdev.automation@gmail.com)
-- Teléfono: [+595 998 113 3313](tel:+5959981133313)

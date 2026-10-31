@@ -6,6 +6,7 @@ El contrato HTTP está en [OpenAPI de Biblioteca](../docs/contratos/biblioteca.o
 
 ## Configuración
 
+- Usa [`.env.example`](.env.example) como referencia para las variables; configura los secretos en Easypanel y no subas un archivo `.env` real.
 - `BIBLIOTECA_DATA_DIR`: carpeta persistente para los temas (por defecto `biblioteca/data/discs`).
 - `BIBLIOTECA_ADMIN_TOKEN`: token secreto de al menos 32 bytes. Genera uno con `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"`. Sin este valor, la API permite lecturas públicas, pero bloquea subidas, cambios, borrados y operaciones administrativas.
 - `RADIO_LIBRARY_ADMIN_TOKEN`: configura el mismo secreto en el servidor de radio que consume esta biblioteca. El panel de radio no recibe ni guarda este token desde el navegador.

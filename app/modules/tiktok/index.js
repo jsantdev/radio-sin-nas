@@ -11,7 +11,7 @@ function createTikTokModule({
   stream,
   monitorService = createTikTokMonitorService(),
   configurationPath = process.env.WEBSERVER_CONFIG_PATH || path.join(__dirname, '..', '..', 'data', 'monitor-config.json'),
-  defaultUsername = process.env.TIKTOK_USERNAME || 'hnaevalopez',
+  defaultUsername = process.env.TIKTOK_USERNAME || '',
 } = {}) {
   if (!stream || typeof stream.attach !== 'function' || typeof stream.broadcast !== 'function') {
     throw new Error('El módulo TikTok necesita su canal de eventos.');
@@ -22,7 +22,7 @@ function createTikTokModule({
   const events = [];
   let ignoredEvents = new Set();
   const environmentUsername = process.env.TIKTOK_USERNAME?.trim().replace(/^@+/, '');
-  const normalizedDefaultUsername = String(defaultUsername || 'hnaevalopez').trim().replace(/^@+/, '');
+  const normalizedDefaultUsername = String(defaultUsername || '').trim().replace(/^@+/, '');
   let configuration = { username: environmentUsername || normalizedDefaultUsername, saved: false };
 
   try {

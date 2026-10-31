@@ -132,9 +132,9 @@
           <p id="adminTikTokStatus" class="admin-status">Conectando…</p>
           <form id="tiktokConfigForm">
             <label for="tiktokUsername">Usuario del directo
-              <input id="tiktokUsername" name="username" type="text" autocomplete="off" placeholder="@hnaevalopez" required>
+              <input id="tiktokUsername" name="username" type="text" autocomplete="off" placeholder="@tu_usuario" required>
             </label>
-            <p class="hint" style="margin-top: 10px;">Canal predeterminado: @hnaevalopez. Marca los eventos que quieres recibir y mostrar.</p>
+            <p class="hint" style="margin-top: 10px;">Configura el usuario del canal aquí o mediante TIKTOK_USERNAME. Marca los eventos que quieres recibir y mostrar.</p>
             <div id="eventOptions" class="event-options">Cargando eventos…</div>
             <button type="submit">Guardar y conectar</button>
           </form>
@@ -260,7 +260,7 @@
         adminTikTokStatus.className = `admin-status ${style}`;
         adminTikTokStatus.textContent = isConnected
           ? `Conectado a @${username || ''}`
-          : isPending ? `Conectando a @${username || 'hnaevalopez'}…`
+          : isPending ? `Conectando a @${username || ''}…`
             : `TikTok: ${status.status || currentStatus}`;
         const attempts = connector.connectionAttempts;
         const maxAttempts = connector.maxConnectionAttempts || 3;
@@ -318,7 +318,7 @@
 
       async function loadTikTokConfiguration() {
         const configuration = await requestJson('/api/config');
-        document.querySelector('#tiktokUsername').value = configuration.username || 'hnaevalopez';
+        document.querySelector('#tiktokUsername').value = configuration.username || '';
         eventOptions.replaceChildren();
         configuration.events.forEach((event) => {
           const label = document.createElement('label');
