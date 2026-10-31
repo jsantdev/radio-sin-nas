@@ -4,7 +4,7 @@ providers = ["node"]
 NIXPACKS_NODE_VERSION = "22"
 
 [phases.install]
-cmds = ["cd app && npm ci"]
+cmds = ["npm ci"]
 
 [start]
-cmd = "cd app && npm start"
+cmd = "npm start"

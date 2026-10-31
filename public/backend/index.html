@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#101512">
+    <meta name="description" content="Administración por dominios de Fe y Esperanza Radio.">
+    <title>Administración | Fe y Esperanza Radio</title>
+    <style>
+      :root { color-scheme: dark; font: 16px "Segoe UI", sans-serif; color: #edf1ec; background: #0e120f; --surface: #151a16; --line: #29312b; --muted: #9aa59c; --accent: #c5f36b; }
+      * { box-sizing: border-box; }
+      body { max-width: 1050px; margin: auto; padding: 28px 20px 56px; }
+      header, .domain-card { border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
+      header { padding: clamp(22px, 5vw, 42px); }
+      .eyebrow, .muted { color: var(--muted); }
+      .eyebrow { font-size: .78rem; font-weight: 700; letter-spacing: .12em; }
+      h1 { margin: 8px 0; font-size: clamp(2rem, 6vw, 3.2rem); }
+      header p:last-child { margin-bottom: 0; line-height: 1.55; color: var(--muted); }
+      .domains { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 16px; }
+      .domain-card { display: flex; min-height: 190px; flex-direction: column; align-items: flex-start; padding: 20px; text-decoration: none; color: inherit; transition: border-color .15s, transform .15s; }
+      .domain-card:hover, .domain-card:focus-visible { transform: translateY(-2px); border-color: var(--accent); outline: none; }
+      .domain-icon { font-size: 1.65rem; }
+      h2 { margin: 14px 0 6px; font-size: 1.2rem; }
+      .domain-card p { margin: 0; color: var(--muted); line-height: 1.45; }
+      .open { margin-top: auto; padding-top: 18px; color: var(--accent); font-weight: 700; }
+      footer { margin-top: 18px; }
+      footer a { color: var(--accent); }
+      @media (max-width: 520px) { body { padding: 14px 12px 32px; } .domain-card { min-height: 155px; } }
+    </style>
+  </head>
+  <body>
+    <header>
+      <p class="eyebrow">FE Y ESPERANZA · RADIO</p>
+      <h1>Administración</h1>
+      <p>Selecciona un dominio para administrar cada parte de la aplicación.</p>
+    </header>
+    <main class="domains" aria-label="Dominios de la aplicación">
+      <a class="domain-card" href="/backend/radio">
+        <span class="domain-icon" aria-hidden="true">♫</span>
+        <h2>Radio</h2>
+        <p>Estado de reproducción y controles de la radio.</p>
+        <span class="open">Abrir radio →</span>
+      </a>
+      <a class="domain-card" href="/backend/tiktok">
+        <span class="domain-icon" aria-hidden="true">◉</span>
+        <h2>TikTok Live</h2>
+        <p>Conexión al canal, eventos recibidos y filtros.</p>
+        <span class="open">Administrar TikTok →</span>
+      </a>
+      <a class="domain-card" href="/backend/overlay">
+        <span class="domain-icon" aria-hidden="true">▧</span>
+        <h2>Overlay</h2>
+        <p>Metas, mensajes y pruebas visuales del overlay.</p>
+        <span class="open">Configurar overlay →</span>
+      </a>
+      <a id="libraryLink" class="domain-card" href="/biblioteca" hidden>
+        <span class="domain-icon" aria-hidden="true">▤</span>
+        <h2>Biblioteca</h2>
+        <p>Discos, archivos, playlist, programación y migraciones.</p>
+        <span class="open">Administrar biblioteca →</span>
+      </a>
+    </main>
+    <footer><a href="/">Abrir la radio pública</a></footer>
+    <script>
+      fetch('/api/radio/storage')
+        .then((response) => response.ok ? response.json() : Promise.reject(new Error('No se pudo consultar la biblioteca.')))
+        .then((configuration) => {
+          const libraryLink = document.querySelector('#libraryLink');
+          if (configuration.serverUrl) {
+            libraryLink.href = configuration.local ? '/biblioteca' : configuration.serverUrl;
+            libraryLink.hidden = false;
+          } else {
+            libraryLink.hidden = true;
+          }
+        })
+        .catch(() => { document.querySelector('#libraryLink').hidden = true; });
+    </script>
+  </body>
+</html>

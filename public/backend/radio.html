@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#101512">
+    <title>Radio | Administración</title>
+    <style>
+      :root { color-scheme: dark; font: 16px "Segoe UI", sans-serif; color: #edf1ec; background: #0e120f; --surface: #151a16; --line: #29312b; --muted: #9aa59c; --accent: #c5f36b; }
+      * { box-sizing: border-box; }
+      body { max-width: 900px; margin: auto; padding: 24px 18px 48px; }
+      header, main { padding: 22px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+      h1, h2, p { margin-top: 0; }
+      h1 { margin-bottom: 8px; }
+      .muted, #radioStatus { color: var(--muted); }
+      nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+      nav a { padding: 8px 11px; border: 1px solid var(--line); border-radius: 8px; color: inherit; text-decoration: none; }
+      nav a[aria-current="page"] { color: var(--accent); border-color: var(--accent); }
+      main { margin-top: 14px; }
+      #radioStatus { line-height: 1.5; }
+      #currentTrack { padding: 16px; border: 1px solid var(--line); border-radius: 10px; overflow-wrap: anywhere; }
+      #trackTitle { margin-bottom: 4px; color: var(--accent); }
+      .controls { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+      #libraryStatus { margin: 22px 0 8px; color: var(--muted); line-height: 1.5; }
+      #libraryUrl { width: 100%; min-height: 44px; margin: 8px 0; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; color: inherit; background: #111612; font: inherit; }
+      button { min-height: 44px; padding: 9px 16px; border: 1px solid var(--line); border-radius: 9px; color: inherit; background: #202822; font: inherit; font-weight: 700; cursor: pointer; }
+      button:hover { border-color: var(--accent); }
+      #playbackToggle { color: #17200c; background: var(--accent); }
+      a { color: var(--accent); }
+    </style>
+  </head>
+  <body>
+    <header>
+      <p class="muted">FE Y ESPERANZA · RADIO</p>
+      <h1>Radio</h1>
+      <p class="muted">Consulta y controla la reproducción de la biblioteca integrada.</p>
+      <nav aria-label="Dominios de la aplicación">
+        <a href="/backend">Inicio</a>
+        <a href="/backend/radio" aria-current="page">Radio</a>
+        <a href="/backend/tiktok">TikTok</a>
+        <a href="/backend/overlay">Overlay</a>
+        <a href="/biblioteca">Biblioteca</a>
+      </nav>
+    </header>
+    <main>
+      <p id="radioStatus" role="status">Cargando estado de reproducción…</p>
+      <section id="currentTrack" aria-live="polite">
+        <h2 id="trackTitle">Sin canción seleccionada</h2>
+        <p id="trackDisc" class="muted">Agrega canciones y arma una playlist desde Biblioteca.</p>
+      </section>
+      <div class="controls">
+        <button id="previousTrack" type="button">Anterior</button>
+        <button id="playbackToggle" type="button">Reproducir</button>
+        <button id="nextTrack" type="button">Siguiente</button>
+      </div>
+      <h2 style="margin-top: 28px;">Biblioteca de reproducción</h2>
+      <p id="libraryStatus" role="status">Comprobando conexión…</p>
+      <form id="libraryStorageForm">
+        <label for="libraryUrl">URL de Biblioteca externa
+          <input id="libraryUrl" type="url" autocomplete="url" placeholder="https://biblioteca.ejemplo.com">
+        </label>
+        <button type="submit">Conectar y guardar</button>
+      </form>
+    </main>
+    <script>
+      const radioStatus = document.querySelector('#radioStatus');
+      const trackTitle = document.querySelector('#trackTitle');
+      const trackDisc = document.querySelector('#trackDisc');
+      const libraryStatus = document.querySelector('#libraryStatus');
+      const libraryStorageForm = document.querySelector('#libraryStorageForm');
+      let isPlaying = false;
+
+      async function requestJson(url, options = {}) {
+        const response = await fetch(url, {
+          ...options,
+          headers: { 'Content-Type': 'application/json', ...options.headers },
+        });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.message || `Error HTTP ${response.status}`);
+        return payload;
+      }
+
+      async function refresh() {
+        const state = await requestJson('/api/radio-state');
+        isPlaying = state.isPlaying;
+        const track = state.currentTrack;
+        trackTitle.textContent = track ? track.title : 'Sin canción seleccionada';
+        trackDisc.textContent = track
+          ? `${track.discName} · ${state.currentIndex + 1} de ${state.queue.length}`
+          : 'Agrega canciones y arma una playlist desde Biblioteca.';
+        radioStatus.textContent = state.queue.length
+          ? `${state.isPlaying ? 'Reproduciendo' : 'En pausa'} · ${state.queue.length} canciones en playlist`
+          : 'La playlist está vacía.';
+        document.querySelector('#playbackToggle').textContent = state.isPlaying ? 'Pausar' : 'Reproducir';
+      }
+
+      async function refreshLibraryConfiguration() {
+        const configuration = await requestJson('/api/radio/storage');
+        document.querySelector('#libraryUrl').value = configuration.serverUrl;
+        libraryStorageForm.hidden = Boolean(configuration.local);
+        libraryStatus.textContent = configuration.local
+          ? `Biblioteca integrada · ${configuration.discCount} discos · ${configuration.trackCount} temas`
+          : configuration.connected
+            ? `Conectada · ${configuration.discCount} discos · ${configuration.trackCount} temas`
+            : configuration.serverUrl
+              ? `Desconectada${configuration.error ? `: ${configuration.error}` : ''}`
+              : 'No hay una biblioteca externa configurada.';
+      }
+
+      async function action(name, body = {}) {
+        try {
+          await requestJson(`/api/radio/${name}`, {
+            method: 'POST',
+            body: JSON.stringify(body),
+          });
+          await refresh();
+        } catch (error) {
+          radioStatus.textContent = error.message;
+        }
+      }
+
+      document.querySelector('#previousTrack').addEventListener('click', () => action('previous'));
+      document.querySelector('#nextTrack').addEventListener('click', () => action('next'));
+      document.querySelector('#playbackToggle').addEventListener('click', () => {
+        action('playback', { isPlaying: !isPlaying });
+      });
+      libraryStorageForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        try {
+          await requestJson('/api/radio/storage', {
+            method: 'PUT',
+            body: JSON.stringify({ serverUrl: document.querySelector('#libraryUrl').value }),
+          });
+          await refreshLibraryConfiguration();
+          await refresh();
+        } catch (error) {
+          libraryStatus.textContent = error.message;
+        }
+      });
+
+      refresh().catch((error) => { radioStatus.textContent = error.message; });
+      refreshLibraryConfiguration().catch((error) => { libraryStatus.textContent = error.message; });
+      window.setInterval(() => refresh().catch((error) => { radioStatus.textContent = error.message; }), 5000);
+    </script>
+  </body>
+</html>

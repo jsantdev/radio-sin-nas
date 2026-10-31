@@ -1,11 +1,11 @@
 # Contratos entre aplicaciones
 
-Este repositorio contiene dos servicios Node.js independientes:
+Este repositorio contiene dos dominios Node.js, que pueden ejecutarse en una sola app:
 
-| Aplicación | Responsabilidad | Puerto local |
+| Dominio | Responsabilidad | Puerto en el despliegue integrado |
 |---|---|---:|
-| Radio | Overlay, conector TikTok y puente de reproducción | `3000` |
-| Biblioteca | Discos, archivos de audio, playlist, programación y migraciones | `3001` |
+| Radio | Overlay, conector TikTok y puente de reproducción | `3000` (público) |
+| Biblioteca | Discos, archivos de audio, playlist, programación y migraciones | `3101` (loopback, no publicar) |
 
 Las especificaciones OpenAPI describen las APIs HTTP implementadas:
 
@@ -14,7 +14,12 @@ Las especificaciones OpenAPI describen las APIs HTTP implementadas:
 
 ## Integración Radio → Biblioteca
 
-La Radio usa la URL base configurada en **Ajustes del servidor → Biblioteca externa**.
+En el despliegue integrado, Radio y Biblioteca comparten un proceso y un volumen. El
+panel de Biblioteca se abre en `/biblioteca`; sus rutas HTTP públicas conservan el
+contrato y Radio las reenvía al servidor interno de loopback. `BIBLIOTECA_INTERNAL_PORT`
+es `3101` por defecto y no debe exponerse en Easypanel. La Biblioteca también puede
+desplegarse de forma independiente, y Radio puede consumirla con la URL configurada
+en **Ajustes del servidor → Biblioteca externa**.
 El contrato de interoperabilidad se limita a estas operaciones de Biblioteca:
 
 | Operación | Uso |
@@ -25,16 +30,19 @@ El contrato de interoperabilidad se limita a estas operaciones de Biblioteca:
 | `GET /api/player/audio` | Leer el tema actual, incluidos rangos HTTP |
 
 Las lecturas de Biblioteca son públicas. Los `POST` de control requieren el token
-administrativo. Configura el mismo secreto de al menos 32 bytes en
-`BIBLIOTECA_ADMIN_TOKEN` (Biblioteca) y `RADIO_LIBRARY_ADMIN_TOKEN` (Radio).
+administrativo. En modo independiente, configura el mismo secreto de al menos 32
+bytes en `BIBLIOTECA_ADMIN_TOKEN` (Biblioteca) y `RADIO_LIBRARY_ADMIN_TOKEN` (Radio).
+En modo integrado, Radio reutiliza `BIBLIOTECA_ADMIN_TOKEN`; no es obligatorio
+configurar un segundo secreto.
 La Radio no acepta ni devuelve el secreto en el panel: lo envía entre servidores
 como `Authorization: Bearer <token>` al realizar operaciones de escritura.
 
-La URL de Biblioteca se configura con `PUT /api/radio/storage` y se persiste en
-`app/data/external-library-config.json`. Quitar la URL desconecta el servicio.
-La Biblioteca guarda el audio bajo `BIBLIOTECA_DATA_DIR`; su estado del reproductor,
-programación e historial de migraciones se conserva en el directorio padre de esa
-ruta. Ambos servicios necesitan volúmenes persistentes independientes.
+En modo independiente, la URL de Biblioteca se configura desde **Administración →
+Radio → Biblioteca de reproducción** o con `PUT /api/radio/storage`; se persiste en
+`RADIO_LIBRARY_CONFIG_PATH` y quitarla desconecta el servicio. En
+Easypanel, el modo integrado usa `APP_DATA_DIR=/app/data` y un único volumen montado
+en `/app/data`. Biblioteca guarda el audio bajo `BIBLIOTECA_DATA_DIR` y su estado en
+el directorio padre de esa ruta; configura ambos dentro del mismo volumen.
 
 ## Integración Biblioteca → Biblioteca (migraciones)
 
