@@ -1,0 +1,638 @@
+openapi: 3.1.0
+info:
+  title: Biblioteca musical API
+  version: 1.0.0
+  description: API HTTP de discos, audio, reproducción, programación y migraciones.
+servers:
+  - url: http://localhost:3001
+security:
+  - AdminBearer: []
+tags:
+  - name: Servicio
+  - name: Administración
+  - name: Migraciones
+  - name: Reproductor
+  - name: Biblioteca
+paths:
+  /api/health:
+    get:
+      security: []
+      tags: [Servicio]
+      summary: Consultar disponibilidad y compatibilidad
+      responses:
+        "200":
+          description: Estado y límites de la API.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, apiVersion, migrationSupport, maxFileSize, freeBytes]
+                properties:
+                  ok: { const: true }
+                  apiVersion: { type: integer, const: 1 }
+                  migrationSupport: { type: boolean }
+                  maxFileSize: { type: integer, description: Máximo de bytes por solicitud }
+                  freeBytes: { type: [integer, "null"] }
+  /api/admin/config:
+    get:
+      security: []
+      tags: [Administración]
+      summary: Consultar si el servidor tiene token administrativo
+      responses:
+        "200":
+          description: No revela el token.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [configured]
+                properties:
+                  configured: { type: boolean }
+  /api/admin/session:
+    post:
+      security:
+        - AdminBearer: []
+      tags: [Administración]
+      summary: Validar el token administrativo
+      responses:
+        "200":
+          description: Token válido.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  authenticated: { const: true }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+  /api/admin/import-state:
+    post:
+      tags: [Administración]
+      summary: Combinar playlist y programación importadas
+      description: Agrega temas y programaciones que no existan; no reemplaza el estado existente.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ImportedState" }
+      responses:
+        "200":
+          description: Estado importado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  addedPlaylistTracks: { type: integer }
+                  addedSchedules: { type: integer }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/migrations/preview:
+    post:
+      tags: [Migraciones]
+      summary: Simular una migración hacia otra Biblioteca
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [destinationUrl]
+              properties:
+                destinationUrl: { type: string, format: uri }
+      responses:
+        "200":
+          description: Recuento de datos, conflictos y espacio requerido.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  preview: { $ref: "#/components/schemas/MigrationPreview" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/migrations:
+    get:
+      tags: [Migraciones]
+      summary: Listar historial de migraciones
+      responses:
+        "200":
+          description: Migraciones conocidas por este servidor.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [migrations]
+                properties:
+                  migrations:
+                    type: array
+                    items: { $ref: "#/components/schemas/Migration" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      tags: [Migraciones]
+      summary: Iniciar una migración
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [destinationUrl]
+              properties:
+                destinationUrl: { type: string, format: uri }
+      responses:
+        "202":
+          description: Migración aceptada y ejecutada en segundo plano.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  migration: { $ref: "#/components/schemas/Migration" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/migrations/{migrationId}:
+    parameters:
+      - $ref: "#/components/parameters/MigrationId"
+    get:
+      tags: [Migraciones]
+      summary: Consultar el progreso de una migración
+      responses:
+        "200":
+          description: Estado actual de la migración.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  migration: { $ref: "#/components/schemas/Migration" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/migrations/{migrationId}/resume:
+    parameters:
+      - $ref: "#/components/parameters/MigrationId"
+    post:
+      tags: [Migraciones]
+      summary: Reanudar una migración pausada o fallida
+      responses:
+        "202":
+          description: Migración reanudada en segundo plano.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  migration: { $ref: "#/components/schemas/Migration" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/player/state:
+    get:
+      security: []
+      tags: [Reproductor]
+      summary: Obtener el estado actual del reproductor
+      responses:
+        "200":
+          description: Estado completo, incluida la cola.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PlayerState" }
+  /api/player/playlist:
+    get:
+      security: []
+      tags: [Reproductor]
+      summary: Obtener estado y playlist
+      description: Alias de `GET /api/player/state`.
+      responses:
+        "200":
+          description: Estado del reproductor.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PlayerState" }
+    put:
+      tags: [Reproductor]
+      summary: Reemplazar el orden de la playlist
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tracks]
+              properties:
+                tracks:
+                  type: array
+                  maxItems: 5000
+                  uniqueItems: true
+                  items: { type: string, description: ID `discId/filename` }
+                repeat: { type: boolean }
+      responses:
+        "200":
+          description: Playlist aplicada.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  state: { $ref: "#/components/schemas/PlayerState" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/player/current:
+    post:
+      tags: [Reproductor]
+      summary: Seleccionar tema actual por índice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [index]
+              properties:
+                index: { type: integer, minimum: 0 }
+      responses:
+        "200": { $ref: "#/components/responses/PlayerStateResult" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/player/next:
+    post:
+      tags: [Reproductor]
+      summary: Avanzar tema actual
+      responses:
+        "200": { $ref: "#/components/responses/PlayerStateResult" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/player/previous:
+    post:
+      tags: [Reproductor]
+      summary: Retroceder tema actual
+      responses:
+        "200": { $ref: "#/components/responses/PlayerStateResult" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/player/playback:
+    post:
+      tags: [Reproductor]
+      summary: Activar o pausar reproducción
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [isPlaying]
+              properties:
+                isPlaying: { type: boolean }
+      responses:
+        "200": { $ref: "#/components/responses/PlayerStateResult" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/player/audio:
+    get:
+      security: []
+      tags: [Reproductor]
+      summary: Obtener el audio del tema actual
+      parameters:
+        - $ref: "#/components/parameters/Range"
+      responses:
+        "200":
+          description: Audio completo.
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        "206":
+          description: Fragmento de audio.
+          headers:
+            Content-Range: { schema: { type: string } }
+            Accept-Ranges: { schema: { type: string } }
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "416": { description: Rango de bytes no válido. }
+  /api/schedules:
+    get:
+      security: []
+      tags: [Reproductor]
+      summary: Listar programación de canciones
+      responses:
+        "200":
+          description: Programaciones vigentes.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [schedules]
+                properties:
+                  schedules:
+                    type: array
+                    items: { $ref: "#/components/schemas/Schedule" }
+    put:
+      tags: [Reproductor]
+      summary: Reemplazar programación
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [schedules]
+              properties:
+                schedules:
+                  type: array
+                  maxItems: 200
+                  items: { $ref: "#/components/schemas/Schedule" }
+      responses:
+        "200":
+          description: Programación guardada.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  schedules:
+                    type: array
+                    items: { $ref: "#/components/schemas/Schedule" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/discs:
+    get:
+      security: []
+      tags: [Biblioteca]
+      summary: Listar discos y temas
+      responses:
+        "200":
+          description: Catálogo ordenado de discos y archivos de audio.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [discs]
+                properties:
+                  discs:
+                    type: array
+                    items: { $ref: "#/components/schemas/Disc" }
+    post:
+      tags: [Biblioteca]
+      summary: Crear o seleccionar un disco por nombre
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 100 }
+      responses:
+        "200": { description: Disco existente; respuesta `disc` y `created: false`. }
+        "201": { description: Disco nuevo; respuesta `disc` y `created: true`. }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    delete:
+      tags: [Biblioteca]
+      summary: Borrar disco y sus temas
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Disco eliminado; `{ "ok": true }`. }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/tracks:
+    post:
+      tags: [Biblioteca]
+      summary: Subir tema de audio a un disco
+      description: |-
+        El cuerpo es el archivo binario, no multipart. Límite máximo 100 MiB.
+        `X-File-Name` debe contener el nombre de archivo URL-encoded. El servidor
+        calcula SHA-256 y valida `X-Content-SHA256` cuando se envía.
+      parameters:
+        - name: disc
+          in: query
+          required: true
+          schema: { type: string, maxLength: 100 }
+        - name: X-File-Name
+          in: header
+          required: true
+          schema: { type: string }
+        - name: X-Content-SHA256
+          in: header
+          required: false
+          schema: { type: string, pattern: "^[a-f0-9]{64}$" }
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema: { type: string, format: binary }
+      responses:
+        "201":
+          description: Tema creado con hash verificado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  track: { $ref: "#/components/schemas/Track" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "409": { $ref: "#/components/responses/Error" }
+        "413": { description: Cuerpo mayor que el límite de subida. }
+        "422": { $ref: "#/components/responses/Error" }
+    delete:
+      tags: [Biblioteca]
+      summary: Borrar tema
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema: { type: string, description: ID `discId/filename` }
+      responses:
+        "200": { description: Tema eliminado; `{ "ok": true }`. }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/audio:
+    get:
+      security: []
+      tags: [Biblioteca]
+      summary: Leer audio de cualquier tema
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema: { type: string, description: ID `discId/filename` }
+        - $ref: "#/components/parameters/Range"
+      responses:
+        "200":
+          description: Audio completo.
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        "206":
+          description: Fragmento de audio.
+          headers:
+            Content-Range: { schema: { type: string } }
+            Accept-Ranges: { schema: { type: string } }
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "416": { description: Rango de bytes no válido. }
+components:
+  securitySchemes:
+    AdminBearer:
+      type: http
+      scheme: bearer
+      description: Token configurado como BIBLIOTECA_ADMIN_TOKEN; mínimo 32 bytes.
+  parameters:
+    MigrationId:
+      name: migrationId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    Range:
+      name: Range
+      in: header
+      required: false
+      description: Rango HTTP de bytes, por ejemplo `bytes=0-1023`.
+      schema: { type: string }
+  schemas:
+    Error:
+      type: object
+      required: [ok, message]
+      properties:
+        ok: { const: false }
+        message: { type: string }
+    Track:
+      type: object
+      required: [id, name, title, discId, discName, sizeBytes, sha256]
+      properties:
+        id: { type: string, description: ID `discId/filename` }
+        name: { type: string }
+        title: { type: string }
+        discId: { type: string }
+        discName: { type: string }
+        sizeBytes: { type: integer, minimum: 0 }
+        sha256: { type: string, pattern: "^[a-f0-9]{64}$" }
+        url: { type: string }
+    Disc:
+      type: object
+      required: [id, name, tracks]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        tracks:
+          type: array
+          items: { $ref: "#/components/schemas/Track" }
+    PlayerState:
+      type: object
+      required: [status, audioSource, queue, currentIndex, currentTrack, isPlaying, repeat]
+      properties:
+        status: { type: string, enum: [ready, empty] }
+        audioSource: { type: string, const: library }
+        queue:
+          type: array
+          items: { $ref: "#/components/schemas/Track" }
+        currentIndex: { type: [integer, "null"], minimum: 0 }
+        currentTrack:
+          oneOf:
+            - $ref: "#/components/schemas/Track"
+            - type: "null"
+        isPlaying: { type: boolean }
+        repeat: { type: boolean }
+    Schedule:
+      type: object
+      required: [id, trackId, scheduledAt, recurrence]
+      properties:
+        id: { type: string, pattern: "^[a-zA-Z0-9-]{1,80}$" }
+        trackId: { type: string, description: ID `discId/filename` }
+        scheduledAt: { type: string, format: date-time }
+        recurrence: { type: string, enum: [once, daily, weekly] }
+    ImportedState:
+      type: object
+      required: [player, schedules]
+      properties:
+        player:
+          type: object
+          required: [tracks, currentTrackId, repeat]
+          properties:
+            tracks:
+              type: array
+              maxItems: 5000
+              uniqueItems: true
+              items: { type: string }
+            currentTrackId: { type: [string, "null"] }
+            repeat: { type: boolean }
+        schedules:
+          type: array
+          maxItems: 200
+          items: { $ref: "#/components/schemas/Schedule" }
+    MigrationPreview:
+      type: object
+      properties:
+        sourceTrackCount: { type: integer }
+        sourceDiscCount: { type: integer }
+        totalBytes: { type: integer }
+        requiredBytes: { type: integer }
+        existingTracks: { type: integer }
+        checksumConflicts: { type: integer }
+        oversizedTracks: { type: integer }
+        sourcePlaylistCount: { type: integer }
+        destinationPlaylistCount: { type: integer }
+        sourceScheduleCount: { type: integer }
+        destinationScheduleCount: { type: integer }
+        destinationFreeBytes: { type: [integer, "null"] }
+        enoughSpace: { type: [boolean, "null"] }
+    Migration:
+      type: object
+      required: [id, status, totalTracks, completedTracks, transferredTracks, skippedTracks, conflictTracks, percent, currentTrack, error, preview]
+      properties:
+        id: { type: string, format: uuid }
+        status: { type: string, enum: [running, paused, failed, completed] }
+        totalTracks: { type: integer }
+        completedTracks: { type: integer }
+        transferredTracks: { type: integer }
+        skippedTracks: { type: integer }
+        conflictTracks: { type: integer }
+        percent: { type: integer, minimum: 0, maximum: 100 }
+        currentTrack: { type: string }
+        error: { type: string }
+        preview:
+          oneOf:
+            - $ref: "#/components/schemas/MigrationPreview"
+            - type: "null"
+  responses:
+    Error:
+      description: Solicitud inválida, conflicto o error de operación.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unauthorized:
+      description: Token bearer ausente o inválido.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unavailable:
+      description: Operación administrativa deshabilitada por falta de token.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: Recurso no encontrado.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    PlayerStateResult:
+      description: Cambio de estado aplicado.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              state: { $ref: "#/components/schemas/PlayerState" }

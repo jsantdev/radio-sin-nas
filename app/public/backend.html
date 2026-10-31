@@ -121,7 +121,7 @@
             <label for="externalStorageUrl">URL base de la biblioteca musical
               <input id="externalStorageUrl" type="url" autocomplete="url" placeholder="https://biblioteca.ejemplo.com">
             </label>
-            <p class="hint" style="margin: 10px 0;">La radio obtiene de esta biblioteca el audio, la canción actual y el estado de reproducción.</p>
+            <p class="hint" style="margin: 10px 0;">Configura RADIO_LIBRARY_ADMIN_TOKEN en el servidor de radio con el mismo token de la biblioteca. Se usa solo entre servidores para controlar el reproductor.</p>
             <button type="submit">Conectar y guardar</button>
           </form>
         </div>
@@ -422,9 +422,9 @@
         if (configuration.serverUrl) libraryLink.href = configuration.serverUrl;
         externalStorageStatus.className = `admin-status ${configuration.external && configuration.connected ? 'connected' : configuration.external ? 'disconnected' : ''}`;
         externalStorageStatus.textContent = configuration.external
-          ? configuration.connected
+          ? `${configuration.connected
             ? `Conectada · ${configuration.discCount} discos · ${configuration.trackCount} temas`
-            : `Desconectada${configuration.error ? `: ${configuration.error}` : ''}`
+            : `Desconectada${configuration.error ? `: ${configuration.error}` : ''}`}${configuration.adminTokenConfigured ? '' : ' · Falta configurar RADIO_LIBRARY_ADMIN_TOKEN en el servidor de radio para controlar cambios y reproducción.'}`
           : 'Usando la biblioteca local. Configura una URL para guardar temas en otro servidor.';
       }
 

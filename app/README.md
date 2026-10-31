@@ -1,22 +1,24 @@
 # Radio TikTok Live
 
-Servidor Node.js modular para una radio vinculada a TikTok Live. Conserva el conector, su configuración y el registro de eventos; permite administrar una playlist persistente y reproducir audio desde la biblioteca local o desde un servidor externo de temas.
+Servidor Node.js modular para una radio vinculada a TikTok Live. Sirve el overlay y el panel técnico, administra la conexión y los eventos de TikTok y controla la reproducción de una biblioteca musical externa.
 
 ## Instalación y ejecución
 
-Se requiere Node.js 22 o posterior. En Windows, ejecuta [`iniciar-servidores.bat`](iniciar-servidores.bat): inicia el servidor de radio en el puerto 80 por defecto, espera a que responda y abre la radio y el panel de playlist en Chrome. Para iniciarlo manualmente, ejecuta `npm start` desde esta carpeta. Define `PORT` para cambiar el puerto del servidor.
+Se requiere Node.js 22 o posterior. En Windows, ejecuta [`iniciar-servidores.bat`](iniciar-servidores.bat): inicia el servidor de radio en el puerto 80 y abre la radio y el panel técnico en Chrome. Para iniciarlo manualmente, ejecuta `npm start` desde esta carpeta. Define `PORT` para cambiar el puerto del servidor (predeterminado: `3000`).
 
-El lanzador abre `http://localhost:80/` para la radio y `http://localhost:80/playlist` para administrar el playlist y todos los ajustes del servidor. `/backend` redirige a la sección de ajustes de esa misma página. Si se configura una biblioteca externa, las cargas, lecturas y eliminaciones de audio se realizan allí; la playlist y su URL siguen guardándose en el disco de la aplicación.
+La radio está en `/`; el panel técnico está en `/backend` (`/panel` redirige allí). El panel configura TikTok, el overlay y la URL de Biblioteca. La administración de discos, archivos y playlist se hace en el panel de Biblioteca, no en la Radio.
 
 ### Easypanel con Nixpacks
 
-Selecciona **Nixpacks** como proveedor de construcción y deja la raíz del proyecto en el repositorio. El `nixpacks.toml` de la raíz fija Node.js 22, instala desde `app/package-lock.json` y arranca con `npm start` dentro de `app/`; no configures una subcarpeta como raíz. El servidor escucha en `0.0.0.0` en el puerto de `PORT`, con `3000` como valor local predeterminado; configura el puerto interno del servicio como `3000`. Monta un volumen persistente en `/app/data` para conservar la playlist y la configuración entre despliegues. Si se usa la biblioteca local, ese volumen también conserva los audios. El usuario predeterminado de TikTok es `hnaevalopez`; `TIKTOK_USERNAME` puede fijarlo en el entorno y tiene prioridad sobre la configuración guardada.
+Selecciona **Nixpacks** como proveedor de construcción y deja la raíz del proyecto en el repositorio. El `nixpacks.toml` de la raíz fija Node.js 22, instala desde `app/package-lock.json` y arranca con `npm start` dentro de `app/`; no configures una subcarpeta como raíz. El servidor escucha en `0.0.0.0` en el puerto de `PORT`, con `3000` como valor local predeterminado; configura el puerto interno del servicio como `3000`. Monta un volumen persistente en `/app/data` para conservar la configuración de TikTok, del overlay y la URL de Biblioteca. El usuario predeterminado de TikTok es `hnaevalopez`; `TIKTOK_USERNAME` puede fijarlo en el entorno y tiene prioridad sobre la configuración guardada.
 
-### Servidor externo de temas
+### Biblioteca externa y migración
 
-`biblioteca-musical` es un servicio Node.js independiente y no requiere paquetes adicionales. Despliégalo usando `biblioteca-musical` como raíz del proyecto y `npm start` como comando. Escucha en `0.0.0.0` usando `PORT` (localmente, `3001`). Monta un volumen persistente para sus datos y define `BIBLIOTECA_DATA_DIR` con esa ruta; por ejemplo, `/app/data/discs`. En `/playlist`, abre **Ajustes del servidor → Biblioteca externa de temas**, pega la URL base pública del servicio y pulsa **Guardar y conectar**. La radio guarda la URL en `app/data/external-library-config.json` y vuelve a conectarse al iniciar; conserva el volumen `/app/data` de la radio y el volumen `BIBLIOTECA_DATA_DIR` del servicio para sobrevivir despliegues/versiones.
+`biblioteca` es un servicio Node.js independiente, sin paquetes adicionales. Despliégalo desde esa carpeta con `npm start` y escucha en `0.0.0.0` usando `PORT` (localmente, `3001`). Monta un volumen persistente que incluya `BIBLIOTECA_DATA_DIR` y su carpeta padre (por ejemplo, `/app/data` para `BIBLIOTECA_DATA_DIR=/app/data/discs`) y configura un secreto de al menos 32 bytes en `BIBLIOTECA_ADMIN_TOKEN`. Configura el mismo secreto como `RADIO_LIBRARY_ADMIN_TOKEN` en el servidor de radio. Sin el token de biblioteca, la API deja las lecturas disponibles, pero bloquea cambios y administración. La configuración de radio guarda la URL en `app/data/external-library-config.json`; el token se configura como secreto de entorno y no se envía al navegador.
 
-La biblioteca del panel lista todos los discos y temas. Desde la carga de música se puede elegir un disco existente o crear uno vacío y seleccionarlo antes de subir. La vista previa del audio y el cambio de nombre del tema se conservan. `biblioteca-musical` permite listar/crear discos y crear, leer o borrar temas; transmite los audios a la radio y no permite modificar archivos existentes.
+En `/backend`, abre **Ajustes del servidor → Biblioteca externa de temas**, pega la URL de la API y pulsa **Conectar y guardar**. Para migrar, entra al panel de administración de la biblioteca, autoriza la sesión con el token, configura `BIBLIOTECA_MIGRATION_ALLOWED_HOSTS` en el servidor de origen y revisa el destino antes de iniciar. Los destinos requieren HTTPS por defecto; habilita `BIBLIOTECA_MIGRATION_ALLOW_HTTP=true` solo para una red privada confiable. La vista previa indica espacio, archivos repetidos, diferencias de checksum y el resultado de unir playlist/programación. El proceso se puede reanudar después de un reinicio.
+
+La migración copia archivos, playlists y programación sin borrar el origen. Los archivos existentes en destino nunca se sobrescriben; playlist y programación se unen sin duplicados. Protege los volúmenes y conserva backups independientes. Más detalles y variables de entorno: [`biblioteca/README.md`](../biblioteca/README.md).
 
 ## Instalar en Android
 
@@ -25,48 +27,44 @@ El overlay incluye un manifiesto, iconos y un service worker para instalarse com
 ## Estructura
 
 ```text
-server.js                    # Composición e inicio del servidor
-modules/
-  radio/                     # Biblioteca local/externa, playlist, reproducción y rutas
-  tiktok/                    # Conector, normalización, configuración y eventos
-  overlay/                   # Overlay público para TikTok Live
-  realtime/                  # Transporte SSE compartido
-public/
-  index.html                 # Página anterior del panel (la ruta /backend redirige)
-  playlist.html              # Playlist y ajustes unificados del servidor
-data/
-  monitor-config.json        # Configuración local persistente de TikTok
-  music/                     # Archivos de audio locales
-  radio-playlist.json        # Orden persistente de reproducción
-  external-library-config.json # URL persistente de la biblioteca externa
-test/                        # Pruebas automáticas
-../biblioteca-musical/       # Servicio externo independiente de temas
+app/
+  server.js                  # Composición e inicio del servidor de Radio
+  modules/
+    radio/                   # Estado, reproducción y cliente de Biblioteca
+    tiktok/                  # Conector, configuración y eventos
+    overlay/                 # Overlay público y ajustes visuales
+    realtime/                # Transporte SSE compartido
+  public/backend.html        # Panel técnico de Radio
+  data/                      # Configuración persistente de Radio
+  test/                      # Pruebas de Radio
+biblioteca/
+  server.js                  # Servicio independiente de Biblioteca
+  public/                    # Panel de administración de Biblioteca
+  test/                      # Pruebas de Biblioteca
+docs/contratos/              # OpenAPI e integración entre servicios
 ```
 
-El conector de TikTok es independiente de la radio: normaliza y filtra eventos, mantiene la conexión y los publica en el registro. La ruta `/playlist` permite cargar archivos, agruparlos por disco, agregarlos o quitarlos de la cola y reordenarlos. La ruta `/` reproduce la canción actual y avanza automáticamente al terminar. Formatos admitidos: MP3, WAV, OGG, OPUS, M4A y AAC; límite de 100 MB por archivo. El navegador puede requerir pulsar reproducir para autorizar el audio.
+El conector de TikTok normaliza y filtra eventos antes de publicarlos por SSE. La Biblioteca administra audio en MP3, WAV, OGG, OPUS, M4A y AAC, con un límite de 100 MiB por carga. El navegador puede requerir una interacción para autorizar la reproducción automática.
 
 ## Rutas
 
 - `GET /`: overlay de la radio y estado del conector.
 - `GET /manifest.webmanifest`, `/service-worker.js` y `/icons/icon-192.png`, `/icons/icon-512.png`: recursos de instalación PWA.
-- `GET /playlist`: panel para cargar archivos, administrar la playlist y configurar TikTok y el overlay.
-- `GET /backend`: redirige a la sección de ajustes dentro de `/playlist`.
+- `GET /backend`: panel técnico para TikTok, overlay y conexión de Biblioteca.
+- `GET /panel`: redirección permanente a `/backend`.
 - `GET /api/status`: estado del conector.
 - `GET/PUT /api/config`: consulta o cambia la cuenta de TikTok y los eventos ignorados.
+- `POST /api/reconnect`: intenta reconectar la cuenta configurada.
 - `GET /api/events`: flujo SSE de estado y eventos de TikTok.
 - `GET /api/overlay/stream`: flujo SSE de ajustes y comandos para el overlay; los ajustes incluyen metas y frecuencia de CTA.
 - `GET/PUT /api/overlay/settings`: lee y guarda metas de Tap Tap (`1000`, `5000`, `10000` o `20000`), meta de monedas, mensajes y frecuencia automática (`20`, `25` o `30` segundos).
-- `POST /api/overlay/operator`: comandos administrativos y vistas previas que no alteran las métricas reales.
-- `GET /api/radio/tracks`: archivos de audio disponibles.
-- `POST /api/radio/discs`: crea o selecciona un disco en la biblioteca externa.
-- `POST/DELETE /api/radio/tracks`: carga o borra archivos locales o externos.
-- `GET/PUT /api/radio/storage`: consulta y guarda la URL de la biblioteca externa.
-- `GET/PUT /api/radio/playlist`: consulta o guarda el orden de reproducción.
-- `POST /api/radio/current`, `/next`, `/previous` y `/playback`: controla la reproducción.
-- `GET /audio/:filename`: sirve o transmite un archivo de audio local/externo.
-- `GET /api/radio-state` y `/api/radio-state/stream`: estado y actualizaciones SSE de la radio.
+- `POST /api/overlay/operator`: publica comandos de operador y vistas previas.
+- `GET/PUT /api/radio/storage`: consulta o configura la URL de Biblioteca.
+- `GET /api/radio-state` y `/api/radio-state/stream`: snapshot y actualizaciones SSE del reproductor.
+- `POST /api/radio/next`, `/previous` y `/playback`: controla la reproducción.
+- `GET /audio/current`: transmite el audio actual y admite encabezado `Range`.
 
-El servicio externo ofrece `GET/POST /api/discs`, `POST/DELETE /api/tracks` y `GET /api/audio`. No expone operaciones para modificar archivos existentes.
+El contrato HTTP completo y los detalles de autenticación entre servicios están en la [guía de contratos](../docs/contratos/README.md), con especificaciones [OpenAPI de Radio](../docs/contratos/radio.openapi.yaml) y [OpenAPI de Biblioteca](../docs/contratos/biblioteca.openapi.yaml).
 
 El conector escucha los eventos que declara `tiktok-live-connector`: `like`, `gift`, `member`, `follow`, `share`, `chat` y `subNotify` (suscripciones). Se publican por `GET /api/events` como `update` con `entry.id`, `activityCount` y `diamondCount`; el ID del mensaje del proveedor se usa para deduplicar y las rachas de regalos contabilizan solo el incremento. `member` y `subNotify` dependen de que TikTok/proveedor los envíe para ese directo. El overlay reconoce dedicatorias escritas en el chat como `Dedico a María` o `Dedico esta canción a María`.
 

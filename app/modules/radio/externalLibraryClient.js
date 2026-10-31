@@ -5,15 +5,29 @@ const audioExtensions = new Set(['.aac', '.m4a', '.mp3', '.ogg', '.opus', '.wav'
 
 function createExternalLibraryClient({
   configurationPath = path.join(__dirname, '..', '..', 'data', 'external-library-config.json'),
+  adminToken: configuredAdminToken = process.env.RADIO_LIBRARY_ADMIN_TOKEN || '',
   fetchImpl = globalThis.fetch,
 } = {}) {
   let serverUrl = '';
+  let adminToken = configuredAdminToken ? validateAdminToken(configuredAdminToken) : '';
+let persistAdminToken = false;
   if (fs.existsSync(configurationPath)) {
     const savedConfiguration = JSON.parse(fs.readFileSync(configurationPath, 'utf8'));
     if (!savedConfiguration || typeof savedConfiguration.serverUrl !== 'string') {
       throw new Error('La configuración del servidor de biblioteca externo no es válida.');
     }
     serverUrl = validateServerUrl(savedConfiguration.serverUrl);
+    if (!adminToken && savedConfiguration.adminToken !== undefined) {
+      adminToken = validateAdminToken(savedConfiguration.adminToken);
+      persistAdminToken = true;
+    }
+  }
+
+  function validateAdminToken(value) {
+    if (typeof value !== 'string' || Buffer.byteLength(value) < 32 || value.trim() !== value) {
+      throw new Error('El token administrativo de la biblioteca debe tener al menos 32 bytes.');
+    }
+    return value;
   }
 
   function validateServerUrl(value) {
@@ -38,10 +52,15 @@ function createExternalLibraryClient({
 
   function setServerUrl(value) {
     const nextServerUrl = validateServerUrl(value);
+    const nextAdminToken = nextServerUrl ? adminToken : '';
     fs.mkdirSync(path.dirname(configurationPath), { recursive: true });
-    fs.writeFileSync(configurationPath, JSON.stringify({ serverUrl: nextServerUrl }, null, 2));
+    fs.writeFileSync(configurationPath, JSON.stringify({
+      serverUrl: nextServerUrl,
+      ...(nextServerUrl && persistAdminToken ? { adminToken: nextAdminToken } : {}),
+    }, null, 2), { mode: 0o600 });
     serverUrl = nextServerUrl;
-    return { serverUrl };
+    adminToken = nextAdminToken;
+    return { serverUrl, adminTokenConfigured: Boolean(adminToken) };
   }
 
   async function request(url, options = {}, timeout = 30000) {
@@ -49,8 +68,13 @@ function createExternalLibraryClient({
       throw new Error('No está disponible el cliente HTTP para conectar con la biblioteca externa.');
     }
     try {
+      const headers = new Headers(options.headers || {});
+      if (adminToken && options.method && options.method.toUpperCase() !== 'GET') {
+        headers.set('Authorization', `Bearer ${adminToken}`);
+      }
       return await fetchImpl(url, {
         ...options,
+        headers,
         ...(timeout ? { signal: AbortSignal.timeout(timeout) } : {}),
       });
     } catch (error) {
@@ -204,6 +228,7 @@ function createExternalLibraryClient({
     fetchCurrentTrack,
     fetchPlaybackState,
     getServerUrl: () => serverUrl,
+    isAdminTokenConfigured: () => Boolean(adminToken),
     playerAction,
     setServerUrl,
   };

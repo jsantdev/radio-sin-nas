@@ -1,0 +1,398 @@
+openapi: 3.1.0
+info:
+  title: Radio TikTok Live API
+  version: 1.0.0
+  description: API HTTP y flujos SSE del servidor de Radio.
+servers:
+  - url: http://localhost:3000
+tags:
+  - name: TikTok
+  - name: Overlay
+  - name: Radio
+paths:
+  /api/status:
+    get:
+      tags: [TikTok]
+      summary: Consultar el estado del conector
+      responses:
+        "200":
+          description: Estado de conexión, eventos y conector.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  connected: { type: boolean }
+                  status: { type: string }
+                  monitorStatus: { type: string }
+                  monitorError: { type: string }
+                  error: { type: string }
+                  eventTypes: { type: integer }
+                  username: { type: string }
+                  configuredUsername: { type: string }
+                  lastEventAt: { type: [string, "null"], format: date-time }
+                  eventCount: { type: integer }
+                  connector: { type: object, additionalProperties: true }
+                additionalProperties: true
+  /api/config:
+    get:
+      tags: [TikTok]
+      summary: Leer usuario y filtros de eventos
+      responses:
+        "200":
+          description: Configuración actual y eventos disponibles.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TikTokConfiguration"
+    put:
+      tags: [TikTok]
+      summary: Guardar usuario y eventos ignorados
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, ignoredEvents]
+              properties:
+                username: { type: string, minLength: 1 }
+                ignoredEvents:
+                  type: array
+                  items: { type: string }
+      responses:
+        "200":
+          description: Configuración guardada y conexión iniciada.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, username, ignoredEvents]
+                properties:
+                  ok: { const: true }
+                  username: { type: string }
+                  ignoredEvents:
+                    type: array
+                    items: { type: string }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /api/reconnect:
+    post:
+      tags: [TikTok]
+      summary: Reconectar al usuario configurado
+      responses:
+        "200":
+          description: Reconexión iniciada.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { const: true }
+                  username: { type: string }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /api/events:
+    get:
+      tags: [TikTok]
+      summary: Suscribirse a estado y eventos de TikTok
+      description: |-
+        SSE. Eventos `status` llevan el estado del conector; `snapshot` lleva un
+        arreglo de eventos recientes; `update` lleva `{ entry, events }`. Cada
+        entrada normalizada puede incluir `id`, `type`, `username`, `time`,
+        `content`, `avatar`, `activityCount` y `diamondCount`.
+      responses:
+        "200":
+          description: Flujo SSE con snapshot de estado y eventos al conectar.
+          content:
+            text/event-stream:
+              schema: { type: string }
+  /api/overlay/settings:
+    get:
+      tags: [Overlay]
+      summary: Leer ajustes del overlay
+      responses:
+        "200":
+          description: Metas y mensajes configurados.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OverlaySettings"
+    put:
+      tags: [Overlay]
+      summary: Guardar ajustes del overlay
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OverlaySettings"
+      responses:
+        "200":
+          description: Ajustes guardados.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, settings]
+                properties:
+                  ok: { const: true }
+                  settings: { $ref: "#/components/schemas/OverlaySettings" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /api/overlay/stream:
+    get:
+      tags: [Overlay]
+      summary: Suscribirse a ajustes y comandos del overlay
+      description: SSE; emite `settings` al conectar y `command` al ejecutar una acción del operador.
+      responses:
+        "200":
+          description: Flujo SSE.
+          content:
+            text/event-stream:
+              schema: { type: string }
+  /api/overlay/operator:
+    post:
+      tags: [Overlay]
+      summary: Enviar una acción de operador al overlay
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action:
+                  type: string
+                  enum: [reset, test-like, test-follow, test-gift, test-epic-gift, test-song-goal]
+      responses:
+        "200":
+          description: Comando publicado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { const: true }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /api/radio-state:
+    get:
+      tags: [Radio]
+      summary: Consultar estado de reproducción
+      responses:
+        "200":
+          description: Snapshot del reproductor; intenta actualizarlo desde Biblioteca.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RadioState"
+        "502": { $ref: "#/components/responses/Error" }
+  /api/radio-state/stream:
+    get:
+      tags: [Radio]
+      summary: Suscribirse a estado y cambios de reproducción
+      description: SSE con `snapshot` inicial y eventos `update` con un RadioState.
+      responses:
+        "200":
+          description: Flujo SSE.
+          content:
+            text/event-stream:
+              schema: { type: string }
+  /api/radio/storage:
+    get:
+      tags: [Radio]
+      summary: Consultar conexión a Biblioteca
+      responses:
+        "200":
+          description: URL y estado de conectividad, sin revelar el token.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorageConfiguration"
+    put:
+      tags: [Radio]
+      summary: Configurar URL base de Biblioteca
+      description: El secreto de integración se configura en el entorno del servidor, no en esta solicitud.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [serverUrl]
+              properties:
+                serverUrl:
+                  type: string
+                  format: uri
+                  description: URL HTTP(S) base; una cadena vacía desconecta Biblioteca.
+      responses:
+        "200":
+          description: Configuración guardada.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StorageConfiguration" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "502": { $ref: "#/components/responses/Error" }
+  /api/radio/next:
+    post:
+      tags: [Radio]
+      summary: Avanzar al tema siguiente
+      responses:
+        "200": { $ref: "#/components/responses/PlayerAction" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "502": { $ref: "#/components/responses/Error" }
+  /api/radio/previous:
+    post:
+      tags: [Radio]
+      summary: Volver al tema anterior
+      responses:
+        "200": { $ref: "#/components/responses/PlayerAction" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "502": { $ref: "#/components/responses/Error" }
+  /api/radio/playback:
+    post:
+      tags: [Radio]
+      summary: Cambiar reproducción
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [isPlaying]
+              properties:
+                isPlaying: { type: boolean }
+      responses:
+        "200": { $ref: "#/components/responses/PlayerAction" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "502": { $ref: "#/components/responses/Error" }
+  /audio/current:
+    get:
+      tags: [Radio]
+      summary: Obtener audio del tema actual
+      description: Transmite audio desde Biblioteca y reenvía los encabezados de rango.
+      parameters:
+        - $ref: "#/components/parameters/Range"
+      responses:
+        "200":
+          description: Audio completo.
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        "206":
+          description: Fragmento de audio solicitado.
+          headers:
+            Content-Range: { schema: { type: string } }
+            Accept-Ranges: { schema: { type: string } }
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        "404": { $ref: "#/components/responses/Error" }
+        "416": { description: Rango de bytes no válido. }
+        "502": { $ref: "#/components/responses/Error" }
+components:
+  parameters:
+    Range:
+      name: Range
+      in: header
+      required: false
+      description: Rango HTTP de bytes, por ejemplo `bytes=0-1023`.
+      schema: { type: string }
+  schemas:
+    TikTokConfiguration:
+      type: object
+      required: [username, ignoredEvents, events]
+      properties:
+        username: { type: string }
+        ignoredEvents:
+          type: array
+          items: { type: string }
+        events:
+          type: array
+          items:
+            type: object
+            required: [name, label, enabled]
+            properties:
+              name: { type: string }
+              label: { type: string }
+              enabled: { type: boolean }
+    OverlaySettings:
+      type: object
+      required: [tapGoal, coinGoal, ctaIntervalSeconds, ctaMessages]
+      properties:
+        tapGoal:
+          type: integer
+          enum: [1000, 5000, 10000, 20000]
+        coinGoal: { type: integer, minimum: 1 }
+        ctaIntervalSeconds:
+          type: integer
+          enum: [20, 25, 30]
+        ctaMessages:
+          type: array
+          maxItems: 20
+          items: { type: string, minLength: 1, maxLength: 180 }
+    Track:
+      type: object
+      required: [name, title, discName, url]
+      properties:
+        name: { type: string, description: Identificador del tema en la biblioteca }
+        title: { type: string }
+        discName: { type: string }
+        url: { type: string, const: /audio/current }
+    RadioState:
+      type: object
+      required: [status, audioSource, queue, currentIndex, currentTrack, isPlaying, repeat]
+      properties:
+        status: { type: string, enum: [ready, empty] }
+        audioSource: { type: string, enum: [external-library] }
+        queue:
+          type: array
+          items: { $ref: "#/components/schemas/Track" }
+        currentIndex: { type: [integer, "null"], minimum: 0 }
+        currentTrack:
+          oneOf:
+            - $ref: "#/components/schemas/Track"
+            - type: "null"
+        isPlaying: { type: boolean }
+        repeat: { type: boolean }
+    StorageConfiguration:
+      type: object
+      required: [serverUrl, adminTokenConfigured, external, connected, error, discCount, trackCount]
+      properties:
+        serverUrl: { type: string }
+        adminTokenConfigured: { type: boolean }
+        external: { type: boolean }
+        connected: { type: boolean }
+        error: { type: string }
+        discCount: { type: integer }
+        trackCount: { type: integer }
+    ApiError:
+      type: object
+      required: [ok, message]
+      properties:
+        ok: { const: false }
+        message: { type: string }
+  responses:
+    BadRequest:
+      description: Solicitud o datos inválidos.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ApiError" }
+    Conflict:
+      description: Operación incompatible con el estado actual.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ApiError" }
+    Error:
+      description: Error de operación o de conexión con Biblioteca.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ApiError" }
+    PlayerAction:
+      description: Control de reproducción aplicado.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [ok, state]
+            properties:
+              ok: { const: true }
+              state: { $ref: "#/components/schemas/RadioState" }
