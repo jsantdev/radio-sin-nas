@@ -47,10 +47,10 @@
       .track-actions button { min-width: 40px; }
       .disc-title { margin: 14px 0 4px; color: var(--accent); font-weight: 700; }
       .admin-auth { margin-top: 12px; }
-      #migrationSummary, #migrationHistory { margin-top: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; }
-      #migrationSummary[hidden], #migrationHistory[hidden] { display: none; }
-      #uploadProgress, #migrationProgress { display: block; width: 100%; height: 12px; margin-top: 10px; accent-color: var(--accent); }
-      #uploadProgress[hidden], #migrationProgress[hidden] { display: none; }
+      #migrationSummary, #importSummary, #migrationHistory { margin-top: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; }
+      #migrationSummary[hidden], #importSummary[hidden], #migrationHistory[hidden] { display: none; }
+      #uploadProgress, #migrationProgress, #importProgress { display: block; width: 100%; height: 12px; margin-top: 10px; accent-color: var(--accent); }
+      #uploadProgress[hidden], #migrationProgress[hidden], #importProgress[hidden] { display: none; }
       #notice { min-height: 1.4em; margin: 10px 0; }
       .error { color: #ff9298; }
       .success { color: var(--accent); }
@@ -104,7 +104,7 @@
       <a href="#librarySection">Biblioteca</a>
       <a href="#playlistSection">Playlist</a>
       <a href="#uploadSection">Subir temas</a>
-      <a href="#migrationSection">Migrar biblioteca</a>
+      <a href="#migrationSection">Datos</a>
       <a href="#scheduleSection">Programar</a>
     </nav>
     <p id="notice" role="status" aria-live="polite"></p>
@@ -138,8 +138,9 @@
       </section>
 
       <section id="migrationSection" class="wide">
-        <h2>Migrar biblioteca a otra API</h2>
-        <p class="hint">Copia los discos y archivos de audio a otro servidor. No borra el origen ni sobrescribe temas que ya existan en el destino.</p>
+        <h2>Datos y copias</h2>
+        <p class="hint">Copia discos, temas, playlist y programación entre servidores Biblioteca. Las copias no borran el origen ni reemplazan temas existentes.</p>
+        <h3>Exportar a otra Biblioteca</h3>
         <form id="migrationForm">
           <label for="migrationDestination">URL base de la biblioteca de destino
             <input id="migrationDestination" type="url" autocomplete="url" placeholder="https://biblioteca-nueva.ejemplo.com" required>
@@ -150,8 +151,21 @@
           <button id="migrationButton" type="submit" disabled>Iniciar migración</button>
           <progress id="migrationProgress" max="100" value="0" hidden aria-label="Progreso de migración"></progress>
           <p id="migrationProgressText" class="hint" role="status" aria-live="polite" hidden></p>
-          <div id="migrationHistory" hidden></div>
         </form>
+        <h3>Importar copia desde una URL</h3>
+        <p class="hint">La URL debe corresponder a otro servidor Biblioteca. Se agregan los temas faltantes y se combina la playlist sin duplicados.</p>
+        <form id="importForm">
+          <label for="importSource">URL base de la biblioteca de origen
+            <input id="importSource" type="url" autocomplete="url" placeholder="https://biblioteca-origen.ejemplo.com" required>
+          </label>
+          <p class="hint">El host de origen debe estar incluido en BIBLIOTECA_MIGRATION_ALLOWED_HOSTS.</p>
+          <button id="previewImportButton" type="button" class="secondary">Revisar origen</button>
+          <div id="importSummary" hidden></div>
+          <button id="importButton" type="submit" disabled>Importar copia</button>
+          <progress id="importProgress" max="100" value="0" hidden aria-label="Progreso de importación"></progress>
+          <p id="importProgressText" class="hint" role="status" aria-live="polite" hidden></p>
+        </form>
+        <div id="migrationHistory" hidden></div>
       </section>
 
       <section id="librarySection">
@@ -205,6 +219,9 @@
       const migrationProgress = document.querySelector('#migrationProgress');
       const migrationProgressText = document.querySelector('#migrationProgressText');
       const migrationSummary = document.querySelector('#migrationSummary');
+      const importProgress = document.querySelector('#importProgress');
+      const importProgressText = document.querySelector('#importProgressText');
+      const importSummary = document.querySelector('#importSummary');
       const migrationHistory = document.querySelector('#migrationHistory');
       const libraryTracks = document.querySelector('#libraryTracks');
       const playlistTracks = document.querySelector('#playlistTracks');
@@ -215,6 +232,7 @@
       let busy = false;
       let adminToken = '';
       let migrationPreview = null;
+      let importPreview = null;
 
       function showNotice(message, kind = '') {
         notice.className = kind;
@@ -254,6 +272,9 @@
         document.querySelector('#migrationButton').disabled =
           busy || !adminToken || !migrationPreview || !migrationPreview.stateFits
           || migrationPreview.enoughSpace === false;
+        document.querySelector('#importButton').disabled =
+          busy || !adminToken || !importPreview || !importPreview.stateFits
+          || importPreview.enoughSpace === false || importPreview.oversizedTracks > 0;
       }
 
       async function authorize(token) {
@@ -293,7 +314,7 @@
           row.className = 'row';
           const description = document.createElement('span');
           description.textContent =
-            `${migration.status} · ${migration.completedTracks}/${migration.totalTracks} temas · ${migration.percent}%${migration.error ? ` · ${migration.error}` : ''}`;
+            `${migration.direction === 'import' ? 'Importación' : 'Exportación'} · ${migration.status} · ${migration.completedTracks}/${migration.totalTracks} temas · ${migration.percent}%${migration.error ? ` · ${migration.error}` : ''}`;
           row.append(description);
           if (['paused', 'failed'].includes(migration.status)) {
             const resume = document.createElement('button');
@@ -719,16 +740,45 @@
         return migration;
       }
 
+      function showImportProgress(migration) {
+        importProgress.hidden = false;
+        importProgressText.hidden = false;
+        importProgress.value = migration.percent;
+        importProgressText.textContent =
+          `${migration.currentTrack ? `Importando ${migration.currentTrack}` : 'Preparando importación'} · ${migration.percent}% (${migration.completedTracks}/${migration.totalTracks} temas)`;
+      }
+
+      async function waitForImport(migration) {
+        showImportProgress(migration);
+        while (migration.status === 'running') {
+          await new Promise((resolve) => window.setTimeout(resolve, 750));
+          const result = await requestJson(`/api/migrations/${encodeURIComponent(migration.id)}`);
+          migration = result.migration;
+          showImportProgress(migration);
+        }
+        if (migration.status !== 'completed') {
+          throw new Error(migration.error || 'La importación se pausó y puede reanudarse.');
+        }
+        importProgress.value = 100;
+        importProgressText.textContent =
+          `Importación completa: ${migration.transferredTracks} temas copiados, ${migration.skippedTracks} ya existentes y ${migration.conflictTracks} con contenido distinto omitidos.`;
+        return migration;
+      }
+
       async function resumeMigration(id) {
         if (busy || !adminToken) return;
         setBusy(true);
         try {
           const started = await requestJson(`/api/migrations/${encodeURIComponent(id)}/resume`, { method: 'POST' });
-          await waitForMigration(started.migration);
+          if (started.migration.direction === 'import') await waitForImport(started.migration);
+          else await waitForMigration(started.migration);
           await refresh();
-          showNotice('Biblioteca migrada al servidor de destino.', 'success');
+          showNotice(started.migration.direction === 'import'
+            ? 'Copia importada correctamente.'
+            : 'Biblioteca migrada al servidor de destino.', 'success');
         } catch (error) {
-          migrationProgressText.textContent = `Migración interrumpida: ${error.message}`;
+          migrationProgressText.textContent = `Operación interrumpida: ${error.message}`;
+          importProgressText.textContent = `Operación interrumpida: ${error.message}`;
           showNotice(error.message, 'error');
         } finally {
           setBusy(false);
@@ -815,6 +865,98 @@
           showNotice('Biblioteca y datos de playlist migrados correctamente.', 'success');
         } catch (error) {
           migrationProgressText.textContent = `Migración interrumpida: ${error.message}`;
+          showNotice(error.message, 'error');
+        } finally {
+          setBusy(false);
+          await loadMigrationHistory().catch((error) => showNotice(error.message, 'error'));
+        }
+      });
+
+      document.querySelector('#importSource').addEventListener('input', () => {
+        importPreview = null;
+        importSummary.hidden = true;
+        updateAdminControls();
+      });
+
+      document.querySelector('#previewImportButton').addEventListener('click', async () => {
+        if (busy || !adminToken) return;
+        const sourceUrl = document.querySelector('#importSource').value.trim();
+        if (!sourceUrl) {
+          showNotice('Ingresa primero la URL de origen.', 'error');
+          return;
+        }
+        setBusy(true);
+        importPreview = null;
+        importSummary.hidden = true;
+        try {
+          const result = await requestJson('/api/imports/preview', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sourceUrl }),
+          });
+          importPreview = { sourceUrl, ...result.preview };
+          importSummary.replaceChildren();
+          const summary = document.createElement('p');
+          summary.textContent =
+            `${result.preview.sourceDiscCount} discos · ${result.preview.sourceTrackCount} temas (${formatBytes(result.preview.totalBytes)}) · ${result.preview.existingTracks} temas ya existentes · ${result.preview.checksumConflicts} con contenido distinto.`;
+          const space = document.createElement('p');
+          space.textContent =
+            `Espacio requerido: ${formatBytes(result.preview.requiredBytes)} · libre aquí: ${formatBytes(result.preview.destinationFreeBytes)}${result.preview.enoughSpace === false ? ' · espacio insuficiente' : ''}.`;
+          const stateSummary = document.createElement('p');
+          stateSummary.textContent =
+            `Al combinar quedan ${result.preview.mergedPlaylistCount} temas en playlist y ${result.preview.mergedScheduleCount} programaciones.`;
+          const limits = document.createElement('p');
+          limits.textContent = result.preview.oversizedTracks
+            ? `${result.preview.oversizedTracks} temas superan el tamaño máximo permitido.`
+            : result.preview.stateFits
+              ? 'La copia respeta los límites de la biblioteca.'
+              : 'No se puede importar: la combinación excede los límites de playlist o programación.';
+          importSummary.append(summary, space, stateSummary, limits);
+          importSummary.hidden = false;
+          showNotice('Vista previa lista. Los temas existentes no se reemplazarán.', 'success');
+        } catch (error) {
+          showNotice(error.message, 'error');
+        } finally {
+          setBusy(false);
+        }
+      });
+
+      document.querySelector('#importForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (busy || !adminToken || !importPreview) return;
+        if (importPreview.sourceUrl !== document.querySelector('#importSource').value.trim()) {
+          showNotice('Revisa de nuevo el origen antes de iniciar la importación.', 'error');
+          return;
+        }
+        if (importPreview.enoughSpace === false) {
+          showNotice('No hay espacio libre suficiente en esta biblioteca.', 'error');
+          return;
+        }
+        if (importPreview.oversizedTracks) {
+          showNotice('La copia contiene temas que superan el tamaño máximo permitido.', 'error');
+          return;
+        }
+        if (!importPreview.stateFits) {
+          showNotice('La combinación excedería los límites de playlist o programación.', 'error');
+          return;
+        }
+        if (!window.confirm('Se copiarán los temas faltantes y se combinarán playlist y programación. No se borrarán ni reemplazarán los temas existentes. ¿Continuar?')) return;
+        setBusy(true);
+        importProgress.hidden = false;
+        importProgressText.hidden = false;
+        importProgress.value = 0;
+        importProgressText.textContent = 'Preparando importación…';
+        try {
+          const started = await requestJson('/api/imports', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sourceUrl: importPreview.sourceUrl }),
+          });
+          await waitForImport(started.migration);
+          await refresh();
+          showNotice('Copia importada correctamente.', 'success');
+        } catch (error) {
+          importProgressText.textContent = `Importación interrumpida: ${error.message}`;
           showNotice(error.message, 'error');
         } finally {
           setBusy(false);

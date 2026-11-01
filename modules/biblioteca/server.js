@@ -44,7 +44,8 @@ function createLibraryServer({
     for (const savedMigration of savedMigrations) {
       if (!savedMigration || typeof savedMigration.id !== 'string'
         || !['running', 'paused', 'failed', 'completed'].includes(savedMigration.status)
-        || typeof savedMigration.destinationUrl !== 'string'
+        || !['export', 'import'].includes(savedMigration.direction || 'export')
+        || typeof (savedMigration.direction === 'import' ? savedMigration.sourceUrl : savedMigration.destinationUrl) !== 'string'
         || !Array.isArray(savedMigration.completedTrackIds)
         || !Array.isArray(savedMigration.transferredTrackIds)
         || !Array.isArray(savedMigration.skippedTrackIds)) {
@@ -120,9 +121,9 @@ function createLibraryServer({
     }
   }
 
-  function validateMigrationDestination(value) {
+  function validateMigrationDestination(value, label = 'destino') {
     if (typeof value !== 'string' || !value.trim()) {
-      const error = new Error('Indica la URL de la biblioteca de destino.');
+      const error = new Error(`Indica la URL de la biblioteca de ${label}.`);
       error.status = 400;
       throw error;
     }
@@ -130,25 +131,25 @@ function createLibraryServer({
     try {
       destination = new URL(value.trim());
     } catch {
-      const error = new Error('Ingresa una URL válida para la biblioteca de destino.');
+      const error = new Error(`Ingresa una URL válida para la biblioteca de ${label}.`);
       error.status = 400;
       throw error;
     }
     if (!['http:', 'https:'].includes(destination.protocol) || destination.username || destination.password
       || destination.search || destination.hash) {
-      const error = new Error('La URL de destino debe ser HTTP o HTTPS y no incluir credenciales, parámetros ni fragmentos.');
+      const error = new Error(`La URL de ${label} debe ser HTTP o HTTPS y no incluir credenciales, parámetros ni fragmentos.`);
       error.status = 400;
       throw error;
     }
     if (destination.protocol === 'http:' && !allowInsecureMigrationHttp) {
-      const error = new Error('Las migraciones requieren HTTPS; HTTP solo puede habilitarse explícitamente en una red privada confiable.');
+      const error = new Error(`Las migraciones requieren HTTPS; HTTP solo puede habilitarse explícitamente en una red privada confiable.`);
       error.status = 400;
       throw error;
     }
     const allowed = migrationAllowedHosts.includes(destination.hostname.toLowerCase())
       || migrationAllowedHosts.includes(destination.host.toLowerCase());
     if (!allowed) {
-      const error = new Error('El host de destino no está autorizado. Configúralo en BIBLIOTECA_MIGRATION_ALLOWED_HOSTS.');
+      const error = new Error(`El host de ${label} no está autorizado. Configúralo en BIBLIOTECA_MIGRATION_ALLOWED_HOSTS.`);
       error.status = 403;
       throw error;
     }
@@ -254,9 +255,154 @@ function createLibraryServer({
     };
   }
 
+  async function getImportPreview(source) {
+    const [health, sourceLibrary, sourcePlayer, sourceSchedules] = await Promise.all([
+      requestMigrationDestination(source, '/api/health'),
+      requestMigrationDestination(source, '/api/discs'),
+      requestMigrationDestination(source, '/api/player/state'),
+      requestMigrationDestination(source, '/api/schedules'),
+    ]);
+    if (health.apiVersion !== 1 || !Number.isSafeInteger(health.maxFileSize)
+      || health.maxFileSize <= 0 || !Array.isArray(sourceLibrary.discs)
+      || !Array.isArray(sourcePlayer.queue) || typeof sourcePlayer.repeat !== 'boolean'
+      || !Array.isArray(sourceSchedules.schedules)) {
+      const error = new Error('La URL no corresponde a una biblioteca compatible.');
+      error.status = 409;
+      throw error;
+    }
+
+    const sourceTracks = [];
+    for (const disc of sourceLibrary.discs) {
+      if (!disc || typeof disc.id !== 'string' || typeof disc.name !== 'string'
+        || !Array.isArray(disc.tracks) || getDiscId(disc.name) !== disc.id) {
+        const error = new Error('La biblioteca de origen devolvió discos no válidos.');
+        error.status = 409;
+        throw error;
+      }
+      for (const track of disc.tracks) {
+        if (!track || track.discId !== disc.id || typeof track.name !== 'string'
+          || track.id !== `${disc.id}/${track.name}` || getTrackPath(track.id) === null
+          || !Number.isSafeInteger(track.sizeBytes) || track.sizeBytes <= 0
+          || typeof track.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(track.sha256)) {
+          const error = new Error('La biblioteca de origen devolvió temas no válidos.');
+          error.status = 409;
+          throw error;
+        }
+        sourceTracks.push(track);
+      }
+    }
+    const sourceTrackIds = new Set(sourceTracks.map((track) => track.id));
+    if (sourcePlayer.queue.some((track) => !track || typeof track.id !== 'string'
+      || !sourceTrackIds.has(track.id))
+      || new Set(sourcePlayer.queue.map((track) => track.id)).size !== sourcePlayer.queue.length
+      || (sourcePlayer.currentTrack !== null
+        && (!sourcePlayer.currentTrack || typeof sourcePlayer.currentTrack.id !== 'string'
+          || !sourcePlayer.queue.some((track) => track.id === sourcePlayer.currentTrack.id)))) {
+      const error = new Error('La biblioteca de origen devolvió una playlist no válida.');
+      error.status = 409;
+      throw error;
+    }
+    const scheduleIds = new Set();
+    if (sourceSchedules.schedules.some((schedule) => {
+      if (!schedule || typeof schedule.id !== 'string' || !/^[a-zA-Z0-9-]{1,80}$/.test(schedule.id)
+        || scheduleIds.has(schedule.id) || !sourceTrackIds.has(schedule.trackId)
+        || typeof schedule.scheduledAt !== 'string' || !Number.isFinite(Date.parse(schedule.scheduledAt))
+        || !['once', 'daily', 'weekly'].includes(schedule.recurrence)) return true;
+      scheduleIds.add(schedule.id);
+      return false;
+    })) {
+      const error = new Error('La biblioteca de origen devolvió una programación no válida.');
+      error.status = 409;
+      throw error;
+    }
+
+    const destinationTracks = new Map(listDiscs()
+      .flatMap((disc) => disc.tracks)
+      .map((track) => [track.id, track]));
+    let existingTracks = 0;
+    let checksumConflicts = 0;
+    let requiredBytes = 0;
+    for (const track of sourceTracks) {
+      const existing = destinationTracks.get(track.id);
+      if (!existing) {
+        requiredBytes += track.sizeBytes;
+      } else {
+        existingTracks += 1;
+        if (existing.sha256 !== track.sha256) checksumConflicts += 1;
+      }
+    }
+    const destinationState = playback.getPlayerState();
+    const mergedPlaylistCount = new Set([
+      ...destinationState.queue,
+      ...sourcePlayer.queue.map((track) => track.id),
+    ]).size;
+    const destinationScheduleIds = new Set(playback.getSchedules().map((schedule) => schedule.id));
+    const mergedScheduleCount = destinationScheduleIds.size
+      + sourceSchedules.schedules.filter((schedule) => schedule && typeof schedule.id === 'string'
+        && !destinationScheduleIds.has(schedule.id)).length;
+    const oversizedTracks = sourceTracks.filter((track) =>
+      track.sizeBytes > Math.min(health.maxFileSize, maxFileSize)).length;
+    const freeBytes = getFreeBytes();
+
+    return {
+      sourceDiscCount: sourceLibrary.discs.length,
+      sourceTrackCount: sourceTracks.length,
+      totalBytes: sourceTracks.reduce((total, track) => total + track.sizeBytes, 0),
+      requiredBytes,
+      existingTracks,
+      checksumConflicts,
+      oversizedTracks,
+      sourcePlaylistCount: sourcePlayer.queue.length,
+      destinationPlaylistCount: destinationState.queue.length,
+      sourceScheduleCount: sourceSchedules.schedules.length,
+      destinationScheduleCount: playback.getSchedules().length,
+      mergedScheduleCount,
+      mergedPlaylistCount,
+      stateFits: mergedScheduleCount <= 200 && mergedPlaylistCount <= 5000,
+      destinationFreeBytes: freeBytes,
+      enoughSpace: Number.isSafeInteger(freeBytes) ? freeBytes >= requiredBytes : null,
+    };
+  }
+
+  async function requestMigrationAudio(source, trackId) {
+    if (typeof fetchImpl !== 'function') throw new Error('No está disponible el cliente HTTP para importar la biblioteca.');
+    let response;
+    try {
+      response = await fetchImpl(new URL(`api/audio?id=${encodeURIComponent(trackId)}`, source), {
+        headers: { Authorization: `Bearer ${adminToken}` },
+        redirect: 'error',
+        signal: AbortSignal.timeout(5 * 60 * 1000),
+      });
+    } catch (error) {
+      const connectionError = new Error(`No se pudo descargar el tema desde la biblioteca de origen: ${error.message}`);
+      connectionError.status = 502;
+      throw connectionError;
+    }
+    if (!response.ok) {
+      const requestError = new Error(`La biblioteca de origen respondió HTTP ${response.status} al descargar un tema.`);
+      requestError.status = response.status;
+      throw requestError;
+    }
+    const declaredSize = Number(response.headers.get('content-length'));
+    if (Number.isFinite(declaredSize) && declaredSize > maxFileSize) {
+      const error = new Error('El tema de origen supera el tamaño máximo permitido.');
+      error.status = 413;
+      throw error;
+    }
+    const contents = Buffer.from(await response.arrayBuffer());
+    if (!contents.length || contents.length > maxFileSize
+      || (Number.isFinite(declaredSize) && declaredSize !== contents.length)) {
+      const error = new Error('El tema descargado tiene un tamaño no válido.');
+      error.status = 422;
+      throw error;
+    }
+    return contents;
+  }
+
   function migrationSnapshot(migration) {
     return {
       id: migration.id,
+      direction: migration.direction || 'export',
       status: migration.status,
       totalTracks: migration.totalTracks,
       completedTracks: migration.completedTracks,
@@ -419,6 +565,118 @@ function createLibraryServer({
     }
   }
 
+  async function runImport(migration, source) {
+    try {
+      const sourceLibrary = await requestMigrationDestination(source, '/api/discs');
+      const preview = await getImportPreview(source);
+      migration.preview = preview;
+      migration.totalTracks = preview.sourceTrackCount;
+      if (preview.oversizedTracks) {
+        throw new Error('La biblioteca de origen contiene temas que superan el tamaño máximo permitido.');
+      }
+      if (preview.enoughSpace === false) {
+        throw new Error('Este servidor no tiene espacio libre suficiente para los temas que faltan.');
+      }
+      if (!preview.stateFits) {
+        throw new Error('La combinación superaría el límite de temas de playlist o canciones programadas.');
+      }
+      persistMigrations();
+
+      const localTracks = new Map(listDiscs().flatMap((disc) => disc.tracks).map((track) => [track.id, track]));
+      const completedTrackIds = new Set(migration.completedTrackIds);
+      const transferredTrackIds = new Set(migration.transferredTrackIds);
+      const skippedTrackIds = new Set(migration.skippedTrackIds);
+      const conflictTrackIds = new Set(migration.conflictTrackIds || []);
+      const updateProgress = () => {
+        migration.completedTracks = completedTrackIds.size;
+        migration.transferredTracks = transferredTrackIds.size;
+        migration.skippedTracks = skippedTrackIds.size;
+        migration.percent = migration.totalTracks
+          ? Math.floor((migration.completedTracks / migration.totalTracks) * 95)
+          : 0;
+        migration.completedTrackIds = [...completedTrackIds];
+        migration.transferredTrackIds = [...transferredTrackIds];
+        migration.skippedTrackIds = [...skippedTrackIds];
+        migration.conflictTrackIds = [...conflictTrackIds];
+        persistMigrations();
+      };
+
+      for (const disc of sourceLibrary.discs) {
+        const created = createDisc(disc.name);
+        if (created.disc.id !== disc.id || created.disc.name !== disc.name) {
+          throw new Error(`No se pudo conservar el disco "${disc.name}" en esta biblioteca.`);
+        }
+        for (const track of disc.tracks) {
+          if (completedTrackIds.has(track.id) && localTracks.has(track.id)) continue;
+          migration.currentTrack = `${disc.name} · ${track.title || track.name}`;
+          const existingTrack = localTracks.get(track.id);
+          if (existingTrack) {
+            skippedTrackIds.add(track.id);
+            if (existingTrack.sha256 !== track.sha256) conflictTrackIds.add(track.id);
+          } else {
+            const contents = await requestMigrationAudio(source, track.id);
+            const checksum = createHash('sha256').update(contents).digest('hex');
+            if (contents.length !== track.sizeBytes || checksum !== track.sha256) {
+              const error = new Error(`No se pudo validar el tamaño o SHA-256 del tema "${track.name}".`);
+              error.status = 422;
+              throw error;
+            }
+            const filePath = getTrackPath(track.id);
+            if (!filePath) throw new Error(`La ruta del tema "${track.name}" no es válida.`);
+            let fileCreated = false;
+            try {
+              fs.writeFileSync(filePath, contents, { flag: 'wx' });
+              fileCreated = true;
+              saveTrackMetadata(disc.id, track.name, contents);
+            } catch (error) {
+              if (fileCreated && fs.existsSync(filePath)) fs.unlinkSync(filePath);
+              if (error.code === 'EEXIST') {
+                error.status = 409;
+                error.message = `Ya existe el tema "${track.name}" en esta biblioteca.`;
+              }
+              throw error;
+            }
+            const importedTrack = { ...track, discName: disc.name };
+            localTracks.set(track.id, importedTrack);
+            transferredTrackIds.add(track.id);
+          }
+          completedTrackIds.add(track.id);
+          updateProgress();
+        }
+      }
+
+      if (!migration.stateImported) {
+        const [sourcePlayer, sourceSchedules] = await Promise.all([
+          requestMigrationDestination(source, '/api/player/state'),
+          requestMigrationDestination(source, '/api/schedules'),
+        ]);
+        if (!Array.isArray(sourcePlayer.queue) || !Array.isArray(sourceSchedules.schedules)) {
+          throw new Error('La biblioteca de origen devolvió un estado no válido.');
+        }
+        mergeImportedState({
+          player: {
+            tracks: sourcePlayer.queue.map((track) => track.id),
+            currentTrackId: sourcePlayer.currentTrack?.id || null,
+            repeat: sourcePlayer.repeat,
+          },
+          schedules: sourceSchedules.schedules,
+        });
+        migration.stateImported = true;
+        persistMigrations();
+      }
+      migration.status = 'completed';
+      migration.percent = 100;
+      migration.currentTrack = '';
+      migration.error = '';
+    } catch (error) {
+      migration.status = 'failed';
+      migration.error = error.message;
+    } finally {
+      activeMigrationId = null;
+      persistMigrations();
+    }
+  }
+
   async function readBody(request) {
     const chunks = [];
     let size = 0;
@@ -536,7 +794,8 @@ function createLibraryServer({
     }
     if (requestUrl.pathname.startsWith('/api/')) {
       const adminRoute = requestUrl.pathname.startsWith('/api/admin/')
-        || requestUrl.pathname.startsWith('/api/migrations');
+        || requestUrl.pathname.startsWith('/api/migrations')
+        || requestUrl.pathname.startsWith('/api/imports');
       const mutating = !['GET', 'HEAD', 'OPTIONS'].includes(request.method);
       if (adminRoute || mutating) {
         if (!adminToken) {
@@ -576,6 +835,20 @@ function createLibraryServer({
       }
       const destination = validateMigrationDestination(payload?.destinationUrl);
       const preview = await getMigrationPreview(destination);
+      sendJson(response, 200, { preview });
+      return;
+    }
+    if (request.method === 'POST' && requestUrl.pathname === '/api/imports/preview') {
+      let payload;
+      try {
+        payload = JSON.parse((await readBody(request)).toString('utf8'));
+      } catch {
+        const invalidJson = new Error('La vista previa de importación debe enviarse como JSON válido.');
+        invalidJson.status = 400;
+        throw invalidJson;
+      }
+      const source = validateMigrationDestination(payload?.sourceUrl, 'origen');
+      const preview = await getImportPreview(source);
       sendJson(response, 200, { preview });
       return;
     }
@@ -632,6 +905,54 @@ function createLibraryServer({
       sendJson(response, 202, { migration: migrationSnapshot(migration) });
       return;
     }
+    if (request.method === 'POST' && requestUrl.pathname === '/api/imports') {
+      let payload;
+      try {
+        payload = JSON.parse((await readBody(request)).toString('utf8'));
+      } catch (error) {
+        if (error.status) throw error;
+        const invalidJson = new Error('La importación debe enviarse como JSON válido.');
+        invalidJson.status = 400;
+        throw invalidJson;
+      }
+      const source = validateMigrationDestination(payload?.sourceUrl, 'origen');
+      if (activeMigrationId) {
+        const error = new Error('Ya hay una migración o importación en curso.');
+        error.status = 409;
+        throw error;
+      }
+      if (migrations.size >= 20) {
+        for (const [id, migration] of migrations) {
+          if (migration.status !== 'running') migrations.delete(id);
+          if (migrations.size < 20) break;
+        }
+      }
+      const migration = {
+        id: randomUUID(),
+        direction: 'import',
+        status: 'running',
+        sourceUrl: source.href,
+        totalTracks: 0,
+        completedTracks: 0,
+        transferredTracks: 0,
+        skippedTracks: 0,
+        conflictTrackIds: [],
+        completedTrackIds: [],
+        transferredTrackIds: [],
+        skippedTrackIds: [],
+        percent: 0,
+        currentTrack: '',
+        error: '',
+        preview: null,
+        stateImported: false,
+      };
+      migrations.set(migration.id, migration);
+      activeMigrationId = migration.id;
+      persistMigrations();
+      runImport(migration, source).catch((error) => logger.error(`Falló la importación ${migration.id}: ${error.message}`));
+      sendJson(response, 202, { migration: migrationSnapshot(migration) });
+      return;
+    }
     const resumeMigration = /^\/api\/migrations\/([a-f0-9-]+)\/resume$/.exec(requestUrl.pathname);
     if (request.method === 'POST' && resumeMigration) {
       const migration = migrations.get(resumeMigration[1]);
@@ -647,12 +968,17 @@ function createLibraryServer({
         sendJson(response, 409, { ok: false, message: 'Ya hay una migración en curso.' });
         return;
       }
-      const destination = validateMigrationDestination(migration.destinationUrl);
+      const isImport = migration.direction === 'import';
+      const peer = validateMigrationDestination(
+        isImport ? migration.sourceUrl : migration.destinationUrl,
+        isImport ? 'origen' : 'destino',
+      );
       migration.status = 'running';
       migration.error = '';
       activeMigrationId = migration.id;
       persistMigrations();
-      runMigration(migration, destination).catch((error) => logger.error(`Falló la migración ${migration.id}: ${error.message}`));
+      const operation = isImport ? runImport(migration, peer) : runMigration(migration, peer);
+      operation.catch((error) => logger.error(`Falló la migración ${migration.id}: ${error.message}`));
       sendJson(response, 202, { migration: migrationSnapshot(migration) });
       return;
     }

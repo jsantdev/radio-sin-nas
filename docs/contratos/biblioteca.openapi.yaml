@@ -155,6 +155,59 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Error" }
         "409": { $ref: "#/components/responses/Error" }
+  /api/imports/preview:
+    post:
+      tags: [Migraciones]
+      summary: Simular una importación desde otra Biblioteca
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sourceUrl]
+              properties:
+                sourceUrl: { type: string, format: uri }
+      responses:
+        "200":
+          description: Recuento de datos, conflictos y espacio requerido.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  preview: { $ref: "#/components/schemas/MigrationPreview" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/imports:
+    post:
+      tags: [Migraciones]
+      summary: Importar una copia desde otra Biblioteca
+      description: Descarga temas desde una URL permitida y combina playlist y programación sin reemplazar los datos existentes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sourceUrl]
+              properties:
+                sourceUrl: { type: string, format: uri }
+      responses:
+        "202":
+          description: Importación aceptada y ejecutada en segundo plano.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  migration: { $ref: "#/components/schemas/Migration" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
   /api/migrations/{migrationId}:
     parameters:
       - $ref: "#/components/parameters/MigrationId"
@@ -594,6 +647,7 @@ components:
       required: [id, status, totalTracks, completedTracks, transferredTracks, skippedTracks, conflictTracks, percent, currentTrack, error, preview]
       properties:
         id: { type: string, format: uuid }
+        direction: { type: string, enum: [export, import] }
         status: { type: string, enum: [running, paused, failed, completed] }
         totalTracks: { type: integer }
         completedTracks: { type: integer }

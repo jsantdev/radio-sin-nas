@@ -37,8 +37,10 @@ test('external library creates named empty discs and reuses them when uploading 
     assert.match(page, /Borrar tema/);
     assert.match(page, /Repetir playlist al llegar al final/);
     assert.match(page, /Programar canciones/);
-    assert.match(page, /Migrar biblioteca a otra API/);
+    assert.match(page, /Datos y copias/);
+    assert.match(page, /Importar copia desde una URL/);
     assert.match(page, /migrationProgress/);
+    assert.match(page, /importProgress/);
     assert.match(page, /rel="manifest" href="\/manifest.webmanifest"/);
     assert.match(page, /serviceWorker\.register\('\/service-worker\.js'\)/);
     const manifestResponse = await fetch(`${baseUrl}/manifest.webmanifest`);
@@ -290,6 +292,106 @@ test('library migration copies missing tracks to another API and reports progres
     assert.equal(repeatedMigration.transferredTracks, 0);
     assert.equal(repeatedMigration.skippedTracks, 2);
     assert.equal(repeatedMigration.conflictTracks, 1);
+  } finally {
+    const closed = [once(source, 'close'), once(destination, 'close')];
+    source.close();
+    destination.close();
+    await Promise.all(closed);
+    fs.rmSync(storage, { recursive: true, force: true });
+  }
+});
+
+test('library imports a copy from an allowed library URL and merges its tracks and state', async () => {
+  const storage = fs.mkdtempSync(path.join(os.tmpdir(), 'radio-library-import-'));
+  const source = createTestLibraryServer({ dataDirectory: path.join(storage, 'source', 'discs') });
+  const destination = createTestLibraryServer({ dataDirectory: path.join(storage, 'destination', 'discs') });
+  source.listen(0, '127.0.0.1');
+  destination.listen(0, '127.0.0.1');
+  await Promise.all([once(source, 'listening'), once(destination, 'listening')]);
+  const sourceUrl = `http://127.0.0.1:${source.address().port}`;
+  const destinationUrl = `http://127.0.0.1:${destination.address().port}`;
+  const audio = Buffer.from('audio to import');
+
+  async function waitForImport(id) {
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      const response = await fetch(`${destinationUrl}/api/migrations/${id}`);
+      assert.equal(response.status, 200);
+      const { migration } = await response.json();
+      if (migration.status !== 'running') return migration;
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    throw new Error('Import did not finish in time.');
+  }
+
+  try {
+    const uploaded = await fetch(`${sourceUrl}/api/tracks?disc=${encodeURIComponent('Copia remota')}`, {
+      method: 'POST',
+      headers: { 'X-File-Name': encodeURIComponent('Tema.mp3'), 'Content-Type': 'audio/mpeg' },
+      body: audio,
+    });
+    assert.equal(uploaded.status, 201);
+    const trackId = 'copia-remota/Tema.mp3';
+    const playlist = await fetch(`${sourceUrl}/api/player/playlist`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tracks: [trackId], repeat: false }),
+    });
+    assert.equal(playlist.status, 200);
+    const scheduled = await fetch(`${sourceUrl}/api/schedules`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        schedules: [{
+          id: 'remote-schedule',
+          trackId,
+          scheduledAt: '2030-01-01T10:00:00.000Z',
+          recurrence: 'weekly',
+        }],
+      }),
+    });
+    assert.equal(scheduled.status, 200);
+
+    const blocked = await fetch(`${destinationUrl}/api/imports/preview`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sourceUrl: sourceUrl.replace('127.0.0.1', 'localhost') }),
+    });
+    assert.equal(blocked.status, 403);
+
+    const previewResponse = await fetch(`${destinationUrl}/api/imports/preview`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sourceUrl }),
+    });
+    assert.equal(previewResponse.status, 200);
+    const { preview } = await previewResponse.json();
+    assert.equal(preview.sourceTrackCount, 1);
+    assert.equal(preview.requiredBytes, audio.length);
+    assert.equal(preview.mergedPlaylistCount, 1);
+    assert.equal(preview.mergedScheduleCount, 1);
+    assert.equal(preview.stateFits, true);
+
+    const started = await fetch(`${destinationUrl}/api/imports`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sourceUrl }),
+    });
+    assert.equal(started.status, 202);
+    const { migration: startedMigration } = await started.json();
+    assert.equal(startedMigration.direction, 'import');
+    const completed = await waitForImport(startedMigration.id);
+    assert.equal(completed.status, 'completed');
+    assert.equal(completed.percent, 100);
+    assert.equal(completed.transferredTracks, 1);
+
+    const copied = await fetch(`${destinationUrl}/api/audio?id=${encodeURIComponent(trackId)}`);
+    assert.equal(copied.status, 200);
+    assert.deepEqual(Buffer.from(await copied.arrayBuffer()), audio);
+    const importedPlayer = await fetch(`${destinationUrl}/api/player/state`).then((response) => response.json());
+    assert.deepEqual(importedPlayer.queue.map((track) => track.id), [trackId]);
+    assert.equal(importedPlayer.repeat, false);
+    const importedSchedules = await fetch(`${destinationUrl}/api/schedules`).then((response) => response.json());
+    assert.equal(importedSchedules.schedules[0].id, 'remote-schedule');
   } finally {
     const closed = [once(source, 'close'), once(destination, 'close')];
     source.close();

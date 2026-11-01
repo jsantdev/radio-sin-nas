@@ -46,15 +46,18 @@ el directorio padre de esa ruta; configura ambos dentro del mismo volumen.
 
 ## Integración Biblioteca → Biblioteca (migraciones)
 
-Una migración transfiere datos desde una instancia de Biblioteca a otra. El destino
-debe tener una versión compatible (`GET /api/health`, `apiVersion: 1`), un token
-administrativo compartido y espacio para los archivos que faltan. El servidor de
-origen solo contacta hosts enumerados en `BIBLIOTECA_MIGRATION_ALLOWED_HOSTS`;
+La exportación transfiere datos desde esta instancia a otra Biblioteca; la importación
+descarga los datos desde la URL de origen hacia esta instancia. Ambos servidores
+deben tener una versión compatible (`GET /api/health`, `apiVersion: 1`), un token
+administrativo compartido y espacio para los archivos que faltan. Cada servidor solo
+contacta hosts enumerados en `BIBLIOTECA_MIGRATION_ALLOWED_HOSTS`;
 requiere HTTPS salvo que `BIBLIOTECA_MIGRATION_ALLOW_HTTP=true` en una red privada
-confiable. La URL destino no puede incluir credenciales, parámetros ni fragmentos.
+confiable. Las URL no pueden incluir credenciales, parámetros ni fragmentos.
 
 La transferencia no reemplaza archivos existentes. Verifica tamaño y SHA-256,
-combina playlist y programación y puede reanudarse después de interrupciones.
+combina playlist y programación y puede reanudarse después de interrupciones. La
+vista previa revisa espacio, archivos repetidos y los límites de estado antes de
+iniciar.
 
 ## Convenciones y seguridad
 

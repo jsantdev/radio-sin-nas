@@ -20,8 +20,8 @@ Configura el mismo `BIBLIOTECA_ADMIN_TOKEN` en los dos servidores que participen
 
 ## Migraciones
 
-Desde el panel se revisa el destino antes de transferir: temas y bytes, espacio libre, archivos ya existentes y estado de playlists/programación. Solo se copian archivos faltantes; los archivos existentes nunca se reemplazan. Cada carga incluye y verifica SHA-256 y tamaño. Las playlists se unen sin temas duplicados; la programación se une por ID, conservando la entrada que ya exista en destino. Si se interrumpe el proceso, el historial y los checkpoints permiten reanudarlo desde el panel.
+En **Datos** puedes exportar a otra Biblioteca o importar desde su URL. La vista previa muestra temas, espacio libre, archivos existentes y el estado de playlist/programación. Solo se copian archivos faltantes; los existentes nunca se reemplazan. Cada tema se valida con SHA-256 y tamaño. La playlist se une sin duplicados y la programación se combina por ID, conservando la entrada que ya exista. Si se interrumpe el proceso, el historial permite reanudarlo desde el panel.
 
-La migración copia discos, temas, playlist y programación; no elimina ni modifica los datos de origen. Mantén copias de seguridad independientes: una migración no reemplaza un backup.
+La copia transfiere discos, temas, playlist y programación; no elimina ni modifica los datos de origen. Mantén backups independientes: la migración entre Bibliotecas no reemplaza un backup de archivos.
 
 Las rutas de lectura de biblioteca y audio son públicas para permitir la reproducción. Protege el servicio con HTTPS y el control de red apropiado; el token protege las operaciones que modifican datos.
