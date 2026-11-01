@@ -97,6 +97,9 @@ function createWebserver({
       });
     });
   }
+  app.get('/dashboard.css', (request, response) => {
+    response.sendFile(path.join(__dirname, 'public', 'dashboard.css'));
+  });
   app.get(['/panel', '/panel/', '/panel/index.html'], (request, response) => {
     response.redirect(308, '/backend');
   });

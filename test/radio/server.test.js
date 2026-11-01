@@ -107,6 +107,7 @@ test('radio server keeps TikTok configuration, event monitoring, and radio state
     assert.equal(backendPage.status, 200);
     const backendHtml = await backendPage.text();
     assert.match(backendHtml, /<h1>Administración<\/h1>/);
+    assert.match(backendHtml, /rel="stylesheet" href="\/dashboard\.css"/);
     assert.match(backendHtml, /href="\/backend\/radio"/);
     assert.match(backendHtml, /href="\/backend\/tiktok"/);
     assert.match(backendHtml, /href="\/backend\/overlay"/);
@@ -114,13 +115,16 @@ test('radio server keeps TikTok configuration, event monitoring, and radio state
     assert.doesNotMatch(backendHtml, /playlistTracks|scheduleForm|togglePlayback/);
     const radioAdminPage = await fetch(`${baseUrl}/backend/radio`);
     assert.equal(radioAdminPage.status, 200);
-    assert.match(await radioAdminPage.text(), /id="currentTrack"/);
+    const radioAdminHtml = await radioAdminPage.text();
+    assert.match(radioAdminHtml, /id="currentTrack"/);
+    assert.match(radioAdminHtml, /rel="stylesheet" href="\/dashboard\.css"/);
     const tiktokAdminPage = await fetch(`${baseUrl}/backend/tiktok`);
     assert.equal(tiktokAdminPage.status, 200);
     const tiktokAdminHtml = await tiktokAdminPage.text();
     assert.match(tiktokAdminHtml, /data-domain="tiktok"/);
     assert.match(tiktokAdminHtml, /id="tiktokConfigForm"/);
     assert.match(tiktokAdminHtml, /id="channelPanel"/);
+    assert.match(tiktokAdminHtml, /rel="stylesheet" href="\/dashboard\.css"/);
     assert.match(tiktokAdminHtml, /body\[data-domain="tiktok"\] #overlaySettingsSection/);
     const overlayAdminPage = await fetch(`${baseUrl}/backend/overlay`);
     assert.equal(overlayAdminPage.status, 200);
@@ -128,8 +132,13 @@ test('radio server keeps TikTok configuration, event monitoring, and radio state
     assert.match(overlayAdminHtml, /data-domain="overlay"/);
     assert.match(overlayAdminHtml, /id="overlaySettingsForm"/);
     assert.match(overlayAdminHtml, /data-overlay-action="test-like"/);
+    assert.match(overlayAdminHtml, /rel="stylesheet" href="\/dashboard\.css"/);
     assert.match(overlayAdminHtml, /body\[data-domain="overlay"\] #tiktokSettingsSection/);
     assert.equal((await fetch(`${baseUrl}/playlist`)).status, 404);
+    const dashboardStyles = await fetch(`${baseUrl}/dashboard.css`);
+    assert.equal(dashboardStyles.status, 200);
+    assert.match(dashboardStyles.headers.get('content-type'), /text\/css/);
+    assert.match(await dashboardStyles.text(), /--accent:\s*#00b37e/);
 
     const manifestResponse = await fetch(`${baseUrl}/manifest.webmanifest`);
     assert.equal(manifestResponse.status, 200);

@@ -18,8 +18,15 @@ function registerIntegratedLibrary(app, libraryServer, libraryPort) {
       }
       response.type('html').send(html
         .replaceAll('/manifest.webmanifest', '/biblioteca/manifest.webmanifest')
+        .replaceAll('/dashboard.css', '/biblioteca/dashboard.css')
         .replaceAll('/icons/', '/biblioteca/icons/')
         .replace("register('/service-worker.js')", "register('/biblioteca/service-worker.js')"));
+    });
+  });
+
+  app.get('/biblioteca/dashboard.css', (request, response, next) => {
+    response.sendFile(path.resolve(__dirname, '..', '..', 'public', 'dashboard.css'), (error) => {
+      if (error) next(error);
     });
   });
 
@@ -53,6 +60,7 @@ function registerIntegratedLibrary(app, libraryServer, libraryPort) {
       }
       response.type('application/javascript').set('Cache-Control', 'no-cache').send(contents
         .replaceAll("['/',", "['/biblioteca/',")
+        .replaceAll("'/dashboard.css'", "'/biblioteca/dashboard.css'")
         .replaceAll("'/manifest.webmanifest'", "'/biblioteca/manifest.webmanifest'")
         .replaceAll("'/icons/", "'/biblioteca/icons/")
         .replaceAll("caches.put('/', copy)", "caches.put('/biblioteca/', copy)")

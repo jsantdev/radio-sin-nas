@@ -9,6 +9,7 @@ El contrato HTTP está en [OpenAPI de Biblioteca](contratos/biblioteca.openapi.y
 Para el despliegue integrado, configura `APP_DATA_DIR=/app/data` y `BIBLIOTECA_DATA_DIR=/app/data/biblioteca/discs` en la app. El servicio interno de Biblioteca escucha en `127.0.0.1:3101`; no publiques ese puerto. `BIBLIOTECA_ADMIN_TOKEN` protege las operaciones administrativas y Radio lo reutiliza para el reproductor. Para ejecutarlo en un puerto independiente dentro del proyecto, usa `npm run start:biblioteca`.
 
 - Usa [`.env.example`](../.env.example) como referencia para las variables; configura los secretos en Easypanel y no subas un archivo `.env` real.
+- `BIBLIOTECA_AUTH_DISABLED`: ponlo en `true` para desarrollo local sin tokens ni pantalla de acceso. No se permite activarlo si `NODE_ENV=production`; no expongas un servidor sin autenticación a una red pública.
 - `BIBLIOTECA_DATA_DIR`: carpeta persistente para los temas (predeterminada en `/app/data/biblioteca/discs` en Easypanel).
 - `BIBLIOTECA_ADMIN_TOKEN`: token secreto de al menos 32 bytes. Genera uno con `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"`. Sin este valor, la API permite lecturas públicas, pero bloquea subidas, cambios, borrados y operaciones administrativas.
 - `RADIO_LIBRARY_ADMIN_TOKEN`: configura el mismo secreto en el servidor de radio que consume esta biblioteca. El panel de radio no recibe ni guarda este token desde el navegador.

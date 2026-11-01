@@ -63,11 +63,18 @@ test('one deployment serves the library panel and API and persists its data in t
     const authorization = { Authorization: `Bearer ${adminToken}` };
     const page = await fetch(`${baseUrl}/biblioteca`);
     assert.equal(page.status, 200);
-    assert.match(await page.text(), /biblioteca\/manifest\.webmanifest/);
+    const pageHtml = await page.text();
+    assert.match(pageHtml, /biblioteca\/manifest\.webmanifest/);
+    assert.match(pageHtml, /href="\/biblioteca\/dashboard\.css"/);
+    const dashboardStyles = await fetch(`${baseUrl}/biblioteca/dashboard.css`);
+    assert.equal(dashboardStyles.status, 200);
+    assert.match(await dashboardStyles.text(), /--accent:\s*#00b37e/);
 
     const manifest = await fetch(`${baseUrl}/biblioteca/manifest.webmanifest`).then((response) => response.json());
     assert.equal(manifest.start_url, '/biblioteca/');
     assert.equal(manifest.scope, '/biblioteca/');
+    const serviceWorker = await fetch(`${baseUrl}/biblioteca/service-worker.js`).then((response) => response.text());
+    assert.match(serviceWorker, /'\/biblioteca\/dashboard\.css'/);
     assert.equal((await fetch(`${baseUrl}/api/health`)).status, 200);
 
     const createdDisc = await fetch(`${baseUrl}/api/discs`, {

@@ -12,6 +12,7 @@ function createLibraryServer({
   dataDirectory = process.env.BIBLIOTECA_DATA_DIR || path.join(__dirname, '..', '..', 'data', 'biblioteca', 'discs'),
   maxFileSize = maxAudioFileSize,
   adminToken = process.env.BIBLIOTECA_ADMIN_TOKEN || '',
+  adminAuthDisabled = process.env.BIBLIOTECA_AUTH_DISABLED === 'true',
   migrationAllowedHosts = (process.env.BIBLIOTECA_MIGRATION_ALLOWED_HOSTS || '')
     .split(',').map((host) => host.trim().toLowerCase()).filter(Boolean),
   allowInsecureMigrationHttp = process.env.BIBLIOTECA_MIGRATION_ALLOW_HTTP === 'true',
@@ -26,6 +27,9 @@ function createLibraryServer({
   const migrations = new Map();
   let activeMigrationId = null;
   let recoveredMigration = false;
+  if (adminAuthDisabled && process.env.NODE_ENV === 'production') {
+    throw new Error('BIBLIOTECA_AUTH_DISABLED no se puede activar en producción.');
+  }
   if (adminToken && (Buffer.byteLength(adminToken) < 32 || adminToken.trim() !== adminToken)) {
     throw new Error('BIBLIOTECA_ADMIN_TOKEN debe tener al menos 32 bytes y no incluir espacios externos.');
   }
@@ -91,6 +95,7 @@ function createLibraryServer({
   } = playback;
 
   function isAdminTokenValid(value) {
+    if (adminAuthDisabled) return true;
     if (!adminToken || typeof value !== 'string') return false;
     const supplied = Buffer.from(value);
     const expected = Buffer.from(adminToken);
@@ -740,6 +745,14 @@ function createLibraryServer({
       response.end(fs.readFileSync(path.resolve(__dirname, '..', '..', 'public', 'biblioteca', 'index.html')));
       return;
     }
+    if (request.method === 'GET' && requestUrl.pathname === '/dashboard.css') {
+      response.writeHead(200, {
+        'Content-Type': 'text/css; charset=utf-8',
+        'Cache-Control': 'no-cache',
+      });
+      response.end(fs.readFileSync(path.resolve(__dirname, '..', '..', 'public', 'dashboard.css')));
+      return;
+    }
     if (request.method === 'GET' && requestUrl.pathname === '/manifest.webmanifest') {
       response.writeHead(200, {
         'Content-Type': 'application/manifest+json; charset=utf-8',
@@ -767,10 +780,17 @@ function createLibraryServer({
       return;
     }
     if (request.method === 'GET' && requestUrl.pathname === '/api/admin/config') {
-      sendJson(response, 200, { configured: Boolean(adminToken) });
+      sendJson(response, 200, {
+        configured: Boolean(adminToken),
+        authRequired: !adminAuthDisabled,
+      });
       return;
     }
     if (request.method === 'POST' && requestUrl.pathname === '/api/admin/session') {
+      if (adminAuthDisabled) {
+        sendJson(response, 200, { authenticated: true });
+        return;
+      }
       if (!adminToken) {
         sendJson(response, 503, { ok: false, message: 'El servidor no configuró BIBLIOTECA_ADMIN_TOKEN.' });
         return;
@@ -798,14 +818,14 @@ function createLibraryServer({
         || requestUrl.pathname.startsWith('/api/imports');
       const mutating = !['GET', 'HEAD', 'OPTIONS'].includes(request.method);
       if (adminRoute || mutating) {
-        if (!adminToken) {
+        if (!adminToken && !adminAuthDisabled) {
           sendJson(response, 503, {
             ok: false,
             message: 'Las operaciones administrativas están deshabilitadas: configura BIBLIOTECA_ADMIN_TOKEN.',
           });
           return;
         }
-        if (!isAdminTokenValid(bearerToken(request))) {
+        if (!adminAuthDisabled && !isAdminTokenValid(bearerToken(request))) {
           response.setHeader('WWW-Authenticate', 'Bearer');
           sendJson(response, 401, { ok: false, message: 'Se requiere un token administrativo válido.' });
           return;

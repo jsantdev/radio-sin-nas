@@ -42,7 +42,11 @@ test('external library creates named empty discs and reuses them when uploading 
     assert.match(page, /migrationProgress/);
     assert.match(page, /importProgress/);
     assert.match(page, /rel="manifest" href="\/manifest.webmanifest"/);
+    assert.match(page, /rel="stylesheet" href="\/dashboard.css"/);
     assert.match(page, /serviceWorker\.register\('\/service-worker\.js'\)/);
+    const styles = await fetch(`${baseUrl}/dashboard.css`);
+    assert.equal(styles.status, 200);
+    assert.match(await styles.text(), /--background:\s*#121214/);
     const manifestResponse = await fetch(`${baseUrl}/manifest.webmanifest`);
     assert.equal(manifestResponse.status, 200);
     const manifest = await manifestResponse.json();
@@ -138,6 +142,53 @@ test('library protects mutations with an administrative token', async () => {
       adminToken: 'short',
       dataDirectory: path.join(storage, 'invalid-token'),
     }), /al menos 32 bytes/);
+  } finally {
+    const closed = once(server, 'close');
+    server.close();
+    await closed;
+    fs.rmSync(storage, { recursive: true, force: true });
+  }
+});
+
+test('library allows token-free administration only when explicitly disabled for development', async () => {
+  const storage = fs.mkdtempSync(path.join(os.tmpdir(), 'radio-library-no-auth-'));
+  const server = createLibraryServer({
+    adminToken: '',
+    adminAuthDisabled: true,
+    dataDirectory: path.join(storage, 'discs'),
+  });
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  const baseUrl = `http://127.0.0.1:${server.address().port}`;
+  try {
+    const config = await globalThis.fetch(`${baseUrl}/api/admin/config`).then((response) => response.json());
+    assert.deepEqual(config, { configured: false, authRequired: false });
+
+    const session = await globalThis.fetch(`${baseUrl}/api/admin/session`, { method: 'POST' });
+    assert.equal(session.status, 200);
+
+    const created = await globalThis.fetch(`${baseUrl}/api/discs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Prueba sin token' }),
+    });
+    assert.equal(created.status, 201);
+
+    const page = await globalThis.fetch(baseUrl).then((response) => response.text());
+    assert.match(page, /Autenticación desactivada para desarrollo/);
+
+    const originalNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    try {
+      assert.throws(() => createLibraryServer({
+        adminToken: '',
+        adminAuthDisabled: true,
+        dataDirectory: path.join(storage, 'production'),
+      }), /no se puede activar en producción/);
+    } finally {
+      if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = originalNodeEnv;
+    }
   } finally {
     const closed = once(server, 'close');
     server.close();

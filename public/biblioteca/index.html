@@ -76,6 +76,7 @@
         #togglePlayback { min-width: 125px; }
       }
     </style>
+    <link rel="stylesheet" href="/dashboard.css">
   </head>
   <body>
     <header>
@@ -231,8 +232,13 @@
       let schedules = [];
       let busy = false;
       let adminToken = '';
+      let adminAuthRequired = true;
       let migrationPreview = null;
       let importPreview = null;
+
+      function hasAdminAccess() {
+        return !adminAuthRequired || Boolean(adminToken);
+      }
 
       function showNotice(message, kind = '') {
         notice.className = kind;
@@ -266,14 +272,14 @@
             button.disabled = busy;
             return;
           }
-          button.disabled = busy || !adminToken;
+          button.disabled = busy || !hasAdminAccess();
         });
         document.querySelector('#adminLogoutButton').hidden = !adminToken;
         document.querySelector('#migrationButton').disabled =
-          busy || !adminToken || !migrationPreview || !migrationPreview.stateFits
+          busy || !hasAdminAccess() || !migrationPreview || !migrationPreview.stateFits
           || migrationPreview.enoughSpace === false;
         document.querySelector('#importButton').disabled =
-          busy || !adminToken || !importPreview || !importPreview.stateFits
+          busy || !hasAdminAccess() || !importPreview || !importPreview.stateFits
           || importPreview.enoughSpace === false || importPreview.oversizedTracks > 0;
       }
 
@@ -298,7 +304,7 @@
       }
 
       async function loadMigrationHistory() {
-        if (!adminToken) return;
+        if (!hasAdminAccess()) return;
         const result = await requestJson('/api/migrations');
         migrationHistory.replaceChildren();
         if (!result.migrations.length) {
@@ -440,7 +446,7 @@
           deleteDiscButton.className = 'danger';
           deleteDiscButton.textContent = 'Borrar disco';
           deleteDiscButton.setAttribute('aria-label', `Borrar disco ${disc.name}`);
-          deleteDiscButton.disabled = busy || !adminToken;
+          deleteDiscButton.disabled = busy || !hasAdminAccess();
           deleteDiscButton.addEventListener('click', () => deleteDisc(disc));
           heading.append(discName, deleteDiscButton);
           libraryTracks.append(heading);
@@ -455,7 +461,7 @@
             add.className = 'secondary';
             const inQueue = state.queue.some((queued) => queued.id === track.id);
             add.textContent = inQueue ? 'En playlist' : 'Agregar';
-            add.disabled = busy || !adminToken || inQueue;
+            add.disabled = busy || !hasAdminAccess() || inQueue;
             add.addEventListener('click', () => savePlaylist(
               [...state.queue.map((item) => item.id), track.id],
               state.repeat !== false,
@@ -466,7 +472,7 @@
             deleteTrackButton.className = 'danger';
             deleteTrackButton.textContent = 'Borrar';
             deleteTrackButton.setAttribute('aria-label', `Borrar tema ${track.title}`);
-            deleteTrackButton.disabled = busy || !adminToken;
+            deleteTrackButton.disabled = busy || !hasAdminAccess();
             deleteTrackButton.addEventListener('click', () => deleteTrack(track));
             const actions = document.createElement('div');
             actions.className = 'library-actions';
@@ -490,7 +496,7 @@
         playlistTracks.replaceChildren();
         const repeat = document.querySelector('#repeatPlaylist');
         repeat.checked = state.repeat !== false;
-        repeat.disabled = busy || !adminToken;
+        repeat.disabled = busy || !hasAdminAccess();
         document.querySelector('#playbackStatus').textContent = state.currentTrack
           ? `${state.isPlaying ? 'Reproduciendo' : 'En pausa'}: ${state.currentTrack.title}`
           : 'Sin canciones en la playlist';
@@ -506,25 +512,25 @@
           select.type = 'button';
           select.className = 'secondary';
           select.textContent = 'Elegir';
-          select.disabled = busy || !adminToken;
+          select.disabled = busy || !hasAdminAccess();
           select.addEventListener('click', () => radioAction('current', { index }));
           const up = document.createElement('button');
           up.type = 'button';
           up.className = 'secondary';
           up.textContent = '↑';
-          up.disabled = busy || !adminToken || index === 0;
+          up.disabled = busy || !hasAdminAccess() || index === 0;
           up.addEventListener('click', () => reorder(index, -1));
           const down = document.createElement('button');
           down.type = 'button';
           down.className = 'secondary';
           down.textContent = '↓';
-          down.disabled = busy || !adminToken || index === state.queue.length - 1;
+          down.disabled = busy || !hasAdminAccess() || index === state.queue.length - 1;
           down.addEventListener('click', () => reorder(index, 1));
           const remove = document.createElement('button');
           remove.type = 'button';
           remove.className = 'danger';
           remove.textContent = 'Quitar';
-          remove.disabled = busy || !adminToken;
+          remove.disabled = busy || !hasAdminAccess();
           remove.addEventListener('click', () => savePlaylist(
             state.queue.filter((_, position) => position !== index).map((item) => item.id),
           ));
@@ -533,9 +539,9 @@
           playlistTracks.append(row);
         });
         document.querySelector('#togglePlayback').textContent = state.isPlaying ? '❚❚ Pausar' : '▶ Reproducir';
-        document.querySelector('#togglePlayback').disabled = busy || !adminToken || !state.queue.length;
-        document.querySelector('#previousTrack').disabled = busy || !adminToken || !state.queue.length;
-        document.querySelector('#nextTrack').disabled = busy || !adminToken || !state.queue.length;
+        document.querySelector('#togglePlayback').disabled = busy || !hasAdminAccess() || !state.queue.length;
+        document.querySelector('#previousTrack').disabled = busy || !hasAdminAccess() || !state.queue.length;
+        document.querySelector('#nextTrack').disabled = busy || !hasAdminAccess() || !state.queue.length;
       }
 
       function renderSchedules() {
@@ -551,7 +557,7 @@
           remove.type = 'button';
           remove.className = 'danger';
           remove.textContent = 'Quitar';
-          remove.disabled = busy || !adminToken;
+          remove.disabled = busy || !hasAdminAccess();
           remove.addEventListener('click', () => saveSchedules(schedules.filter((entry) => entry.id !== schedule.id)));
           row.append(label, remove);
           container.append(row);
@@ -766,7 +772,7 @@
       }
 
       async function resumeMigration(id) {
-        if (busy || !adminToken) return;
+        if (busy || !hasAdminAccess()) return;
         setBusy(true);
         try {
           const started = await requestJson(`/api/migrations/${encodeURIComponent(id)}/resume`, { method: 'POST' });
@@ -793,7 +799,7 @@
       });
 
       document.querySelector('#previewMigrationButton').addEventListener('click', async () => {
-        if (busy || !adminToken) return;
+        if (busy || !hasAdminAccess()) return;
         const destinationUrl = document.querySelector('#migrationDestination').value.trim();
         if (!destinationUrl) {
           showNotice('Ingresa primero la URL de destino.', 'error');
@@ -835,7 +841,7 @@
 
       document.querySelector('#migrationForm').addEventListener('submit', async (event) => {
         event.preventDefault();
-        if (busy || !adminToken || !migrationPreview) return;
+        if (busy || !hasAdminAccess() || !migrationPreview) return;
         if (migrationPreview.destinationUrl !== document.querySelector('#migrationDestination').value.trim()) {
           showNotice('Revisa de nuevo el destino antes de iniciar la migración.', 'error');
           return;
@@ -879,7 +885,7 @@
       });
 
       document.querySelector('#previewImportButton').addEventListener('click', async () => {
-        if (busy || !adminToken) return;
+        if (busy || !hasAdminAccess()) return;
         const sourceUrl = document.querySelector('#importSource').value.trim();
         if (!sourceUrl) {
           showNotice('Ingresa primero la URL de origen.', 'error');
@@ -923,7 +929,7 @@
 
       document.querySelector('#importForm').addEventListener('submit', async (event) => {
         event.preventDefault();
-        if (busy || !adminToken || !importPreview) return;
+        if (busy || !hasAdminAccess() || !importPreview) return;
         if (importPreview.sourceUrl !== document.querySelector('#importSource').value.trim()) {
           showNotice('Revisa de nuevo el origen antes de iniciar la importación.', 'error');
           return;
@@ -1020,7 +1026,14 @@
         updateAdminControls();
         try {
           const configuration = await requestJson('/api/admin/config');
-          if (!configuration.configured) {
+          adminAuthRequired = configuration.authRequired !== false;
+          document.querySelector('#adminAuthForm').hidden = !adminAuthRequired;
+          if (!adminAuthRequired) {
+            sessionStorage.removeItem('biblioteca-admin-token');
+            document.querySelector('#adminAuthStatus').textContent =
+              'Autenticación desactivada para desarrollo. No expongas este servidor a Internet.';
+            await loadMigrationHistory();
+          } else if (!configuration.configured) {
             document.querySelector('#adminAuthStatus').textContent =
               'El servidor no acepta cambios hasta configurar BIBLIOTECA_ADMIN_TOKEN.';
           } else {
