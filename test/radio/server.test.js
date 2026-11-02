@@ -96,6 +96,7 @@ test('radio server keeps TikTok configuration, event monitoring, and radio state
     assert.match(overlayHtml, /stage\.style\.top = Math\.max\(0, \(window\.innerHeight - 1920 \* scale\) \/ 2\)/);
     assert.match(overlayHtml, /id="goalTaps"/);
     assert.match(overlayHtml, /id="donors"/);
+    assert.match(overlayHtml, /id="backendLink" href="\/backend">IR AL BACKEND/);
     assert.match(overlayHtml, /window\.liveEvent = function/);
     assert.match(overlayHtml, /entry\.type === 'member'/);
     assert.match(overlayHtml, /eventStream\.addEventListener\('status'/);
