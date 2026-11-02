@@ -24,7 +24,7 @@ function createTestLibraryServer(options) {
   });
 }
 
-test('external library creates named empty discs and reuses them when uploading tracks', async () => {
+test('upload page creates discs and uploads audio tracks', async () => {
   const storage = fs.mkdtempSync(path.join(os.tmpdir(), 'radio-library-'));
   const server = createTestLibraryServer({ dataDirectory: path.join(storage, 'discs') });
   server.listen(0, '127.0.0.1');
@@ -32,21 +32,24 @@ test('external library creates named empty discs and reuses them when uploading 
   const baseUrl = `http://127.0.0.1:${server.address().port}`;
   try {
     const page = await fetch(baseUrl).then((response) => response.text());
-    assert.match(page, /Subir temas por disco/);
-    assert.match(page, /Borrar disco/);
-    assert.match(page, /Borrar tema/);
-    assert.match(page, /Repetir playlist al llegar al final/);
-    assert.match(page, /Programar canciones/);
-    assert.match(page, /Datos y copias/);
-    assert.match(page, /Importar copia desde una URL/);
-    assert.match(page, /migrationProgress/);
-    assert.match(page, /importProgress/);
+    assert.match(page, /Subir temas<\/h2>/);
+    assert.match(page, /id="newDiscRow" class="row">/);
+    assert.match(page, /No se pudo crear el disco: \$\{error\.message\}/);
+    assert.match(page, /#librarySection, #playlistSection, #scheduleSection \{ display: none; \}/);
+    assert.doesNotMatch(page, /option value="__create__"|class="app-nav"/);
+    assert.doesNotMatch(page, /href="\/datos"/);
+    assert.doesNotMatch(page, /migrationForm|importForm|migrationProgress|importProgress/);
     assert.match(page, /rel="manifest" href="\/manifest.webmanifest"/);
     assert.match(page, /rel="stylesheet" href="\/dashboard.css"/);
     assert.match(page, /serviceWorker\.register\('\/service-worker\.js'\)/);
     const styles = await fetch(`${baseUrl}/dashboard.css`);
     assert.equal(styles.status, 200);
     assert.match(await styles.text(), /--background:\s*#121214/);
+    const dataPage = await fetch(`${baseUrl}/datos`).then((response) => response.text());
+    assert.match(dataPage, /Exportar a otra Biblioteca/);
+    assert.match(dataPage, /Importar desde otra Biblioteca/);
+    assert.match(dataPage, /migrationProgress/);
+    assert.match(dataPage, /importProgress/);
     const manifestResponse = await fetch(`${baseUrl}/manifest.webmanifest`);
     assert.equal(manifestResponse.status, 200);
     const manifest = await manifestResponse.json();
@@ -93,6 +96,7 @@ test('external library creates named empty discs and reuses them when uploading 
     assert.equal(library.discs[0].tracks.length, 1);
     assert.equal(library.discs[0].tracks[0].sizeBytes, Buffer.byteLength('audio'));
     assert.match(library.discs[0].tracks[0].sha256, /^[a-f0-9]{64}$/);
+
   } finally {
     const closed = once(server, 'close');
     server.close();
