@@ -135,7 +135,7 @@
             <label for="externalStorageUrl">URL base de la biblioteca musical
               <input id="externalStorageUrl" type="url" autocomplete="url" placeholder="https://biblioteca.ejemplo.com">
             </label>
-            <p class="hint" style="margin: 10px 0;">Configura RADIO_LIBRARY_ADMIN_TOKEN en el servidor de radio con el mismo token de la biblioteca. Se usa solo entre servidores para controlar el reproductor.</p>
+            <p class="hint" style="margin: 10px 0;">Configura RADIO_LIBRARY_ADMIN_PASSWORD en el servidor de radio con la misma contraseña que Biblioteca para controlar el reproductor.</p>
             <button type="submit">Conectar y guardar</button>
           </form>
         </div>
@@ -146,9 +146,10 @@
           <p id="adminTikTokStatus" class="admin-status">Conectando…</p>
           <form id="tiktokConfigForm">
             <label for="tiktokUsername">Usuario del directo
-              <input id="tiktokUsername" name="username" type="text" autocomplete="off" placeholder="@tu_usuario" required>
+              <input id="tiktokUsername" name="username" type="text" list="recentTikTokUsers" autocomplete="off" placeholder="@tu_usuario" required>
             </label>
-            <p class="hint" style="margin-top: 10px;">Configura el usuario del canal aquí o mediante TIKTOK_USERNAME. Marca los eventos que quieres recibir y mostrar.</p>
+            <datalist id="recentTikTokUsers"></datalist>
+            <p class="hint" style="margin-top: 10px;">Puedes editar el usuario del canal. Los últimos 10 canales conectados se guardan en el servidor como sugerencias. Marca los eventos que quieres recibir y mostrar.</p>
             <div id="eventOptions" class="event-options">Cargando eventos…</div>
             <button type="submit">Guardar y conectar</button>
           </form>
@@ -218,6 +219,7 @@
       const eventFeed = document.querySelector('#eventFeed');
       const adminTikTokStatus = document.querySelector('#adminTikTokStatus');
       let overlayMessages = [];
+      let refreshedConnectedUsername = '';
       const receivedEvents = [];
       let pending = false;
       let channelState = null;
@@ -271,6 +273,10 @@
           ? 'CONECTADO AL CANAL'
           : isPending ? 'CONECTANDO…' : 'NO CONECTADO';
         const username = connector.username || status.username || status.configuredUsername;
+        if (isConnected && username && username !== refreshedConnectedUsername) {
+          refreshedConnectedUsername = username;
+          loadTikTokConfiguration().catch((error) => showNotice(error.message, 'error'));
+        }
         adminTikTokStatus.className = `admin-status ${style}`;
         adminTikTokStatus.textContent = isConnected
           ? `Conectado a @${username || ''}`
@@ -333,6 +339,13 @@
       async function loadTikTokConfiguration() {
         const configuration = await requestJson('/api/config');
         document.querySelector('#tiktokUsername').value = configuration.username || '';
+        const recentUsers = document.querySelector('#recentTikTokUsers');
+        recentUsers.replaceChildren();
+        (configuration.recentUsers || []).forEach((username) => {
+          const option = document.createElement('option');
+          option.value = `@${username}`;
+          recentUsers.append(option);
+        });
         eventOptions.replaceChildren();
         configuration.events.forEach((event) => {
           const label = document.createElement('label');
@@ -437,11 +450,11 @@
         document.querySelector('#externalStorageForm').hidden = Boolean(configuration.local);
         externalStorageStatus.className = `admin-status ${configuration.external && configuration.connected ? 'connected' : configuration.external ? 'disconnected' : ''}`;
         externalStorageStatus.textContent = configuration.local
-          ? `Biblioteca integrada · ${configuration.discCount} discos · ${configuration.trackCount} temas${configuration.adminTokenConfigured ? '' : ' · Falta configurar BIBLIOTECA_ADMIN_TOKEN para administrar la música.'}`
+          ? `Biblioteca integrada · ${configuration.discCount} discos · ${configuration.trackCount} temas${configuration.adminPasswordConfigured ? '' : ' · Falta configurar BIBLIOTECA_ADMIN_PASSWORD para administrar la música.'}`
           : configuration.external
           ? `${configuration.connected
             ? `Conectada · ${configuration.discCount} discos · ${configuration.trackCount} temas`
-            : `Desconectada${configuration.error ? `: ${configuration.error}` : ''}`}${configuration.adminTokenConfigured ? '' : ' · Falta configurar RADIO_LIBRARY_ADMIN_TOKEN en el servidor de radio para controlar cambios y reproducción.'}`
+            : `Desconectada${configuration.error ? `: ${configuration.error}` : ''}`}${configuration.adminPasswordConfigured ? '' : ' · Falta configurar RADIO_LIBRARY_ADMIN_PASSWORD en el servidor de radio para controlar cambios y reproducción.'}`
           : 'Usando la biblioteca local. Configura una URL para guardar temas en otro servidor.';
       }
 

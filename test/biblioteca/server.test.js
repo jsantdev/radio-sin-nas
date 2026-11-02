@@ -6,18 +6,36 @@ const path = require('node:path');
 const test = require('node:test');
 const { createLibraryServer } = require('../../modules/biblioteca/server');
 
-const testAdminToken = 'test-library-admin-token-that-is-at-least-32-bytes-long';
-const fetch = (url, options = {}) => globalThis.fetch(url, {
-  ...options,
-  headers: {
-    ...options.headers,
-    Authorization: `Bearer ${testAdminToken}`,
-  },
-});
+const testAdminPassword = 'test-library-password-123';
+const sessionCookies = new Map();
+async function fetch(url, options = {}) {
+  const parsedUrl = new URL(url);
+  const method = (options.method || 'GET').toUpperCase();
+  const protectedRequest = parsedUrl.pathname.startsWith('/api/admin/')
+    || parsedUrl.pathname.startsWith('/api/migrations')
+    || parsedUrl.pathname.startsWith('/api/imports')
+    || (parsedUrl.pathname.startsWith('/api/') && method !== 'GET');
+  const headers = new Headers(options.headers || {});
+  if (protectedRequest && parsedUrl.pathname !== '/api/admin/session') {
+    let cookie = sessionCookies.get(parsedUrl.origin);
+    if (!cookie) {
+      const login = await globalThis.fetch(`${parsedUrl.origin}/api/admin/session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: testAdminPassword }),
+      });
+      assert.equal(login.status, 200);
+      cookie = (login.headers.get('set-cookie') || '').split(';', 1)[0];
+      sessionCookies.set(parsedUrl.origin, cookie);
+    }
+    headers.set('Cookie', cookie);
+  }
+  return globalThis.fetch(url, { ...options, headers });
+}
 
 function createTestLibraryServer(options) {
   return createLibraryServer({
-    adminToken: testAdminToken,
+    adminPassword: testAdminPassword,
     migrationAllowedHosts: ['127.0.0.1'],
     allowInsecureMigrationHttp: true,
     ...options,
@@ -41,15 +59,14 @@ test('upload page creates discs and uploads audio tracks', async () => {
     assert.doesNotMatch(page, /migrationForm|importForm|migrationProgress|importProgress/);
     assert.match(page, /rel="manifest" href="\/manifest.webmanifest"/);
     assert.match(page, /rel="stylesheet" href="\/dashboard.css"/);
+    assert.match(page, /Puedes elegir varios archivos y editar sus nombres antes de subir/);
+    assert.match(page, /Extensión fija \$\{extension\}/);
+    assert.match(page, /name: baseName \+ file\.name\.slice\(file\.name\.lastIndexOf\('\.'\)\)/);
     assert.match(page, /serviceWorker\.register\('\/service-worker\.js'\)/);
     const styles = await fetch(`${baseUrl}/dashboard.css`);
     assert.equal(styles.status, 200);
     assert.match(await styles.text(), /--background:\s*#121214/);
-    const dataPage = await fetch(`${baseUrl}/datos`).then((response) => response.text());
-    assert.match(dataPage, /Exportar a otra Biblioteca/);
-    assert.match(dataPage, /Importar desde otra Biblioteca/);
-    assert.match(dataPage, /migrationProgress/);
-    assert.match(dataPage, /importProgress/);
+    assert.equal((await fetch(`${baseUrl}/datos`)).status, 404);
     const manifestResponse = await fetch(`${baseUrl}/manifest.webmanifest`);
     assert.equal(manifestResponse.status, 200);
     const manifest = await manifestResponse.json();
@@ -105,7 +122,7 @@ test('upload page creates discs and uploads audio tracks', async () => {
   }
 });
 
-test('library protects mutations with an administrative token', async () => {
+test('library protects mutations with password-backed browser sessions', async () => {
   const storage = fs.mkdtempSync(path.join(os.tmpdir(), 'radio-library-auth-'));
   const server = createTestLibraryServer({ dataDirectory: path.join(storage, 'discs') });
   server.listen(0, '127.0.0.1');
@@ -120,11 +137,44 @@ test('library protects mutations with an administrative token', async () => {
       body: JSON.stringify({ name: 'No autorizado' }),
     });
     assert.equal(unauthorized.status, 401);
-    const authorized = await fetch(`${baseUrl}/api/admin/session`, { method: 'POST' });
+    const invalidLogin = await globalThis.fetch(`${baseUrl}/api/admin/session`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: 'incorrect-password' }),
+    });
+    assert.equal(invalidLogin.status, 401);
+    const authorized = await globalThis.fetch(`${baseUrl}/api/admin/session`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: testAdminPassword }),
+    });
     assert.equal(authorized.status, 200);
+    const cookie = (authorized.headers.get('set-cookie') || '').split(';', 1)[0];
+    assert.match(authorized.headers.get('set-cookie'), /HttpOnly; SameSite=Strict/);
+    const created = await globalThis.fetch(`${baseUrl}/api/discs`, {
+      method: 'POST',
+      headers: { Cookie: cookie, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Sesión válida' }),
+    });
+    assert.equal(created.status, 201);
+    const sessionStatus = await globalThis.fetch(`${baseUrl}/api/admin/session`, {
+      headers: { Cookie: cookie },
+    }).then((response) => response.json());
+    assert.equal(sessionStatus.authenticated, true);
+    const logout = await globalThis.fetch(`${baseUrl}/api/admin/session`, {
+      method: 'DELETE',
+      headers: { Cookie: cookie },
+    });
+    assert.equal(logout.status, 200);
+    const afterLogout = await globalThis.fetch(`${baseUrl}/api/discs`, {
+      method: 'POST',
+      headers: { Cookie: cookie, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Sesión cerrada' }),
+    });
+    assert.equal(afterLogout.status, 401);
 
     const unconfigured = createLibraryServer({
-      adminToken: '',
+      adminPassword: '',
       dataDirectory: path.join(storage, 'unconfigured'),
     });
     unconfigured.listen(0, '127.0.0.1');
@@ -143,56 +193,9 @@ test('library protects mutations with an administrative token', async () => {
       await closed;
     }
     assert.throws(() => createLibraryServer({
-      adminToken: 'short',
+      adminPassword: 'short',
       dataDirectory: path.join(storage, 'invalid-token'),
-    }), /al menos 32 bytes/);
-  } finally {
-    const closed = once(server, 'close');
-    server.close();
-    await closed;
-    fs.rmSync(storage, { recursive: true, force: true });
-  }
-});
-
-test('library allows token-free administration only when explicitly disabled for development', async () => {
-  const storage = fs.mkdtempSync(path.join(os.tmpdir(), 'radio-library-no-auth-'));
-  const server = createLibraryServer({
-    adminToken: '',
-    adminAuthDisabled: true,
-    dataDirectory: path.join(storage, 'discs'),
-  });
-  server.listen(0, '127.0.0.1');
-  await once(server, 'listening');
-  const baseUrl = `http://127.0.0.1:${server.address().port}`;
-  try {
-    const config = await globalThis.fetch(`${baseUrl}/api/admin/config`).then((response) => response.json());
-    assert.deepEqual(config, { configured: false, authRequired: false });
-
-    const session = await globalThis.fetch(`${baseUrl}/api/admin/session`, { method: 'POST' });
-    assert.equal(session.status, 200);
-
-    const created = await globalThis.fetch(`${baseUrl}/api/discs`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'Prueba sin token' }),
-    });
-    assert.equal(created.status, 201);
-
-    const page = await globalThis.fetch(baseUrl).then((response) => response.text());
-    assert.match(page, /Autenticación desactivada para desarrollo/);
-
-    const originalNodeEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = 'production';
-    try {
-      assert.throws(() => createLibraryServer({
-        adminToken: '',
-        adminAuthDisabled: true,
-        dataDirectory: path.join(storage, 'production'),
-      }), /no se puede activar en producción/);
-    } finally {
-      if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
-      else process.env.NODE_ENV = originalNodeEnv;
-    }
+    }), /al menos 12 caracteres/);
   } finally {
     const closed = once(server, 'close');
     server.close();

@@ -5,30 +5,31 @@ const audioExtensions = new Set(['.aac', '.m4a', '.mp3', '.ogg', '.opus', '.wav'
 
 function createExternalLibraryClient({
   configurationPath = path.join(__dirname, '..', '..', 'data', 'external-library-config.json'),
-  adminToken: configuredAdminToken = process.env.RADIO_LIBRARY_ADMIN_TOKEN
-    || process.env.BIBLIOTECA_ADMIN_TOKEN || '',
+  adminPassword: configuredAdminPassword = process.env.RADIO_LIBRARY_ADMIN_PASSWORD
+    || process.env.BIBLIOTECA_ADMIN_PASSWORD || '',
   defaultServerUrl = '',
   fetchImpl = globalThis.fetch,
 } = {}) {
   let serverUrl = defaultServerUrl ? validateServerUrl(defaultServerUrl) : '';
   const localServerUrl = serverUrl;
-  let adminToken = configuredAdminToken ? validateAdminToken(configuredAdminToken) : '';
-let persistAdminToken = false;
+  let adminPassword = configuredAdminPassword ? validateAdminPassword(configuredAdminPassword) : '';
+  let persistAdminPassword = false;
+  let sessionCookie = '';
   if (fs.existsSync(configurationPath)) {
     const savedConfiguration = JSON.parse(fs.readFileSync(configurationPath, 'utf8'));
     if (!savedConfiguration || typeof savedConfiguration.serverUrl !== 'string') {
       throw new Error('La configuración del servidor de biblioteca externo no es válida.');
     }
     serverUrl = localServerUrl || validateServerUrl(savedConfiguration.serverUrl);
-    if (!adminToken && savedConfiguration.adminToken !== undefined) {
-      adminToken = validateAdminToken(savedConfiguration.adminToken);
-      persistAdminToken = true;
+    if (!adminPassword && savedConfiguration.adminPassword !== undefined) {
+      adminPassword = validateAdminPassword(savedConfiguration.adminPassword);
+      persistAdminPassword = true;
     }
   }
 
-  function validateAdminToken(value) {
-    if (typeof value !== 'string' || Buffer.byteLength(value) < 32 || value.trim() !== value) {
-      throw new Error('El token administrativo de la biblioteca debe tener al menos 32 bytes.');
+  function validateAdminPassword(value) {
+    if (typeof value !== 'string' || value.length < 12) {
+      throw new Error('La contraseña administrativa de la biblioteca debe tener al menos 12 caracteres.');
     }
     return value;
   }
@@ -55,15 +56,42 @@ let persistAdminToken = false;
 
   function setServerUrl(value) {
     const nextServerUrl = validateServerUrl(value);
-    const nextAdminToken = nextServerUrl ? adminToken : '';
+    const nextAdminPassword = nextServerUrl ? adminPassword : '';
     fs.mkdirSync(path.dirname(configurationPath), { recursive: true });
     fs.writeFileSync(configurationPath, JSON.stringify({
       serverUrl: nextServerUrl,
-      ...(nextServerUrl && persistAdminToken ? { adminToken: nextAdminToken } : {}),
+      ...(nextServerUrl && persistAdminPassword ? { adminPassword: nextAdminPassword } : {}),
     }, null, 2), { mode: 0o600 });
     serverUrl = nextServerUrl;
-    adminToken = nextAdminToken;
-    return { serverUrl, adminTokenConfigured: Boolean(adminToken) };
+    adminPassword = nextAdminPassword;
+    sessionCookie = '';
+    return { serverUrl, adminPasswordConfigured: Boolean(adminPassword) };
+  }
+
+  async function authenticate() {
+    if (sessionCookie) return;
+    if (!adminPassword) {
+      throw new Error('Configura RADIO_LIBRARY_ADMIN_PASSWORD para controlar la Biblioteca.');
+    }
+    const response = await fetchImpl(`${serverUrl}/api/admin/session`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: adminPassword }),
+      signal: AbortSignal.timeout(30000),
+    });
+    if (!response.ok) {
+      let payload = {};
+      try {
+        payload = await response.json();
+      } catch {
+        throw new Error('La Biblioteca no devolvió una respuesta de inicio de sesión válida.');
+      }
+      throw new Error(payload.message || `La Biblioteca rechazó el inicio de sesión (HTTP ${response.status}).`);
+    }
+    sessionCookie = (response.headers.get('set-cookie') || '').split(';', 1)[0];
+    if (!sessionCookie.startsWith('biblioteca_session=')) {
+      throw new Error('La Biblioteca no creó una sesión administrativa.');
+    }
   }
 
   async function request(url, options = {}, timeout = 30000) {
@@ -72,8 +100,13 @@ let persistAdminToken = false;
     }
     try {
       const headers = new Headers(options.headers || {});
-      if (adminToken && options.method && options.method.toUpperCase() !== 'GET') {
-        headers.set('Authorization', `Bearer ${adminToken}`);
+      const method = (options.method || 'GET').toUpperCase();
+      const pathname = new URL(url).pathname;
+      const protectedRead = pathname.startsWith('/api/admin/')
+        || pathname.startsWith('/api/migrations') || pathname.startsWith('/api/imports');
+      if (method !== 'GET' || protectedRead) {
+        await authenticate();
+        headers.set('Cookie', sessionCookie);
       }
       return await fetchImpl(url, {
         ...options,
@@ -232,7 +265,7 @@ let persistAdminToken = false;
     fetchPlaybackState,
     getServerUrl: () => serverUrl,
     isLocalServer: () => Boolean(localServerUrl) && serverUrl === localServerUrl,
-    isAdminTokenConfigured: () => Boolean(adminToken),
+    isAdminPasswordConfigured: () => Boolean(adminPassword),
     playerAction,
     setServerUrl,
   };

@@ -29,14 +29,13 @@ El contrato de interoperabilidad se limita a estas operaciones de Biblioteca:
 | `POST /api/player/next`, `/previous`, `/playback` | Controlar el reproductor |
 | `GET /api/player/audio` | Leer el tema actual, incluidos rangos HTTP |
 
-Las lecturas de Biblioteca son públicas. Los `POST` de control requieren el token
-administrativo. En modo independiente, configura el mismo secreto de al menos 32
-bytes en `BIBLIOTECA_ADMIN_TOKEN` (Biblioteca) y `RADIO_LIBRARY_ADMIN_TOKEN` (Radio).
-En modo integrado, Radio reutiliza `BIBLIOTECA_ADMIN_TOKEN`; no es obligatorio
-configurar un segundo secreto.
-La Radio no acepta ni devuelve el secreto en el panel: lo envía entre servidores
-como `Authorization: Bearer <token>` al realizar operaciones de escritura.
-
+Las lecturas de Biblioteca son públicas. Las operaciones de control requieren una
+sesión administrativa con cookie `HttpOnly`. En modo independiente, configura la
+misma contraseña (mínimo 12 caracteres) en `BIBLIOTECA_ADMIN_PASSWORD` (Biblioteca)
+y `RADIO_LIBRARY_ADMIN_PASSWORD` (Radio). En modo integrado, Radio reutiliza
+`BIBLIOTECA_ADMIN_PASSWORD`; no es obligatorio configurar una segunda contraseña.
+La Radio no acepta ni devuelve la contraseña en el panel: la usa entre servidores
+para iniciar una sesión al realizar operaciones de escritura.
 En modo independiente, la URL de Biblioteca se configura desde **Administración →
 Radio → Biblioteca de reproducción** o con `PUT /api/radio/storage`; se persiste en
 `RADIO_LIBRARY_CONFIG_PATH` y quitarla desconecta el servicio. En

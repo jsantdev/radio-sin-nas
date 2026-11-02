@@ -33,8 +33,8 @@ function createRadioModule({
     return {
       serverUrl,
       local,
-      adminTokenConfigured: typeof externalLibrary.isAdminTokenConfigured === 'function'
-        && externalLibrary.isAdminTokenConfigured(),
+      adminPasswordConfigured: typeof externalLibrary.isAdminPasswordConfigured === 'function'
+        && externalLibrary.isAdminPasswordConfigured(),
       external: Boolean(serverUrl),
       connected: Boolean(serverUrl) && externalConnected,
       error: externalError,

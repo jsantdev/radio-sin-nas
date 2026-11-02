@@ -140,6 +140,8 @@ test('radio server keeps TikTok configuration, event monitoring, and radio state
     const tiktokAdminHtml = await tiktokAdminPage.text();
     assert.match(tiktokAdminHtml, /data-domain="tiktok"/);
     assert.match(tiktokAdminHtml, /id="tiktokConfigForm"/);
+    assert.match(tiktokAdminHtml, /list="recentTikTokUsers"/);
+    assert.match(tiktokAdminHtml, /Los últimos 10 canales conectados se guardan en el servidor como sugerencias/);
     assert.match(tiktokAdminHtml, /id="channelPanel"/);
     assert.match(tiktokAdminHtml, /rel="stylesheet" href="\/dashboard\.css"/);
     assert.match(tiktokAdminHtml, /body\[data-domain="tiktok"\] #overlaySettingsSection/);
@@ -258,7 +260,10 @@ test('radio server keeps TikTok configuration, event monitoring, and radio state
     }).then((response) => response.json());
     assert.equal(connect.username, 'radio-test-channel');
     assert.equal(JSON.parse(fs.readFileSync(configurationPath, 'utf8')).usernameConfigured, true);
+    const recentUsersPath = path.join(storagePath, 'recent-tiktok-users.json');
+    assert.deepEqual(JSON.parse(fs.readFileSync(recentUsersPath, 'utf8')), ['radio-test-channel']);
     const configuredEvents = await fetch(`${baseUrl}/api/config`).then((response) => response.json());
+    assert.deepEqual(configuredEvents.recentUsers, ['radio-test-channel']);
     assert.equal(configuredEvents.events.find((event) => event.name === 'chat').enabled, true);
     assert.equal(configuredEvents.events.find((event) => event.name === 'follow').enabled, false);
     const reconnectWhileConnected = await sendJson('/api/reconnect', 'POST', {});

@@ -101,8 +101,8 @@
       <h2 id="adminAuthHeading">Acceso administrativo</h2>
       <p id="adminAuthStatus" class="hint" role="status">Comprobando configuración…</p>
       <form id="adminAuthForm" class="row">
-        <label for="adminToken">Token de administrador
-          <input id="adminToken" type="password" autocomplete="current-password" required>
+        <label for="adminPassword">Contraseña de administrador
+          <input id="adminPassword" type="password" autocomplete="current-password" required>
         </label>
         <button id="adminLoginButton" type="submit">Autorizar esta sesión</button>
         <button id="adminLogoutButton" type="button" class="secondary" hidden>Cerrar sesión</button>
@@ -193,11 +193,10 @@
       let state = null;
       let schedules = [];
       let busy = false;
-      let adminToken = '';
-      let adminAuthRequired = true;
+      let adminAccess = false;
 
       function hasAdminAccess() {
-        return !adminAuthRequired || Boolean(adminToken);
+        return adminAccess;
       }
 
       function showNotice(message, kind = '') {
@@ -207,7 +206,6 @@
 
       async function requestJson(url, options) {
         const headers = new Headers(options?.headers || {});
-        if (adminToken) headers.set('Authorization', `Bearer ${adminToken}`);
         const response = await fetch(url, { ...options, headers });
         let payload;
         try {
@@ -234,13 +232,14 @@
           }
           button.disabled = busy || !hasAdminAccess();
         });
-        document.querySelector('#adminLogoutButton').hidden = !adminToken;
+        document.querySelector('#adminLogoutButton').hidden = !adminAccess;
       }
 
-      async function authorize(token) {
+      async function authorize(password) {
         const response = await fetch('/api/admin/session', {
           method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password }),
         });
         let payload;
         try {
@@ -248,11 +247,10 @@
         } catch {
           throw new Error('El servidor devolvió una respuesta inválida.');
         }
-        if (!response.ok) throw new Error(payload.message || 'No se pudo autorizar la sesión.');
-        adminToken = token;
-        sessionStorage.setItem('biblioteca-admin-token', token);
-        document.querySelector('#adminToken').value = '';
-        document.querySelector('#adminAuthStatus').textContent = 'Sesión administrativa autorizada en este navegador.';
+        if (!response.ok) throw new Error(payload.message || 'No se pudo iniciar sesión.');
+        adminAccess = true;
+        document.querySelector('#adminPassword').value = '';
+        document.querySelector('#adminAuthStatus').textContent = 'Sesión iniciada en este navegador.';
         updateAdminControls();
       }
 
@@ -282,7 +280,7 @@
       }
 
       function updateUploadAvailability() {
-        const canUpload = !busy && Boolean(adminToken && discSelect.value && discSelect.value !== '__create__');
+        const canUpload = !busy && Boolean(adminAccess && discSelect.value);
         audioFiles.disabled = !canUpload;
         uploadButton.disabled = !canUpload || !audioFiles.files.length;
       }
@@ -300,7 +298,6 @@
           request.open('POST', `/api/tracks?disc=${encodeURIComponent(discSelect.value)}`);
           request.setRequestHeader('X-File-Name', encodeURIComponent(name));
           request.setRequestHeader('Content-Type', 'application/octet-stream');
-          if (adminToken) request.setRequestHeader('Authorization', `Bearer ${adminToken}`);
           request.upload.addEventListener('progress', (event) => {
             if (event.lengthComputable) onProgress(event.loaded / event.total);
           });
@@ -656,27 +653,30 @@
 
       document.querySelector('#adminAuthForm').addEventListener('submit', async (event) => {
         event.preventDefault();
-        const token = document.querySelector('#adminToken').value.trim();
-        if (!token) return;
+        const password = document.querySelector('#adminPassword').value;
+        if (!password) return;
         const status = document.querySelector('#adminAuthStatus');
-        status.textContent = 'Validando token…';
+        status.textContent = 'Iniciando sesión…';
         try {
-          await authorize(token);
+          await authorize(password);
           updateAdminControls();
           await refresh();
           showNotice('Acceso administrativo habilitado.', 'success');
         } catch (error) {
-          adminToken = '';
-          sessionStorage.removeItem('biblioteca-admin-token');
+          adminAccess = false;
           status.textContent = error.message;
           updateAdminControls();
         }
       });
 
-      document.querySelector('#adminLogoutButton').addEventListener('click', () => {
-        adminToken = '';
-        sessionStorage.removeItem('biblioteca-admin-token');
-        document.querySelector('#adminAuthStatus').textContent = 'Sesión administrativa cerrada.';
+      document.querySelector('#adminLogoutButton').addEventListener('click', async () => {
+        try {
+          await requestJson('/api/admin/session', { method: 'DELETE' });
+        } catch (error) {
+          showNotice(error.message, 'error');
+        }
+        adminAccess = false;
+        document.querySelector('#adminAuthStatus').textContent = 'Sesión cerrada.';
         updateAdminControls();
         renderLibrary();
         if (state) renderPlaylist();
@@ -686,26 +686,15 @@
         updateAdminControls();
         try {
           const configuration = await requestJson('/api/admin/config');
-          adminAuthRequired = configuration.authRequired !== false;
-          document.querySelector('#adminAuthForm').hidden = !adminAuthRequired;
-          if (!adminAuthRequired) {
-            sessionStorage.removeItem('biblioteca-admin-token');
+          document.querySelector('#adminAuthForm').hidden = false;
+          if (!configuration.configured) {
             document.querySelector('#adminAuthStatus').textContent =
-              'Autenticación desactivada para desarrollo. No expongas este servidor a Internet.';
-          } else if (!configuration.configured) {
-            document.querySelector('#adminAuthStatus').textContent =
-              'El servidor no acepta cambios hasta configurar BIBLIOTECA_ADMIN_TOKEN.';
+              'El servidor no acepta cambios hasta configurar BIBLIOTECA_ADMIN_PASSWORD.';
           } else {
-            document.querySelector('#adminAuthStatus').textContent = 'Ingresa el token para habilitar administración.';
-            const savedToken = sessionStorage.getItem('biblioteca-admin-token');
-            if (savedToken) {
-              try {
-                await authorize(savedToken);
-              } catch (error) {
-                sessionStorage.removeItem('biblioteca-admin-token');
-                document.querySelector('#adminAuthStatus').textContent = error.message;
-              }
-            }
+            const session = await requestJson('/api/admin/session');
+            adminAccess = session.authenticated;
+            document.querySelector('#adminAuthStatus').textContent = adminAccess
+              ? 'Sesión administrativa activa.' : 'Ingresa la contraseña para habilitar la carga.';
           }
           await refresh();
           updateAdminControls();

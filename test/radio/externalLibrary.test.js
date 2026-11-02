@@ -9,8 +9,29 @@ const { createLibraryServer } = require('../../modules/biblioteca/server');
 const { createWebserver } = require('../../server');
 const { createExternalLibraryClient } = require('../../modules/radio/externalLibraryClient');
 
-const libraryAdminToken = 'test-library-admin-token-that-is-at-least-32-bytes-long';
-const libraryAuthorization = { Authorization: `Bearer ${libraryAdminToken}` };
+const libraryAdminPassword = 'test-library-password-123';
+const librarySessions = new Map();
+async function libraryFetch(url, options = {}) {
+  const parsedUrl = new URL(url);
+  const method = (options.method || 'GET').toUpperCase();
+  const needsSession = method !== 'GET' || parsedUrl.pathname.startsWith('/api/admin/');
+  const headers = new Headers(options.headers || {});
+  if (needsSession && parsedUrl.pathname !== '/api/admin/session') {
+    let cookie = librarySessions.get(parsedUrl.origin);
+    if (!cookie) {
+      const login = await fetch(`${parsedUrl.origin}/api/admin/session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: libraryAdminPassword }),
+      });
+      assert.equal(login.status, 200);
+      cookie = (login.headers.get('set-cookie') || '').split(';', 1)[0];
+      librarySessions.set(parsedUrl.origin, cookie);
+    }
+    headers.set('Cookie', cookie);
+  }
+  return fetch(url, { ...options, headers });
+}
 
 function createMonitorService() {
   const service = {
@@ -91,7 +112,7 @@ test('library manages tracks directly and radio plays them after restart', async
   const settingsPath = path.join(storage, 'external-library-config.json');
   const configPath = path.join(storage, 'monitor-config.json');
   const overlaySettingsPath = path.join(storage, 'overlay-settings.json');
-  let libraryServer = createLibraryServer({ dataDirectory, adminToken: libraryAdminToken });
+  let libraryServer = createLibraryServer({ dataDirectory, adminPassword: libraryAdminPassword });
   let libraryUrl = await listen(libraryServer);
   const appOptions = {
     monitorService: createMonitorService(),
@@ -101,7 +122,7 @@ test('library manages tracks directly and radio plays them after restart', async
     externalLibraryConfigurationPath: settingsPath,
     externalLibrary: createExternalLibraryClient({
       configurationPath: settingsPath,
-      adminToken: libraryAdminToken,
+      adminPassword: libraryAdminPassword,
     }),
   };
   let appServer = createWebserver(appOptions).server;
@@ -118,8 +139,8 @@ test('library manages tracks directly and radio plays them after restart', async
     assert.equal(savedConfiguration.status, 200);
     const saved = await savedConfiguration.json();
     assert.equal(saved.connected, true);
-    assert.equal(saved.adminTokenConfigured, true);
-    assert.equal(Object.hasOwn(saved, 'adminToken'), false);
+    assert.equal(saved.adminPasswordConfigured, true);
+    assert.equal(Object.hasOwn(saved, 'adminPassword'), false);
     assert.deepEqual(JSON.parse(fs.readFileSync(settingsPath, 'utf8')), {
       serverUrl: libraryUrl,
     });
@@ -131,9 +152,9 @@ test('library manages tracks directly and radio plays them after restart', async
     assert.match(radioAdminPage, /\/api\/radio\/storage/);
     assert.equal((await fetch(`${radioUrl}/playlist`)).status, 404);
 
-    const createdDisc = await fetch(`${libraryUrl}/api/discs`, {
+    const createdDisc = await libraryFetch(`${libraryUrl}/api/discs`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...libraryAuthorization },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: 'Clásicos Latinos' }),
     });
     assert.equal(createdDisc.status, 201);
@@ -145,12 +166,11 @@ test('library manages tracks directly and radio plays them after restart', async
       tracks: [],
     });
 
-    const uploaded = await fetch(`${libraryUrl}/api/tracks?disc=${encodeURIComponent('Clásicos Latinos')}`, {
+    const uploaded = await libraryFetch(`${libraryUrl}/api/tracks?disc=${encodeURIComponent('Clásicos Latinos')}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'audio/mpeg',
         'X-File-Name': encodeURIComponent('Tema uno.mp3'),
-        ...libraryAuthorization,
       },
       body: audio,
     });
@@ -159,9 +179,9 @@ test('library manages tracks directly and radio plays them after restart', async
     const tracks = await fetch(`${libraryUrl}/api/discs`).then((response) => response.json());
     assert.equal(tracks.discs[0].tracks[0].id, trackId);
     assert.equal(tracks.discs[0].tracks[0].discName, 'Clásicos Latinos');
-    const playlist = await fetch(`${libraryUrl}/api/player/playlist`, {
+    const playlist = await libraryFetch(`${libraryUrl}/api/player/playlist`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', ...libraryAuthorization },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ tracks: [trackId], repeat: false }),
     });
     assert.equal(playlist.status, 200);
@@ -190,9 +210,8 @@ test('library manages tracks directly and radio plays them after restart', async
     assert.equal(reloadedPlaylist.isPlaying, true);
     assert.equal((await fetch(`${radioUrl}/api/radio/storage`).then((response) => response.json())).connected, true);
 
-    const deleted = await fetch(`${libraryUrl}/api/tracks?id=${encodeURIComponent(trackId)}`, {
+    const deleted = await libraryFetch(`${libraryUrl}/api/tracks?id=${encodeURIComponent(trackId)}`, {
       method: 'DELETE',
-      headers: libraryAuthorization,
     });
     assert.equal(deleted.status, 200);
     assert.deepEqual((await fetch(`${libraryUrl}/api/discs`).then((response) => response.json())).discs[0].tracks, []);

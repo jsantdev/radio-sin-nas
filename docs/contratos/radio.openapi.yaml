@@ -355,10 +355,10 @@ components:
         repeat: { type: boolean }
     StorageConfiguration:
       type: object
-      required: [serverUrl, adminTokenConfigured, external, connected, error, discCount, trackCount]
+      required: [serverUrl, adminPasswordConfigured, external, connected, error, discCount, trackCount]
       properties:
         serverUrl: { type: string }
-        adminTokenConfigured: { type: boolean }
+        adminPasswordConfigured: { type: boolean }
         external: { type: boolean }
         connected: { type: boolean }
         error: { type: string }

@@ -11,6 +11,7 @@ function createTikTokModule({
   stream,
   monitorService = createTikTokMonitorService(),
   configurationPath = process.env.WEBSERVER_CONFIG_PATH || path.join(__dirname, '..', '..', 'data', 'monitor-config.json'),
+  recentUsersPath = path.join(path.dirname(configurationPath), 'recent-tiktok-users.json'),
   defaultUsername = process.env.TIKTOK_USERNAME || '',
 } = {}) {
   if (!stream || typeof stream.attach !== 'function' || typeof stream.broadcast !== 'function') {
@@ -24,6 +25,20 @@ function createTikTokModule({
   const environmentUsername = process.env.TIKTOK_USERNAME?.trim().replace(/^@+/, '');
   const normalizedDefaultUsername = String(defaultUsername || '').trim().replace(/^@+/, '');
   let configuration = { username: environmentUsername || normalizedDefaultUsername, saved: false };
+  let recentUsers = [];
+
+  try {
+    const savedRecentUsers = JSON.parse(fs.readFileSync(recentUsersPath, 'utf8'));
+    if (!Array.isArray(savedRecentUsers)
+      || savedRecentUsers.some((username) => typeof username !== 'string' || !username.trim())) {
+      throw new Error('El historial de usuarios de TikTok no es válido.');
+    }
+    recentUsers = [...new Set(savedRecentUsers.map((username) => username.trim().replace(/^@+/, '')))]
+      .filter(Boolean)
+      .slice(0, 10);
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
 
   try {
     const savedConfiguration = JSON.parse(fs.readFileSync(configurationPath, 'utf8'));
@@ -74,6 +89,16 @@ function createTikTokModule({
     stream.broadcast(event, payload);
   }
 
+  function rememberConnectedUser(username) {
+    const normalizedUsername = String(username || '').trim().replace(/^@+/, '');
+    if (!normalizedUsername || recentUsers[0] === normalizedUsername) return;
+    recentUsers = [normalizedUsername, ...recentUsers.filter((recent) => recent !== normalizedUsername)].slice(0, 10);
+    fs.mkdirSync(path.dirname(recentUsersPath), { recursive: true });
+    const temporaryPath = `${recentUsersPath}.tmp`;
+    fs.writeFileSync(temporaryPath, JSON.stringify(recentUsers, null, 2), { mode: 0o600 });
+    fs.renameSync(temporaryPath, recentUsersPath);
+  }
+
   function applyEventFilter(publishSnapshot = true) {
     events.splice(0, events.length, ...eventHistory
       .filter((entry) => enabledEvents.has(entry.type) && !ignoredEvents.has(entry.type)));
@@ -97,6 +122,7 @@ function createTikTokModule({
 
   const unsubscribeEvents = monitorService.subscribeToEvents(handleTikTokEvent);
   const unsubscribeStatus = monitorService.subscribeToStatus((monitorStatus) => {
+    if (monitorStatus.isConnected) rememberConnectedUser(monitorStatus.username);
     state.connected = monitorStatus.isConnected;
     state.status = monitorStatus.status;
     state.monitorStatus = monitorStatus.status;
@@ -109,6 +135,7 @@ function createTikTokModule({
   function getConfiguration() {
     return {
       username: configuration.username,
+      recentUsers: [...recentUsers],
       ignoredEvents: [...ignoredEvents],
       events: availableEvents.map((name) => ({
         name,

@@ -7,7 +7,7 @@ const path = require('node:path');
 const test = require('node:test');
 const { createWebserver } = require('../../server');
 
-const adminToken = 'integrated-library-test-token-with-at-least-32-bytes';
+const adminPassword = 'integrated-library-password-123';
 
 async function findFreePort() {
   const server = http.createServer();
@@ -37,7 +37,7 @@ function createIntegratedServer(storageDirectory, libraryPort) {
     libraryPort,
     dataDirectory: storageDirectory,
     libraryDataDirectory: path.join(storageDirectory, 'biblioteca', 'discs'),
-    libraryAdminToken: adminToken,
+    libraryAdminPassword: adminPassword,
     externalLibraryConfigurationPath: path.join(storageDirectory, 'radio', 'library-config.json'),
     monitorService: {
       state: { username: '', status: 'idle', isConnected: false, error: '' },
@@ -60,7 +60,6 @@ test('one deployment serves the library panel and API and persists its data in t
     let instance = createIntegratedServer(storageDirectory, await findFreePort());
     appServer = instance.server;
     let baseUrl = await listen(appServer);
-    const authorization = { Authorization: `Bearer ${adminToken}` };
     const page = await fetch(`${baseUrl}/biblioteca`);
     assert.equal(page.status, 200);
     const pageHtml = await page.text();
@@ -77,9 +76,17 @@ test('one deployment serves the library panel and API and persists its data in t
     assert.match(serviceWorker, /'\/biblioteca\/dashboard\.css'/);
     assert.equal((await fetch(`${baseUrl}/api/health`)).status, 200);
 
+    const login = await fetch(`${baseUrl}/api/admin/session`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: adminPassword }),
+    });
+    assert.equal(login.status, 200);
+    const sessionCookie = (login.headers.get('set-cookie') || '').split(';', 1)[0];
+    const session = { Cookie: sessionCookie };
     const createdDisc = await fetch(`${baseUrl}/api/discs`, {
       method: 'POST',
-      headers: { ...authorization, 'Content-Type': 'application/json' },
+      headers: { ...session, 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: 'Disco de prueba' }),
     });
     assert.equal(createdDisc.status, 201);
@@ -87,7 +94,7 @@ test('one deployment serves the library panel and API and persists its data in t
     const upload = await fetch(`${baseUrl}/api/tracks?disc=${encodeURIComponent('Disco de prueba')}`, {
       method: 'POST',
       headers: {
-        ...authorization,
+        ...session,
         'Content-Type': 'application/octet-stream',
         'X-File-Name': encodeURIComponent('tema.mp3'),
       },
