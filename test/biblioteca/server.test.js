@@ -6,8 +6,7 @@ const path = require('node:path');
 const test = require('node:test');
 const { createLibraryServer } = require('../../modules/biblioteca/server');
 
-const testAdminPassword = 'test-library-password-123';
-const sessionCookies = new Map();
+const testAdminToken = 'test-library-admin-token-0123456789';
 async function fetch(url, options = {}) {
   const parsedUrl = new URL(url);
   const method = (options.method || 'GET').toUpperCase();
@@ -16,26 +15,13 @@ async function fetch(url, options = {}) {
     || parsedUrl.pathname.startsWith('/api/imports')
     || (parsedUrl.pathname.startsWith('/api/') && method !== 'GET');
   const headers = new Headers(options.headers || {});
-  if (protectedRequest && parsedUrl.pathname !== '/api/admin/session') {
-    let cookie = sessionCookies.get(parsedUrl.origin);
-    if (!cookie) {
-      const login = await globalThis.fetch(`${parsedUrl.origin}/api/admin/session`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: testAdminPassword }),
-      });
-      assert.equal(login.status, 200);
-      cookie = (login.headers.get('set-cookie') || '').split(';', 1)[0];
-      sessionCookies.set(parsedUrl.origin, cookie);
-    }
-    headers.set('Cookie', cookie);
-  }
+  if (protectedRequest) headers.set('Authorization', 'Bearer ' + testAdminToken);
   return globalThis.fetch(url, { ...options, headers });
 }
 
 function createTestLibraryServer(options) {
   return createLibraryServer({
-    adminPassword: testAdminPassword,
+    adminToken: testAdminToken,
     migrationAllowedHosts: ['127.0.0.1'],
     allowInsecureMigrationHttp: true,
     ...options,
@@ -122,7 +108,7 @@ test('upload page creates discs and uploads audio tracks', async () => {
   }
 });
 
-test('library protects remote mutations with password sessions and permits local development access', async () => {
+test('library protects remote mutations with bearer tokens and permits local development access', async () => {
   const storage = fs.mkdtempSync(path.join(os.tmpdir(), 'radio-library-auth-'));
   const server = createTestLibraryServer({ dataDirectory: path.join(storage, 'discs') });
   server.listen(0, '127.0.0.1');
@@ -137,48 +123,30 @@ test('library protects remote mutations with password sessions and permits local
       body: JSON.stringify({ name: 'No autorizado' }),
     });
     assert.equal(unauthorized.status, 401);
-    const invalidLogin = await globalThis.fetch(`${baseUrl}/api/admin/session`, {
+    const invalidLogin = await globalThis.fetch(`${baseUrl}/api/discs`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: 'incorrect-password' }),
+      headers: { Authorization: 'Bearer invalid-token', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Token inválido' }),
     });
     assert.equal(invalidLogin.status, 401);
     const authorized = await globalThis.fetch(`${baseUrl}/api/admin/session`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: testAdminPassword }),
+      headers: { Authorization: 'Bearer ' + testAdminToken },
     });
     assert.equal(authorized.status, 200);
-    const cookie = (authorized.headers.get('set-cookie') || '').split(';', 1)[0];
-    assert.match(authorized.headers.get('set-cookie'), /HttpOnly; SameSite=Strict/);
+    assert.equal((await authorized.json()).authenticated, true);
     const created = await globalThis.fetch(`${baseUrl}/api/discs`, {
       method: 'POST',
-      headers: { Cookie: cookie, 'Content-Type': 'application/json' },
+      headers: { Authorization: 'Bearer ' + testAdminToken, 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: 'Sesión válida' }),
     });
     assert.equal(created.status, 201);
-    const sessionStatus = await globalThis.fetch(`${baseUrl}/api/admin/session`, {
-      headers: { Cookie: cookie },
-    }).then((response) => response.json());
-    assert.equal(sessionStatus.authenticated, true);
-    const logout = await globalThis.fetch(`${baseUrl}/api/admin/session`, {
-      method: 'DELETE',
-      headers: { Cookie: cookie },
-    });
-    assert.equal(logout.status, 200);
-    const afterLogout = await globalThis.fetch(`${baseUrl}/api/discs`, {
-      method: 'POST',
-      headers: { Cookie: cookie, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'Sesión cerrada' }),
-    });
-    assert.equal(afterLogout.status, 401);
 
     const originalNodeEnv = process.env.NODE_ENV;
     const originalAuthDisabled = process.env.BIBLIOTECA_AUTH_DISABLED;
     process.env.NODE_ENV = 'development';
     process.env.BIBLIOTECA_AUTH_DISABLED = 'true';
     const unconfigured = createLibraryServer({
-      adminPassword: '',
+      adminToken: '',
       dataDirectory: path.join(storage, 'unconfigured'),
     });
     unconfigured.listen(0, '127.0.0.1');
@@ -208,7 +176,7 @@ test('library protects remote mutations with password sessions and permits local
     process.env.BIBLIOTECA_AUTH_DISABLED = 'true';
     try {
       assert.throws(() => createLibraryServer({
-        adminPassword: '',
+        adminToken: '',
         dataDirectory: path.join(storage, 'production'),
       }), /solo se puede activar en desarrollo/);
     } finally {
@@ -218,9 +186,9 @@ test('library protects remote mutations with password sessions and permits local
       else process.env.BIBLIOTECA_AUTH_DISABLED = productionAuthDisabled;
     }
     assert.throws(() => createLibraryServer({
-      adminPassword: 'short',
+      adminToken: 'short',
       dataDirectory: path.join(storage, 'invalid-token'),
-    }), /al menos 12 caracteres/);
+    }), /al menos 32 bytes/);
   } finally {
     const closed = once(server, 'close');
     server.close();

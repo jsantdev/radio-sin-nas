@@ -6,7 +6,7 @@ info:
 servers:
   - url: http://localhost:3001
 security:
-  - AdminSession: []
+  - AdminBearerToken: []
 tags:
   - name: Servicio
   - name: Administración
@@ -37,7 +37,7 @@ paths:
     get:
       security: []
       tags: [Administración]
-      summary: Consultar si el servidor tiene contraseña administrativa configurada
+      summary: Consultar si el servidor tiene token administrativo configurado
       responses:
         "200":
           description: No revela el token.
@@ -50,37 +50,14 @@ paths:
                   configured: { type: boolean }
                   authRequired: { type: boolean }
   /api/admin/session:
-    post:
-      security: []
-      tags: [Administración]
-      summary: Iniciar sesión administrativa con contraseña
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [password]
-              properties:
-                password: { type: string, format: password }
-      responses:
-        "200":
-          description: Contraseña válida; establece una cookie de sesión HttpOnly.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  authenticated: { const: true }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-        "503": { $ref: "#/components/responses/Unavailable" }
     get:
-      security: []
       tags: [Administración]
-      summary: Consultar el estado de la sesión administrativa
+      summary: Validar el bearer token administrativo
+      security:
+        - AdminBearerToken: []
       responses:
         "200":
-          description: Estado de sesión.
+          description: Indica si el bearer token es válido.
           content:
             application/json:
               schema:
@@ -88,13 +65,6 @@ paths:
                 required: [authenticated]
                 properties:
                   authenticated: { type: boolean }
-    delete:
-      security: []
-      tags: [Administración]
-      summary: Cerrar la sesión administrativa
-      responses:
-        "200":
-          description: Sesión cerrada y cookie eliminada.
   /api/admin/import-state:
     post:
       tags: [Administración]
@@ -569,11 +539,10 @@ paths:
         "416": { description: Rango de bytes no válido. }
 components:
   securitySchemes:
-    AdminSession:
-      type: apiKey
-      in: cookie
-      name: biblioteca_session
-      description: Sesión HttpOnly creada al validar BIBLIOTECA_ADMIN_PASSWORD.
+    AdminBearerToken:
+      type: http
+      scheme: bearer
+      description: Token secreto configurado en BIBLIOTECA_ADMIN_TOKEN.
   parameters:
     MigrationId:
       name: migrationId

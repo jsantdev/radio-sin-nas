@@ -7,7 +7,7 @@ const path = require('node:path');
 const test = require('node:test');
 const { createWebserver } = require('../../server');
 
-const adminPassword = 'integrated-library-password-123';
+const adminToken = 'integrated-library-admin-token-0123456789';
 
 async function findFreePort() {
   const server = http.createServer();
@@ -31,13 +31,13 @@ async function close(server) {
   await closed;
 }
 
-function createIntegratedServer(storageDirectory, libraryPort, password = adminPassword) {
+function createIntegratedServer(storageDirectory, libraryPort, token = adminToken) {
   return createWebserver({
     integratedLibrary: true,
     libraryPort,
     dataDirectory: storageDirectory,
     libraryDataDirectory: path.join(storageDirectory, 'biblioteca', 'discs'),
-    libraryAdminPassword: password,
+    libraryAdminToken: token,
     externalLibraryConfigurationPath: path.join(storageDirectory, 'radio', 'library-config.json'),
     monitorService: {
       state: { username: '', status: 'idle', isConnected: false, error: '' },
@@ -52,7 +52,7 @@ function createIntegratedServer(storageDirectory, libraryPort, password = adminP
   });
 }
 
-test('one deployment serves the library panel and API and persists its data in the shared volume', async () => {
+test('integrated upload adds audio to the radio playlist and makes it playable', async () => {
   const storageDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'radio-integrated-'));
   let appServer;
 
@@ -65,111 +65,106 @@ test('one deployment serves the library panel and API and persists its data in t
     const pageHtml = await page.text();
     assert.match(pageHtml, /biblioteca\/manifest\.webmanifest/);
     assert.match(pageHtml, /href="\/biblioteca\/dashboard\.css"/);
-    const dashboardStyles = await fetch(`${baseUrl}/biblioteca/dashboard.css`);
-    assert.equal(dashboardStyles.status, 200);
-    assert.match(await dashboardStyles.text(), /--accent:\s*#00b37e/);
-    const dataPageResponse = await fetch(`${baseUrl}/biblioteca/datos`);
-    assert.equal(dataPageResponse.status, 200);
-    const dataPageHtml = await dataPageResponse.text();
-    assert.match(dataPageHtml, /Exportar a otra Biblioteca/);
-    assert.match(dataPageHtml, /href="\/biblioteca\/datos"/);
-    assert.match(dataPageHtml, /href="\/biblioteca\/"/);
-
-    const manifest = await fetch(`${baseUrl}/biblioteca/manifest.webmanifest`).then((response) => response.json());
-    assert.equal(manifest.start_url, '/biblioteca/');
-    assert.equal(manifest.scope, '/biblioteca/');
-    const serviceWorker = await fetch(`${baseUrl}/biblioteca/service-worker.js`).then((response) => response.text());
-    assert.match(serviceWorker, /'\/biblioteca\/dashboard\.css'/);
+    assert.match(pageHtml, /Token de administrador/);
+    const dataPage = await fetch(`${baseUrl}/biblioteca/datos`);
+    assert.equal(dataPage.status, 200);
+    const dataPageHtml = await dataPage.text();
+    assert.match(dataPageHtml, /Token de administrador/);
+    assert.match(dataPageHtml, /Authorization', 'Bearer '/);
+    assert.doesNotMatch(dataPageHtml, /adminPassword|BIBLIOTECA_ADMIN_PASSWORD/);
+    assert.match(await (await fetch(`${baseUrl}/biblioteca/dashboard.css`)).text(), /--accent:\s*#00b37e/);
     assert.equal((await fetch(`${baseUrl}/api/health`)).status, 200);
 
-    const login = await fetch(`${baseUrl}/api/admin/session`, {
+    const unauthenticatedUpload = await fetch(`${baseUrl}/api/discs`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: adminPassword }),
+      body: JSON.stringify({ name: 'No autorizado' }),
     });
+    assert.equal(unauthenticatedUpload.status, 401);
 
-    test('integrated library allows password-free mutations only for local development', async () => {
-      const storageDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'radio-integrated-local-'));
-      const originalNodeEnv = process.env.NODE_ENV;
-      const originalAuthDisabled = process.env.BIBLIOTECA_AUTH_DISABLED;
-      process.env.NODE_ENV = 'development';
-      process.env.BIBLIOTECA_AUTH_DISABLED = 'true';
-      let appServer;
-
-      try {
-        const instance = createIntegratedServer(storageDirectory, await findFreePort(), '');
-        appServer = instance.server;
-        const baseUrl = await listen(appServer);
-        const config = await fetch(`${baseUrl}/api/admin/config`).then((response) => response.json());
-        assert.deepEqual(config, { configured: false, authRequired: false });
-        const createdDisc = await fetch(`${baseUrl}/api/discs`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: 'Disco local' }),
-        });
-        assert.equal(createdDisc.status, 201);
-      } finally {
-        if (appServer) await close(appServer);
-        if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
-        else process.env.NODE_ENV = originalNodeEnv;
-        if (originalAuthDisabled === undefined) delete process.env.BIBLIOTECA_AUTH_DISABLED;
-        else process.env.BIBLIOTECA_AUTH_DISABLED = originalAuthDisabled;
-        fs.rmSync(storageDirectory, { recursive: true, force: true });
-      }
-    });
-    assert.equal(login.status, 200);
-    const sessionCookie = (login.headers.get('set-cookie') || '').split(';', 1)[0];
-    const session = { Cookie: sessionCookie };
+    const headers = { Authorization: 'Bearer ' + adminToken, 'Content-Type': 'application/json' };
     const createdDisc = await fetch(`${baseUrl}/api/discs`, {
       method: 'POST',
-      headers: { ...session, 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ name: 'Disco de prueba' }),
     });
     assert.equal(createdDisc.status, 201);
 
+    const audio = Buffer.from('audio de prueba');
     const upload = await fetch(`${baseUrl}/api/tracks?disc=${encodeURIComponent('Disco de prueba')}`, {
       method: 'POST',
       headers: {
-        ...session,
+        Authorization: 'Bearer ' + adminToken,
         'Content-Type': 'application/octet-stream',
         'X-File-Name': encodeURIComponent('tema.mp3'),
       },
-      body: Buffer.from('audio de prueba'),
+      body: audio,
     });
     assert.equal(upload.status, 201);
-    const { track } = await upload.json();
-    assert.equal((await fetch(`${baseUrl}/api/tracks?id=${encodeURIComponent(track.id)}`, {
-      method: 'DELETE',
-    })).status, 401);
+    const { track, queued } = await upload.json();
+    assert.equal(queued, true);
+
+    const library = await fetch(`${baseUrl}/api/discs`).then((response) => response.json());
+    assert.equal(library.discs[0].tracks[0].id, track.id);
+    const playlist = await fetch(`${baseUrl}/api/player/playlist`).then((response) => response.json());
+    assert.deepEqual(playlist.queue.map((item) => item.id), [track.id]);
+    assert.equal(playlist.currentTrack.id, track.id);
+    assert.equal(playlist.isPlaying, false);
+
+    const audioResponse = await fetch(`${baseUrl}/api/player/audio`);
+    assert.equal(audioResponse.status, 200);
+    assert.deepEqual(Buffer.from(await audioResponse.arrayBuffer()), audio);
+
+    const playback = await fetch(`${baseUrl}/api/radio/playback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isPlaying: true }),
+    });
+    assert.equal(playback.status, 200);
+    const playing = await fetch(`${baseUrl}/api/player/state`).then((response) => response.json());
+    assert.equal(playing.isPlaying, true);
+    assert.equal(playing.currentTrack.id, track.id);
 
     await close(appServer);
     appServer = null;
     instance = createIntegratedServer(storageDirectory, await findFreePort());
     appServer = instance.server;
     baseUrl = await listen(appServer);
-    const savedDiscs = await fetch(`${baseUrl}/api/discs`).then((response) => response.json());
-    assert.equal(savedDiscs.discs[0].tracks[0].id, track.id);
-
-    const reLogin = await fetch(`${baseUrl}/api/admin/session`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: adminPassword }),
-    });
-    const reSession = { Cookie: (reLogin.headers.get('set-cookie') || '').split(';', 1)[0] };
-    const playlist = await fetch(`${baseUrl}/api/player/playlist`, {
-      method: 'PUT',
-      headers: { ...reSession, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tracks: [track.id] }),
-    });
-    assert.equal(playlist.status, 200);
-    const playback = await fetch(`${baseUrl}/api/radio/next`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({}),
-    });
-    assert.equal(playback.status, 200);
+    const savedState = await fetch(`${baseUrl}/api/player/state`).then((response) => response.json());
+    assert.deepEqual(savedState.queue.map((item) => item.id), [track.id]);
+    assert.equal(savedState.isPlaying, true);
   } finally {
     if (appServer) await close(appServer);
+    fs.rmSync(storageDirectory, { recursive: true, force: true });
+  }
+});
+
+test('integrated library permits unauthenticated mutations only for local development', async () => {
+  const storageDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'radio-integrated-local-'));
+  const originalNodeEnv = process.env.NODE_ENV;
+  const originalAuthDisabled = process.env.BIBLIOTECA_AUTH_DISABLED;
+  process.env.NODE_ENV = 'development';
+  process.env.BIBLIOTECA_AUTH_DISABLED = 'true';
+  let appServer;
+
+  try {
+    const instance = createIntegratedServer(storageDirectory, await findFreePort(), '');
+    appServer = instance.server;
+    const baseUrl = await listen(appServer);
+    const config = await fetch(`${baseUrl}/api/admin/config`).then((response) => response.json());
+    assert.deepEqual(config, { configured: false, authRequired: false });
+    const createdDisc = await fetch(`${baseUrl}/api/discs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Disco local' }),
+    });
+    assert.equal(createdDisc.status, 201);
+  } finally {
+    if (appServer) await close(appServer);
+    if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = originalNodeEnv;
+    if (originalAuthDisabled === undefined) delete process.env.BIBLIOTECA_AUTH_DISABLED;
+    else process.env.BIBLIOTECA_AUTH_DISABLED = originalAuthDisabled;
     fs.rmSync(storageDirectory, { recursive: true, force: true });
   }
 });

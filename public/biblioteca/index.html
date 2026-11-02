@@ -101,13 +101,13 @@
       <h2 id="adminAuthHeading">Acceso administrativo</h2>
       <p id="adminAuthStatus" class="hint" role="status">Comprobando configuración…</p>
       <form id="adminAuthForm" class="row">
-        <label for="adminPassword">Contraseña de administrador
-          <input id="adminPassword" type="password" autocomplete="current-password" required>
+        <label for="adminToken">Token de administrador
+          <input id="adminToken" type="password" autocomplete="off" required>
         </label>
-        <button id="adminLoginButton" type="submit">Autorizar esta sesión</button>
-        <button id="adminLogoutButton" type="button" class="secondary" hidden>Cerrar sesión</button>
+        <button id="adminLoginButton" type="submit">Usar token</button>
+        <button id="adminLogoutButton" type="button" class="secondary" hidden>Quitar token</button>
       </form>
-      <p class="hint">Autoriza la sesión para habilitar la carga de temas.</p>
+      <p class="hint">El token se guarda solo en esta pestaña para habilitar cambios.</p>
     </section>
     <p id="notice" role="status" aria-live="polite"></p>
 
@@ -195,6 +195,11 @@
       let busy = false;
       let adminAccess = false;
       let adminAuthRequired = true;
+      const adminTokenStorageKey = 'bibliotecaAdminToken';
+
+      function getAdminToken() {
+        return sessionStorage.getItem(adminTokenStorageKey) || '';
+      }
 
       function hasAdminAccess() {
         return adminAccess;
@@ -207,6 +212,8 @@
 
       async function requestJson(url, options) {
         const headers = new Headers(options?.headers || {});
+        const token = getAdminToken();
+        if (token) headers.set('Authorization', 'Bearer ' + token);
         const response = await fetch(url, { ...options, headers });
         let payload;
         try {
@@ -236,22 +243,13 @@
         document.querySelector('#adminLogoutButton').hidden = !adminAuthRequired || !adminAccess;
       }
 
-      async function authorize(password) {
-        const response = await fetch('/api/admin/session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password }),
-        });
-        let payload;
-        try {
-          payload = await response.json();
-        } catch {
-          throw new Error('El servidor devolvió una respuesta inválida.');
-        }
-        if (!response.ok) throw new Error(payload.message || 'No se pudo iniciar sesión.');
+      async function authorize(token) {
+        sessionStorage.setItem(adminTokenStorageKey, token);
+        const session = await requestJson('/api/admin/session');
+        if (!session.authenticated) throw new Error('El token no es válido.');
         adminAccess = true;
-        document.querySelector('#adminPassword').value = '';
-        document.querySelector('#adminAuthStatus').textContent = 'Sesión iniciada en este navegador.';
+        document.querySelector('#adminToken').value = '';
+        document.querySelector('#adminAuthStatus').textContent = 'Token aceptado en esta pestaña.';
         updateAdminControls();
       }
 
@@ -299,6 +297,8 @@
           request.open('POST', `/api/tracks?disc=${encodeURIComponent(discSelect.value)}`);
           request.setRequestHeader('X-File-Name', encodeURIComponent(name));
           request.setRequestHeader('Content-Type', 'application/octet-stream');
+          const token = getAdminToken();
+          if (token) request.setRequestHeader('Authorization', 'Bearer ' + token);
           request.upload.addEventListener('progress', (event) => {
             if (event.lengthComputable) onProgress(event.loaded / event.total);
           });
@@ -314,7 +314,7 @@
               reject(new Error(`${name}: ${result.message || 'no se pudo subir.'}`));
               return;
             }
-            resolve();
+            resolve(result);
           });
           request.addEventListener('error', () => reject(new Error(`Error de conexión al subir ${name}.`)));
           request.addEventListener('abort', () => reject(new Error(`Se canceló la carga de ${name}.`)));
@@ -493,7 +493,7 @@
         try {
           await action();
           await refresh();
-          showNotice(successMessage, 'success');
+          showNotice(typeof successMessage === 'function' ? successMessage() : successMessage, 'success');
         } catch (error) {
           showNotice(error.message, 'error');
         } finally {
@@ -603,6 +603,8 @@
         if (!files.length || !disc || disc === '__create__') return;
         const unnamed = files.find(({ baseName }) => !baseName);
         if (unnamed) return showNotice(`Escribe un nombre para ${unnamed.file.name}.`, 'error');
+        let queuedCount = 0;
+        let unqueuedCount = 0;
         runAction(async () => {
           const weights = files.map(({ file }) => Math.max(file.size, 1));
           const totalWeight = weights.reduce((sum, size) => sum + size, 0);
@@ -615,10 +617,12 @@
                 (completedWeight / totalWeight) * 100,
                 `Subiendo tema ${index + 1} de ${files.length}: 0%`,
               );
-              await uploadFile(file, name, (fraction) => {
+              const result = await uploadFile(file, name, (fraction) => {
                 const percent = ((completedWeight + weights[index] * fraction) / totalWeight) * 100;
                 updateUploadProgress(percent, `Subiendo tema ${index + 1} de ${files.length}: ${Math.floor(fraction * 100)}%`);
               });
+              if (result.queued === false) unqueuedCount += 1;
+              else queuedCount += 1;
               completedWeight += weights[index];
             }
           } catch (error) {
@@ -628,7 +632,9 @@
           updateUploadProgress(100, `${files.length === 1 ? 'Tema subido' : 'Temas subidos'}: 100%`);
           audioFiles.value = '';
           renderSelectedFiles();
-        }, 'Temas subidos al disco.');
+        }, () => unqueuedCount
+          ? `${queuedCount} agregado(s) a playlist; ${unqueuedCount} subido(s) sin agregar por límite.`
+          : `${queuedCount} tema(s) subido(s) y agregado(s) a playlist de Radio.`);
       });
 
       document.querySelector('#repeatPlaylist').addEventListener('change', () =>
@@ -654,16 +660,17 @@
 
       document.querySelector('#adminAuthForm').addEventListener('submit', async (event) => {
         event.preventDefault();
-        const password = document.querySelector('#adminPassword').value;
-        if (!password) return;
+        const token = document.querySelector('#adminToken').value.trim();
+        if (!token) return;
         const status = document.querySelector('#adminAuthStatus');
-        status.textContent = 'Iniciando sesión…';
+        status.textContent = 'Validando token…';
         try {
-          await authorize(password);
+          await authorize(token);
           updateAdminControls();
           await refresh();
           showNotice('Acceso administrativo habilitado.', 'success');
         } catch (error) {
+          sessionStorage.removeItem(adminTokenStorageKey);
           adminAccess = false;
           status.textContent = error.message;
           updateAdminControls();
@@ -671,13 +678,9 @@
       });
 
       document.querySelector('#adminLogoutButton').addEventListener('click', async () => {
-        try {
-          await requestJson('/api/admin/session', { method: 'DELETE' });
-        } catch (error) {
-          showNotice(error.message, 'error');
-        }
+        sessionStorage.removeItem(adminTokenStorageKey);
         adminAccess = false;
-        document.querySelector('#adminAuthStatus').textContent = 'Sesión cerrada.';
+        document.querySelector('#adminAuthStatus').textContent = 'Token quitado de esta pestaña.';
         updateAdminControls();
         renderLibrary();
         if (state) renderPlaylist();
@@ -695,12 +698,14 @@
               'Acceso sin contraseña habilitado solo para desarrollo local.';
           } else if (!configuration.configured) {
             document.querySelector('#adminAuthStatus').textContent =
-              'El servidor no acepta cambios hasta configurar BIBLIOTECA_ADMIN_PASSWORD.';
+              'El servidor no acepta cambios hasta configurar BIBLIOTECA_ADMIN_TOKEN.';
           } else {
-            const session = await requestJson('/api/admin/session');
-            adminAccess = session.authenticated;
+            if (getAdminToken()) {
+              const session = await requestJson('/api/admin/session');
+              adminAccess = session.authenticated;
+            }
             document.querySelector('#adminAuthStatus').textContent = adminAccess
-              ? 'Sesión administrativa activa.' : 'Ingresa la contraseña para habilitar la carga.';
+              ? 'Token válido en esta pestaña.' : 'Ingresa el token para habilitar la carga.';
           }
           await refresh();
           updateAdminControls();

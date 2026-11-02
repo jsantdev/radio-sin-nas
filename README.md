@@ -19,11 +19,11 @@ Selecciona **Nixpacks** como proveedor y deja la raíz del proyecto en el reposi
 |---|---|
 | `APP_DATA_DIR` | `/app/data` |
 | `BIBLIOTECA_DATA_DIR` | `/app/data/biblioteca/discs` |
-| `BIBLIOTECA_ADMIN_PASSWORD` | Contraseña administrativa de al menos 12 caracteres |
+| `BIBLIOTECA_ADMIN_TOKEN` | Token administrativo secreto de al menos 32 bytes |
 | `PORT` | `3000` |
 | `HOST` | `0.0.0.0` |
 
-`BIBLIOTECA_INTERNAL_PORT` usa `3101` por defecto y solo escucha dentro del contenedor: no lo publiques en Easypanel. El volumen `/app/data` conserva tanto los archivos, la playlist y la programación de Biblioteca como la configuración de Radio. Configura `TIKTOK_USERNAME` o la cuenta desde `/backend`; si no hay usuario, Radio no se conecta. Las operaciones administrativas de Biblioteca necesitan `BIBLIOTECA_ADMIN_PASSWORD`; Radio reutiliza esa contraseña mediante una sesión servidor-a-servidor para controlar el reproductor. No hace falta configurar una URL de Biblioteca externa en este modo.
+`BIBLIOTECA_INTERNAL_PORT` usa `3101` por defecto y solo escucha dentro del contenedor: no lo publiques en Easypanel. El volumen `/app/data` conserva tanto los archivos, la playlist y la programación de Biblioteca como la configuración de Radio. Configura `TIKTOK_USERNAME` o la cuenta desde `/backend`; si no hay usuario, Radio no se conecta. Las operaciones administrativas necesitan `BIBLIOTECA_ADMIN_TOKEN`; Radio reutiliza ese token para controlar el reproductor. No hace falta configurar una URL de Biblioteca externa en este modo.
 
 ### Biblioteca externa y migración
 

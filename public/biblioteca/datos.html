@@ -50,12 +50,13 @@
       <h2 id="adminAuthHeading">Acceso administrativo</h2>
       <p id="adminAuthStatus" class="hint" role="status">Comprobando configuración…</p>
       <form id="adminAuthForm" class="row">
-        <label for="adminPassword">Contraseña de administrador
-          <input id="adminPassword" type="password" autocomplete="current-password" required>
+        <label for="adminToken">Token de administrador
+          <input id="adminToken" type="password" autocomplete="off" required>
         </label>
-        <button id="adminLoginButton" type="submit">Autorizar esta sesión</button>
-        <button id="adminLogoutButton" type="button" class="secondary" hidden>Cerrar sesión</button>
+        <button id="adminLoginButton" type="submit">Usar token</button>
+        <button id="adminLogoutButton" type="button" class="secondary" hidden>Quitar token</button>
       </form>
+      <p class="hint">El token se guarda solo en esta pestaña para habilitar las operaciones.</p>
     </section>
 
     <nav class="data-nav" aria-label="Dominios de Biblioteca">
@@ -72,7 +73,7 @@
           <label for="migrationDestination">URL de la Biblioteca de destino
             <input id="migrationDestination" type="url" autocomplete="url" placeholder="https://biblioteca-destino.ejemplo.com" required>
           </label>
-          <p class="hint">El host debe estar autorizado en BIBLIOTECA_MIGRATION_ALLOWED_HOSTS. Ambos servidores deben compartir la contraseña administrativa.</p>
+          <p class="hint">El host debe estar autorizado en BIBLIOTECA_MIGRATION_ALLOWED_HOSTS. Ambos servidores deben compartir el token administrativo.</p>
           <button id="previewMigrationButton" type="button" class="secondary">Revisar destino</button>
           <div id="migrationSummary" class="summary" hidden></div>
           <button id="migrationButton" type="submit" disabled>Iniciar exportación</button>
@@ -118,6 +119,11 @@
       let busy = false;
       let migrationPreview = null;
       let importPreview = null;
+      const adminTokenStorageKey = 'bibliotecaAdminToken';
+
+      function getAdminToken() {
+        return sessionStorage.getItem(adminTokenStorageKey) || '';
+      }
 
       function hasAdminAccess() {
         return !adminAuthRequired || adminAuthenticated;
@@ -130,6 +136,8 @@
 
       async function requestJson(url, options = {}) {
         const headers = new Headers(options.headers || {});
+        const token = getAdminToken();
+        if (token) headers.set('Authorization', 'Bearer ' + token);
         const response = await fetch(url, { ...options, headers });
         let payload;
         try {
@@ -164,17 +172,16 @@
           || importPreview.enoughSpace === false || importPreview.oversizedTracks > 0;
       }
 
-      async function authorize(password) {
-        const response = await fetch('/api/admin/session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password }),
-        });
-        const payload = await response.json();
-        if (!response.ok) throw new Error(payload.message || 'No se pudo autorizar la sesión.');
+      async function authorize(token) {
+        sessionStorage.setItem(adminTokenStorageKey, token);
+        const session = await requestJson('/api/admin/session');
+        if (!session.authenticated) {
+          sessionStorage.removeItem(adminTokenStorageKey);
+          throw new Error('El token no es válido.');
+        }
         adminAuthenticated = true;
-        document.querySelector('#adminPassword').value = '';
-        document.querySelector('#adminAuthStatus').textContent = 'Sesión administrativa autorizada en este navegador.';
+        document.querySelector('#adminToken').value = '';
+        document.querySelector('#adminAuthStatus').textContent = 'Token aceptado en esta pestaña.';
         updateControls();
         await loadHistory();
       }
@@ -404,10 +411,10 @@
 
       document.querySelector('#adminAuthForm').addEventListener('submit', async (event) => {
         event.preventDefault();
-        const password = document.querySelector('#adminPassword').value;
-        if (!password) return;
+        const token = document.querySelector('#adminToken').value;
+        if (!token) return;
         try {
-          await authorize(password);
+          await authorize(token);
           showNotice('Acceso administrativo habilitado.', 'success');
         } catch (error) {
           adminAuthenticated = false;
@@ -417,10 +424,10 @@
       });
 
       document.querySelector('#adminLogoutButton').addEventListener('click', async () => {
-        await fetch('/api/admin/session', { method: 'DELETE' });
+        sessionStorage.removeItem(adminTokenStorageKey);
         adminAuthenticated = false;
         migrationHistory.hidden = true;
-        document.querySelector('#adminAuthStatus').textContent = 'Sesión administrativa cerrada.';
+        document.querySelector('#adminAuthStatus').textContent = 'Token quitado de esta pestaña.';
         updateControls();
       });
 
@@ -433,14 +440,18 @@
             document.querySelector('#adminAuthStatus').textContent = 'Acceso de administración disponible.';
           } else if (!configuration.configured) {
             document.querySelector('#adminAuthStatus').textContent =
-              'El servidor no acepta operaciones hasta configurar BIBLIOTECA_ADMIN_PASSWORD.';
+              'El servidor no acepta operaciones hasta configurar BIBLIOTECA_ADMIN_TOKEN.';
           } else {
-            document.querySelector('#adminAuthStatus').textContent = 'Ingresa la contraseña para habilitar las operaciones.';
-            const session = await requestJson('/api/admin/session');
-            adminAuthenticated = session.authenticated;
-            if (adminAuthenticated) {
-              document.querySelector('#adminAuthStatus').textContent = 'Sesión administrativa activa en este navegador.';
-              await loadHistory();
+            document.querySelector('#adminAuthStatus').textContent = 'Ingresa el token para habilitar las operaciones.';
+            if (getAdminToken()) {
+              const session = await requestJson('/api/admin/session');
+              adminAuthenticated = session.authenticated;
+              if (adminAuthenticated) {
+                document.querySelector('#adminAuthStatus').textContent = 'Token válido en esta pestaña.';
+                await loadHistory();
+              } else {
+                sessionStorage.removeItem(adminTokenStorageKey);
+              }
             }
           }
           if (!adminAuthRequired) await loadHistory();

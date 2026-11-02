@@ -135,7 +135,7 @@
             <label for="externalStorageUrl">URL base de la biblioteca musical
               <input id="externalStorageUrl" type="url" autocomplete="url" placeholder="https://biblioteca.ejemplo.com">
             </label>
-            <p class="hint" style="margin: 10px 0;">Configura RADIO_LIBRARY_ADMIN_PASSWORD en el servidor de radio con la misma contraseña que Biblioteca para controlar el reproductor.</p>
+            <p class="hint" style="margin: 10px 0;">Configura RADIO_LIBRARY_ADMIN_TOKEN en el servidor de radio con el mismo token de Biblioteca para controlar el reproductor.</p>
             <button type="submit">Conectar y guardar</button>
           </form>
         </div>
@@ -450,11 +450,11 @@
         document.querySelector('#externalStorageForm').hidden = Boolean(configuration.local);
         externalStorageStatus.className = `admin-status ${configuration.external && configuration.connected ? 'connected' : configuration.external ? 'disconnected' : ''}`;
         externalStorageStatus.textContent = configuration.local
-          ? `Biblioteca integrada · ${configuration.discCount} discos · ${configuration.trackCount} temas${configuration.adminPasswordConfigured ? '' : ' · Falta configurar BIBLIOTECA_ADMIN_PASSWORD para administrar la música.'}`
+          ? `Biblioteca integrada · ${configuration.discCount} discos · ${configuration.trackCount} temas${configuration.adminTokenConfigured ? '' : ' · Falta configurar BIBLIOTECA_ADMIN_TOKEN para administrar la música.'}`
           : configuration.external
           ? `${configuration.connected
             ? `Conectada · ${configuration.discCount} discos · ${configuration.trackCount} temas`
-            : `Desconectada${configuration.error ? `: ${configuration.error}` : ''}`}${configuration.adminPasswordConfigured ? '' : ' · Falta configurar RADIO_LIBRARY_ADMIN_PASSWORD en el servidor de radio para controlar cambios y reproducción.'}`
+            : `Desconectada${configuration.error ? `: ${configuration.error}` : ''}`}${configuration.adminTokenConfigured ? '' : ' · Falta configurar RADIO_LIBRARY_ADMIN_TOKEN en el servidor de radio para controlar cambios y reproducción.'}`
           : 'Usando la biblioteca local. Configura una URL para guardar temas en otro servidor.';
       }
 

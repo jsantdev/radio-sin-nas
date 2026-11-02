@@ -6,18 +6,18 @@ El contrato HTTP está en [OpenAPI de Biblioteca](contratos/biblioteca.openapi.y
 
 ## Configuración
 
-Para el despliegue integrado, configura `APP_DATA_DIR=/app/data` y `BIBLIOTECA_DATA_DIR=/app/data/biblioteca/discs` en la app. El servicio interno de Biblioteca escucha en `127.0.0.1:3101`; no publiques ese puerto. `BIBLIOTECA_ADMIN_PASSWORD` protege las operaciones administrativas con sesiones en cookie y Radio la reutiliza para el reproductor. Para ejecutarlo en un puerto independiente dentro del proyecto, usa `npm run start:biblioteca`.
+Para el despliegue integrado, configura `APP_DATA_DIR=/app/data` y `BIBLIOTECA_DATA_DIR=/app/data/biblioteca/discs` en la app. El servicio interno de Biblioteca escucha en `127.0.0.1:3101`; no publiques ese puerto. `BIBLIOTECA_ADMIN_TOKEN` protege las operaciones administrativas y Radio lo reutiliza para el reproductor. Usa un secreto aleatorio de al menos 32 bytes. Para ejecutarlo en un puerto independiente dentro del proyecto, usa `npm run start:biblioteca`.
 
 - Usa [`.env.example`](../.env.example) como referencia para las variables; configura los secretos en Easypanel y no subas un archivo `.env` real.
 - `BIBLIOTECA_DATA_DIR`: carpeta persistente para los temas (predeterminada en `/app/data/biblioteca/discs` en Easypanel).
-- `BIBLIOTECA_ADMIN_PASSWORD`: contraseña administrativa de al menos 12 caracteres. Sin este valor, la API permite lecturas públicas, pero bloquea subidas, cambios, borrados y operaciones administrativas.
-- `BIBLIOTECA_AUTH_DISABLED`: junto con `NODE_ENV=development`, ponlo en `true` solo para desarrollo local. El acceso sin contraseña se limita a conexiones loopback, requiere que no haya contraseña configurada y el servidor se niega a arrancar si `NODE_ENV` no es `development`.
-- `RADIO_LIBRARY_ADMIN_PASSWORD`: configura la misma contraseña en el servidor de Radio que consume esta Biblioteca. El panel de Radio no recibe ni guarda esta contraseña.
+- `BIBLIOTECA_ADMIN_TOKEN`: token secreto de al menos 32 bytes. Sin este valor, la API permite lecturas públicas, pero bloquea subidas, cambios, borrados y operaciones administrativas.
+- `BIBLIOTECA_AUTH_DISABLED`: junto con `NODE_ENV=development`, ponlo en `true` solo para desarrollo local. El acceso sin token se limita a conexiones loopback, requiere que no haya token configurado y el servidor se niega a arrancar si `NODE_ENV` no es `development`.
+- `RADIO_LIBRARY_ADMIN_TOKEN`: configura el mismo token en el servidor de Radio que consume esta Biblioteca. El panel de Radio no recibe ni guarda este token.
 - `BIBLIOTECA_MIGRATION_ALLOWED_HOSTS`: lista separada por comas de hosts exactos a los que este servidor puede enviar migraciones. Déjalo vacío si no migras. Por ejemplo: `biblioteca-destino.ejemplo.com,10.0.0.8:3001`. Añade solo destinos confiables; no uses comodines. Para redes públicas usa HTTPS.
 - `BIBLIOTECA_MIGRATION_ALLOW_HTTP`: solo pon `true` para una red privada confiable sin TLS. Por defecto las migraciones exigen HTTPS.
 - `PORT`: puerto HTTP (por defecto `3001`).
 
-Configura la misma `BIBLIOTECA_ADMIN_PASSWORD` en los dos servidores que participen de la migración y `RADIO_LIBRARY_ADMIN_PASSWORD` en el servidor de Radio que controla la Biblioteca. El panel solicita la contraseña para crear una sesión administrativa protegida por cookie; Radio la usa solo en llamadas servidor-a-servidor. No publiques secretos y no expongas el servicio administrativo sin HTTPS y controles de acceso.
+Configura el mismo `BIBLIOTECA_ADMIN_TOKEN` en los dos servidores que participen de la migración y `RADIO_LIBRARY_ADMIN_TOKEN` en el servidor de Radio que controla la Biblioteca. El panel envía el token como bearer solo desde esta pestaña; Radio lo usa solo en llamadas servidor-a-servidor. No publiques secretos y no expongas el servicio administrativo sin HTTPS y controles de acceso.
 
 ## Migraciones
 
@@ -25,4 +25,4 @@ En **Datos** puedes exportar a otra Biblioteca o importar desde su URL. La vista
 
 La copia transfiere discos, temas, playlist y programación; no elimina ni modifica los datos de origen. Mantén backups independientes: la migración entre Bibliotecas no reemplaza un backup de archivos.
 
-Las rutas de lectura de biblioteca y audio son públicas para permitir la reproducción. Protege el servicio con HTTPS y el control de red apropiado; la contraseña protege las operaciones que modifican datos.
+Las rutas de lectura de biblioteca y audio son públicas para permitir la reproducción. Protege el servicio con HTTPS y el control de red apropiado; el token protege las operaciones que modifican datos.

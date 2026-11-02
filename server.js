@@ -29,8 +29,8 @@ function createWebserver({
   dataDirectory = process.env.APP_DATA_DIR || path.join(__dirname, 'data'),
   libraryDataDirectory = process.env.BIBLIOTECA_DATA_DIR
     || path.join(dataDirectory, 'biblioteca', 'discs'),
-  libraryAdminPassword = process.env.BIBLIOTECA_ADMIN_PASSWORD
-    || process.env.RADIO_LIBRARY_ADMIN_PASSWORD || '',
+  libraryAdminToken = process.env.BIBLIOTECA_ADMIN_TOKEN
+    || process.env.RADIO_LIBRARY_ADMIN_TOKEN || '',
   configurationPath = process.env.WEBSERVER_CONFIG_PATH
     || path.join(dataDirectory, 'radio', 'monitor-config.json'),
   overlaySettingsPath = process.env.RADIO_OVERLAY_SETTINGS_PATH
@@ -45,7 +45,7 @@ function createWebserver({
   const libraryServer = integratedLibrary
     ? createLibraryServer({
       dataDirectory: libraryDataDirectory,
-      adminPassword: libraryAdminPassword,
+      adminToken: libraryAdminToken,
       trustClientAddressHeader: true,
     })
     : null;
@@ -55,7 +55,7 @@ function createWebserver({
   }
   externalLibrary = externalLibrary || createExternalLibraryClient({
     configurationPath: externalLibraryConfigurationPath,
-    adminPassword: libraryAdminPassword,
+    adminToken: libraryAdminToken,
     defaultServerUrl: integratedLibrary ? `http://127.0.0.1:${libraryPort}` : '',
   });
   const radioStream = createSseHub();

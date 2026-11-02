@@ -9,27 +9,13 @@ const { createLibraryServer } = require('../../modules/biblioteca/server');
 const { createWebserver } = require('../../server');
 const { createExternalLibraryClient } = require('../../modules/radio/externalLibraryClient');
 
-const libraryAdminPassword = 'test-library-password-123';
-const librarySessions = new Map();
+const libraryAdminToken = 'test-library-admin-token-0123456789';
 async function libraryFetch(url, options = {}) {
   const parsedUrl = new URL(url);
   const method = (options.method || 'GET').toUpperCase();
   const needsSession = method !== 'GET' || parsedUrl.pathname.startsWith('/api/admin/');
   const headers = new Headers(options.headers || {});
-  if (needsSession && parsedUrl.pathname !== '/api/admin/session') {
-    let cookie = librarySessions.get(parsedUrl.origin);
-    if (!cookie) {
-      const login = await fetch(`${parsedUrl.origin}/api/admin/session`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: libraryAdminPassword }),
-      });
-      assert.equal(login.status, 200);
-      cookie = (login.headers.get('set-cookie') || '').split(';', 1)[0];
-      librarySessions.set(parsedUrl.origin, cookie);
-    }
-    headers.set('Cookie', cookie);
-  }
+  if (needsSession) headers.set('Authorization', 'Bearer ' + libraryAdminToken);
   return fetch(url, { ...options, headers });
 }
 
@@ -112,7 +98,7 @@ test('library manages tracks directly and radio plays them after restart', async
   const settingsPath = path.join(storage, 'external-library-config.json');
   const configPath = path.join(storage, 'monitor-config.json');
   const overlaySettingsPath = path.join(storage, 'overlay-settings.json');
-  let libraryServer = createLibraryServer({ dataDirectory, adminPassword: libraryAdminPassword });
+  let libraryServer = createLibraryServer({ dataDirectory, adminToken: libraryAdminToken });
   let libraryUrl = await listen(libraryServer);
   const appOptions = {
     monitorService: createMonitorService(),
@@ -122,7 +108,7 @@ test('library manages tracks directly and radio plays them after restart', async
     externalLibraryConfigurationPath: settingsPath,
     externalLibrary: createExternalLibraryClient({
       configurationPath: settingsPath,
-      adminPassword: libraryAdminPassword,
+      adminToken: libraryAdminToken,
     }),
   };
   let appServer = createWebserver(appOptions).server;
@@ -139,8 +125,8 @@ test('library manages tracks directly and radio plays them after restart', async
     assert.equal(savedConfiguration.status, 200);
     const saved = await savedConfiguration.json();
     assert.equal(saved.connected, true);
-    assert.equal(saved.adminPasswordConfigured, true);
-    assert.equal(Object.hasOwn(saved, 'adminPassword'), false);
+    assert.equal(saved.adminTokenConfigured, true);
+    assert.equal(Object.hasOwn(saved, 'adminToken'), false);
     assert.deepEqual(JSON.parse(fs.readFileSync(settingsPath, 'utf8')), {
       serverUrl: libraryUrl,
     });
@@ -175,6 +161,7 @@ test('library manages tracks directly and radio plays them after restart', async
       body: audio,
     });
     assert.equal(uploaded.status, 201);
+    assert.equal((await uploaded.json()).queued, true);
 
     const tracks = await fetch(`${libraryUrl}/api/discs`).then((response) => response.json());
     assert.equal(tracks.discs[0].tracks[0].id, trackId);

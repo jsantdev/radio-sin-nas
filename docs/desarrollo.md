@@ -63,9 +63,9 @@ proporcionarlas.
 | `RADIO_LIBRARY_CONFIG_PATH` | Archivo de URL de Biblioteca; por defecto `<APP_DATA_DIR>/radio/external-library-config.json`. |
 | `BIBLIOTECA_INTERNAL_PORT` | Puerto local de Biblioteca integrada; `3101`. No publicarlo en Internet. |
 | `BIBLIOTECA_DATA_DIR` | Directorio de discos/audio; por defecto `<APP_DATA_DIR>/biblioteca/discs`. El estado del reproductor y las migraciones queda en su directorio padre. |
-| `BIBLIOTECA_ADMIN_PASSWORD` | Contraseña de administración de Biblioteca; vacío deshabilita las operaciones protegidas. Debe tener al menos 12 caracteres. |
-| `BIBLIOTECA_AUTH_DISABLED` | Junto con `NODE_ENV=development`, permite administrar sin contraseña solo por loopback; el servidor rechaza la opción en cualquier otro entorno. |
-| `RADIO_LIBRARY_ADMIN_PASSWORD` | Contraseña para Radio cuando Biblioteca es externa; si se omite, Radio reutiliza `BIBLIOTECA_ADMIN_PASSWORD`. |
+| `BIBLIOTECA_ADMIN_TOKEN` | Token secreto para las operaciones administrativas de Biblioteca; vacío deshabilita las operaciones protegidas. Debe tener al menos 32 bytes. |
+| `BIBLIOTECA_AUTH_DISABLED` | Junto con `NODE_ENV=development`, permite administrar sin token solo por loopback; el servidor rechaza la opción en cualquier otro entorno. |
+| `RADIO_LIBRARY_ADMIN_TOKEN` | Token para Radio cuando Biblioteca es externa; si se omite, Radio reutiliza `BIBLIOTECA_ADMIN_TOKEN`. |
 | `BIBLIOTECA_MIGRATION_ALLOWED_HOSTS` | Hosts permitidos como destinos de migración, separados por comas. |
 | `BIBLIOTECA_MIGRATION_ALLOW_HTTP` | Permite destinos HTTP solo si vale `true`; HTTPS es el valor seguro predeterminado. |
 

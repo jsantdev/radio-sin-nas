@@ -3,7 +3,6 @@ const http = require('node:http');
 const path = require('node:path');
 const {
   createHash,
-  randomBytes,
   randomUUID,
   timingSafeEqual,
 } = require('node:crypto');
@@ -16,7 +15,7 @@ const maxAudioFileSize = 100 * 1024 * 1024;
 function createLibraryServer({
   dataDirectory = process.env.BIBLIOTECA_DATA_DIR || path.join(__dirname, '..', '..', 'data', 'biblioteca', 'discs'),
   maxFileSize = maxAudioFileSize,
-  adminPassword = process.env.BIBLIOTECA_ADMIN_PASSWORD || '',
+  adminToken = process.env.BIBLIOTECA_ADMIN_TOKEN || '',
   adminAuthDisabled = process.env.BIBLIOTECA_AUTH_DISABLED === 'true',
   trustClientAddressHeader = false,
   migrationAllowedHosts = (process.env.BIBLIOTECA_MIGRATION_ALLOWED_HOSTS || '')
@@ -31,19 +30,14 @@ function createLibraryServer({
   const schedulesPath = path.join(stateDirectory, 'song-schedules.json');
   const migrationsPath = path.join(stateDirectory, 'migrations.json');
   const migrations = new Map();
-  const migrationSessions = new Map();
-  const adminSessions = new Map();
-  const loginAttempts = new Map();
   let activeMigrationId = null;
   let recoveredMigration = false;
   if (adminAuthDisabled && process.env.NODE_ENV !== 'development') {
     throw new Error('BIBLIOTECA_AUTH_DISABLED solo se puede activar en desarrollo.');
   }
-  if (adminPassword && adminPassword.length < 12) {
-    throw new Error('BIBLIOTECA_ADMIN_PASSWORD debe tener al menos 12 caracteres.');
+  if (adminToken && (Buffer.byteLength(adminToken) < 32 || adminToken.trim() !== adminToken)) {
+    throw new Error('BIBLIOTECA_ADMIN_TOKEN debe tener al menos 32 bytes y no incluir espacios externos.');
   }
-  const sessionCookieName = 'biblioteca_session';
-  const sessionDurationMs = 8 * 60 * 60 * 1000;
 
   function isLoopbackAddress(address) {
     return address === '::1' || address === '127.0.0.1'
@@ -54,7 +48,7 @@ function createLibraryServer({
     const address = trustClientAddressHeader
       ? request.headers['x-radio-client-address'] || request.socket.remoteAddress
       : request.socket.remoteAddress;
-    return adminAuthDisabled && !adminPassword
+    return adminAuthDisabled && !adminToken
     && process.env.NODE_ENV === 'development' && isLoopbackAddress(address);
   }
 
@@ -122,28 +116,17 @@ function createLibraryServer({
     validateSchedules,
   } = playback;
 
-  function getAdminSessionId(request) {
-    const cookie = (request.headers.cookie || '').split(';')
-      .map((part) => part.trim())
-      .find((part) => part.startsWith(`${sessionCookieName}=`));
-    return cookie ? cookie.slice(sessionCookieName.length + 1) : '';
+  function isAdminTokenValid(value, request) {
+    if (request && isLocalDevelopmentRequest(request)) return true;
+    if (!adminToken || typeof value !== 'string') return false;
+    const supplied = Buffer.from(value);
+    const expected = Buffer.from(adminToken);
+    return supplied.length === expected.length && timingSafeEqual(supplied, expected);
   }
 
-  function hasAdminSession(request) {
-    const sessionId = getAdminSessionId(request);
-    const expiresAt = adminSessions.get(sessionId);
-    if (!expiresAt) return false;
-    if (expiresAt <= Date.now()) {
-      adminSessions.delete(sessionId);
-      return false;
-    }
-    return true;
-  }
-
-  function sessionCookie(request, sessionId, maxAge) {
-    const secure = process.env.NODE_ENV === 'production'
-      || request.headers['x-forwarded-proto'] === 'https';
-    return `${sessionCookieName}=${sessionId}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${secure ? '; Secure' : ''}`;
+  function bearerToken(request) {
+    const match = /^Bearer\s+(.+)$/i.exec(request.headers.authorization || '');
+    return match ? match[1] : '';
   }
 
   function sendJson(response, status, payload) {
@@ -201,50 +184,22 @@ function createLibraryServer({
     return destination;
   }
 
-  async function getMigrationSession(destination) {
-    const origin = destination.origin;
-    const existing = migrationSessions.get(origin);
-    if (existing) return existing;
-    if (!adminPassword) {
-      const destinationHost = destination.hostname.replace(/^\[|\]$/g, '');
-      if (adminAuthDisabled && process.env.NODE_ENV === 'development'
-        && isLoopbackAddress(destinationHost)) return '';
-      throw new Error('Configura BIBLIOTECA_ADMIN_PASSWORD para autenticar la Biblioteca de destino.');
-    }
-    const response = await fetchImpl(new URL('/api/admin/session', destination), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: adminPassword }),
-      redirect: 'error',
-      signal: AbortSignal.timeout(30000),
-    });
-    if (!response.ok) {
-      let payload = {};
-      try {
-        payload = await response.json();
-      } catch {
-        throw new Error('La Biblioteca de destino no devolvió una respuesta de inicio de sesión válida.');
-      }
-      throw new Error(payload.message || `La Biblioteca de destino rechazó el inicio de sesión (HTTP ${response.status}).`);
-    }
-    const cookie = (response.headers.get('set-cookie') || '').split(';', 1)[0];
-    if (!cookie.startsWith('biblioteca_session=')) {
-      throw new Error('La Biblioteca de destino no creó una sesión administrativa.');
-    }
-    migrationSessions.set(origin, cookie);
-    return cookie;
-  }
-
   async function requestMigrationDestination(destination, pathname, options = {}) {
     if (typeof fetchImpl !== 'function') throw new Error('No está disponible el cliente HTTP para migrar la biblioteca.');
+    if (!adminToken) {
+      const destinationHost = destination.hostname.replace(/^\[|\]$/g, '');
+      if (!(adminAuthDisabled && process.env.NODE_ENV === 'development'
+        && isLoopbackAddress(destinationHost))) {
+        throw new Error('Configura BIBLIOTECA_ADMIN_TOKEN para autenticar la Biblioteca de destino.');
+      }
+    }
     let response;
     try {
-      const cookie = await getMigrationSession(destination);
       response = await fetchImpl(new URL(pathname.replace(/^\/+/, ''), destination), {
         ...options,
         headers: {
           ...options.headers,
-          ...(cookie ? { Cookie: cookie } : {}),
+          ...(adminToken ? { Authorization: 'Bearer ' + adminToken } : {}),
         },
         redirect: 'error',
         signal: AbortSignal.timeout(5 * 60 * 1000),
@@ -854,67 +809,15 @@ function createLibraryServer({
     }
     if (request.method === 'GET' && requestUrl.pathname === '/api/admin/config') {
       sendJson(response, 200, {
-        configured: Boolean(adminPassword),
+        configured: Boolean(adminToken),
         authRequired: requiresAdminAuth(request),
       });
       return;
     }
-    if (request.method === 'POST' && requestUrl.pathname === '/api/admin/session') {
-      if (isLocalDevelopmentRequest(request)) {
-        sendJson(response, 200, { authenticated: true });
-        return;
-      }
-      if (!adminPassword) {
-        sendJson(response, 503, { ok: false, message: 'El servidor no configuró BIBLIOTECA_ADMIN_PASSWORD.' });
-        return;
-      }
-      const now = Date.now();
-      const address = request.socket.remoteAddress || 'unknown';
-      const attempt = loginAttempts.get(address);
-      if (attempt && attempt.expiresAt <= now) loginAttempts.delete(address);
-      const currentAttempt = loginAttempts.get(address);
-      if (currentAttempt?.count >= 5) {
-        sendJson(response, 429, { ok: false, message: 'Demasiados intentos. Espera un minuto e inténtalo de nuevo.' });
-        return;
-      }
-      let payload;
-      try {
-        payload = JSON.parse((await readBody(request)).toString('utf8'));
-      } catch {
-        sendJson(response, 400, { ok: false, message: 'Envía la contraseña como JSON válido.' });
-        return;
-      }
-      const supplied = Buffer.from(typeof payload?.password === 'string' ? payload.password : '');
-      const expected = Buffer.from(adminPassword);
-      const passwordMatches = supplied.length === expected.length && timingSafeEqual(supplied, expected);
-      if (!passwordMatches) {
-        loginAttempts.set(address, {
-          count: (currentAttempt?.count || 0) + 1,
-          expiresAt: currentAttempt?.expiresAt || now + 60_000,
-        });
-        sendJson(response, 401, { ok: false, message: 'La contraseña no es válida.' });
-        return;
-      }
-      loginAttempts.delete(address);
-      for (const [id, expiresAt] of adminSessions) {
-        if (expiresAt <= now) adminSessions.delete(id);
-      }
-      const sessionId = randomBytes(32).toString('hex');
-      adminSessions.set(sessionId, now + sessionDurationMs);
-      response.setHeader('Set-Cookie', sessionCookie(request, sessionId, sessionDurationMs / 1000));
-      sendJson(response, 200, { authenticated: true });
-      return;
-    }
     if (request.method === 'GET' && requestUrl.pathname === '/api/admin/session') {
       sendJson(response, 200, {
-        authenticated: isLocalDevelopmentRequest(request) || hasAdminSession(request),
+        authenticated: isAdminTokenValid(bearerToken(request), request),
       });
-      return;
-    }
-    if (request.method === 'DELETE' && requestUrl.pathname === '/api/admin/session') {
-      adminSessions.delete(getAdminSessionId(request));
-      response.setHeader('Set-Cookie', sessionCookie(request, '', 0));
-      sendJson(response, 200, { authenticated: false });
       return;
     }
     if (request.method === 'GET' && requestUrl.pathname === '/api/health') {
@@ -933,15 +836,16 @@ function createLibraryServer({
         || requestUrl.pathname.startsWith('/api/imports');
       const mutating = !['GET', 'HEAD', 'OPTIONS'].includes(request.method);
       if (adminRoute || mutating) {
-        if (!isLocalDevelopmentRequest(request) && !adminPassword) {
+        if (!isLocalDevelopmentRequest(request) && !adminToken) {
           sendJson(response, 503, {
             ok: false,
-            message: 'Las operaciones administrativas están deshabilitadas: configura BIBLIOTECA_ADMIN_PASSWORD.',
+            message: 'Las operaciones administrativas están deshabilitadas: configura BIBLIOTECA_ADMIN_TOKEN.',
           });
           return;
         }
-        if (!isLocalDevelopmentRequest(request) && !hasAdminSession(request)) {
-          sendJson(response, 401, { ok: false, message: 'Inicia sesión para administrar la Biblioteca.' });
+        if (!isLocalDevelopmentRequest(request) && !isAdminTokenValid(bearerToken(request), request)) {
+          response.setHeader('WWW-Authenticate', 'Bearer');
+          sendJson(response, 401, { ok: false, message: 'Se requiere un token administrativo válido.' });
           return;
         }
       }
@@ -1294,9 +1198,17 @@ function createLibraryServer({
         }
         throw error;
       }
+      const trackId = `${disc.id}/${filename}`;
+      const queue = getPlayerState().queue;
+      const queued = queue.includes(trackId) || queue.length < 5000;
+      if (queued && !queue.includes(trackId)) {
+        updatePlayerPlaylist({ tracks: [...queue, trackId] });
+      }
       sendJson(response, 201, {
+        queued,
+        ...(queued ? {} : { message: 'El tema se subió, pero la playlist alcanzó el límite de 5000 temas.' }),
         track: {
-          id: `${disc.id}/${filename}`,
+          id: trackId,
           name: filename,
           title: path.parse(filename).name,
           discId: disc.id,
