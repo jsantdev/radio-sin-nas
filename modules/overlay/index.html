@@ -1,219 +1,259 @@
 <!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#4c1d95">
-  <link rel="manifest" href="/manifest.webmanifest">
-  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
-  <link rel="apple-touch-icon" href="/icons/icon-192.png">
-  <title>Fe y Esperanza Radio - TikTok Live Overlay</title>
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- FontAwesome Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- Google Fonts: Playfair Display (Elegante Serif) & Plus Jakarta Sans -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,800;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <!-- JSConfetti para efectos de meta y regalos VIP -->
-  <script src="https://cdn.jsdelivr.net/npm/js-confetti@latest/dist/js-confetti.browser.js"></script>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fe y Esperanza Radio · TikTok Live</title>
+<meta name="theme-color" content="#3b2111">
+<meta name="color-scheme" content="dark">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700&family=Share+Tech+Mono&family=Caveat:wght@500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/js-confetti@latest/dist/js-confetti.browser.js"></script>
+<style>
+:root{--amber:#ffb13b;--cream:#f2e6c4;--chrome:#8d9099;color-scheme:dark}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;overflow:hidden;background:transparent}
+html.tr,html.tr body{background:transparent}
+#stage{position:absolute;left:0;top:0;width:1080px;height:1920px;transform-origin:0 0;font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;color:var(--cream);user-select:none;-webkit-user-select:none}
+.radio{position:absolute;left:20px;top:130px;width:1040px;height:806px;border-radius:30px;background:repeating-linear-gradient(92deg,rgba(0,0,0,0) 0 13px,rgba(0,0,0,.13) 13px 15px),radial-gradient(ellipse at 50% 0,#8a5630,#3b2111 85%);box-shadow:0 20px 50px rgba(0,0,0,.8),inset 0 2px 0 rgba(255,255,255,.18),inset 0 -6px 12px rgba(0,0,0,.5);border:4px solid #1e1109}
+.radio>div{position:absolute}
+.grille{left:16px;top:16px;width:1004px;height:78px;border-radius:12px;background:repeating-linear-gradient(90deg,#241b12 0 3px,#3b2f20 3px 5px),#2a2016;box-shadow:inset 0 0 22px #000;border:3px solid #1a120a}
+.plate{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);padding:2px 22px;border-radius:8px;background:linear-gradient(#e2e4e8,#9d9fa6);color:#1b1c1f;border:2px solid #4a4d55;box-shadow:0 3px 6px rgba(0,0,0,.6);text-align:center;white-space:nowrap}
+.plate b{display:block;font-size:40px;letter-spacing:8px;line-height:1.05}.plate small{display:block;font-size:19px;font-weight:700;letter-spacing:4px;line-height:1}
+#fr{position:absolute;left:18px;top:14px;font:400 36px/46px 'Share Tech Mono',ui-monospace,monospace;color:var(--amber);text-shadow:0 0 12px rgba(255,177,59,.7);background:#0b0b0b;padding:0 12px;border-radius:6px;border:2px solid #333}
+#live{position:absolute;right:18px;top:16px;height:42px;padding:0 16px;border-radius:8px;background:#ff3b30;color:#fff;font-size:30px;font-weight:700;letter-spacing:4px;line-height:42px;box-shadow:0 0 28px 4px rgba(255,59,48,.6);animation:bl 1.6s ease-in-out infinite}
+@keyframes bl{50%{opacity:.55}}
+.bz{border-radius:14px;background:#0c0c0e;border:3px solid var(--chrome);padding:8px;box-shadow:inset 0 0 18px #000,0 4px 10px rgba(0,0,0,.6)}
+.bz svg{display:block}
+#dialb{left:16px;top:102px;width:1008px;height:150px}
+#dial{transition:filter 1.2s;border-radius:8px}
+.off #dial{filter:brightness(.12)}
+#wellb{left:16px;top:260px;width:579px;height:384px}
+.side{left:609px;top:260px;width:415px;height:384px;border-radius:14px;background:repeating-linear-gradient(0deg,rgba(255,255,255,.07) 0 1px,rgba(0,0,0,.05) 1px 2px),linear-gradient(#d4d7dc,#a1a5ac 45%,#bfc2c7);border:3px solid #202125;box-shadow:inset 0 3px 0 rgba(255,255,255,.7),inset 0 -4px 8px rgba(0,0,0,.35);color:#1b1c1f;font-weight:700;letter-spacing:3px;font-size:22px;text-align:center}
+.side>*{position:absolute}
+#vub{left:12px;top:10px;width:385px;height:146px}#vu{transition:filter 1.2s;border-radius:8px}.off #vu{filter:brightness(.12)}
+.cnt{left:12px;width:142px;top:182px;display:flex;gap:5px;justify-content:center}.cnt b{width:44px;height:60px;background:linear-gradient(#050505,#1d1d1d);border:3px solid #555;color:#f2ead2;font:400 46px/54px 'Share Tech Mono',ui-monospace,monospace;border-radius:6px;box-shadow:inset 0 0 8px #000}
+.kb{top:162px;width:128px;font-size:19px;letter-spacing:2px}.kb .kn{width:100px;height:100px;border-radius:50%;margin:0 auto 6px;background:repeating-conic-gradient(#3a3c41 0 6deg,#15161a 6deg 12deg);border:3px solid #0b0b0d;box-shadow:0 6px 12px rgba(0,0,0,.6),inset 0 0 0 16px #2a2b30;position:relative;touch-action:none;cursor:grab}
+.kn::after{content:"";position:absolute;left:44px;top:6px;width:6px;height:28px;background:var(--amber);border-radius:3px}
+.pw{left:12px;right:12px;top:302px;height:66px;border-radius:10px;border:2px solid #0a0a0b;border-bottom-width:8px;background:linear-gradient(#45464b,#1b1c1f);color:#eceae2;font:700 34px 'Barlow Condensed',sans-serif;letter-spacing:5px;cursor:pointer}
+.pw.on{border-bottom-width:2px;transform:translateY(6px);color:#4dff7a;box-shadow:inset 0 0 14px rgba(77,255,122,.4)}
+.keys{left:16px;top:652px;width:1008px;height:86px;display:flex;gap:12px;padding:0}
+.key{flex:1;border-radius:10px;border:2px solid #0a0a0b;border-bottom-width:10px;background:linear-gradient(#45464b,#1b1c1f);color:#eceae2;font-size:44px;line-height:1;cursor:pointer;box-shadow:inset 0 2px 0 rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;gap:12px}
+.key small{font:700 24px 'Barlow Condensed',sans-serif;letter-spacing:3px;color:#c9c6bb}
+.key.down{border-bottom-width:2px;transform:translateY(8px);color:var(--amber);background:linear-gradient(#2a2b2f,#141517);box-shadow:inset 0 0 14px rgba(255,160,50,.45)}
+.tick{left:16px;top:746px;width:1008px;height:44px;border-radius:8px;background:#0a0806;border:3px solid #3a2f20;box-shadow:inset 0 0 14px #000;overflow:hidden;font-size:34px;font-weight:700;letter-spacing:3px;color:var(--amber);text-shadow:0 0 10px rgba(255,177,59,.6);line-height:38px}
+.tick span{display:inline-block;white-space:nowrap;animation:mq 32s linear infinite}
+@keyframes mq{to{transform:translateX(-50%)}}
 
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            brand: {
-              pink: '#FCE7F3',
-              rose: '#F472B6',
-              deepPink: '#DB2777',
-              violet: '#4C1D95',
-              purple: '#7C3AED',
-              softPurple: '#DDD6FE',
-              gold: '#F59E0B',
-              goldLight: '#FDE68A',
-            }
-          },
-          fontFamily: {
-            serif: ['"Playfair Display"', 'serif'],
-            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
-          },
-          keyframes: {
-            pulseGlow: {
-              '0%, 100%': { boxShadow: '0 0 15px rgba(244, 114, 182, 0.4), 0 0 30px rgba(245, 158, 11, 0.2)' },
-              '50%': { boxShadow: '0 0 25px rgba(244, 114, 182, 0.8), 0 0 45px rgba(245, 158, 11, 0.5)' },
-            },
-            floatUp: {
-              '0%': { transform: 'translateY(0) scale(0.8)', opacity: '1' },
-              '100%': { transform: 'translateY(-120px) scale(1.3)', opacity: '0' },
-            },
-            shimmer: {
-              '100%': { transform: 'translateX(100%)' }
-            },
-            bounceGentle: {
-              '0%, 100%': { transform: 'translateY(-3%)' },
-              '50%': { transform: 'translateY(0)' }
-            }
-          },
-          animation: {
-            'pulse-glow': 'pulseGlow 3s infinite ease-in-out',
-            'float-up': 'floatUp 2.5s ease-out forwards',
-            'bounce-gentle': 'bounceGentle 2s infinite ease-in-out',
-          }
-        }
-      }
-    }
-  </script>
+/* ===== Pantalla de abajo: eventos del live ===== */
+.deck{position:absolute;left:20px;top:972px;width:1040px;height:930px;border-radius:30px;background:repeating-linear-gradient(92deg,rgba(0,0,0,0) 0 13px,rgba(0,0,0,.13) 13px 15px),radial-gradient(ellipse at 50% 0,#8a5630,#3b2111 85%);box-shadow:0 20px 50px rgba(0,0,0,.8),inset 0 2px 0 rgba(255,255,255,.18),inset 0 -6px 12px rgba(0,0,0,.5);border:4px solid #1e1109}
+.scr{position:absolute;left:22px;top:22px;right:22px;bottom:22px;border-radius:16px;background:#0a0806;border:3px solid var(--chrome);box-shadow:inset 0 0 30px #000;overflow:hidden;color:var(--amber)}
+.scr>*{z-index:1}
+.beams{position:absolute;left:50%;top:50%;width:2400px;height:2400px;margin:-1200px 0 0 -1200px;background:repeating-conic-gradient(rgba(255,177,59,.26) 0 10deg,rgba(0,0,0,0) 10deg 20deg,rgba(255,59,107,.24) 20deg 30deg,rgba(0,0,0,0) 30deg 40deg,rgba(77,170,255,.22) 40deg 50deg,rgba(0,0,0,0) 50deg 60deg);opacity:0;transition:opacity .5s;animation:spin 7s linear infinite;z-index:0!important}
+.deck:not(.party) .beams{animation-play-state:paused}
+.party .beams{opacity:1}
+@keyframes spin{to{transform:rotate(360deg)}}
+.party .scr{animation:glow .45s ease-in-out infinite alternate}
+@keyframes glow{from{box-shadow:inset 0 0 30px #000,0 0 0 rgba(255,59,107,0)}to{box-shadow:inset 0 0 70px rgba(255,59,107,.55),0 0 40px rgba(255,177,59,.8)}}
+.bulb{position:absolute;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:#4a3416;box-shadow:inset 0 -2px 2px rgba(0,0,0,.5)}
+.party .bulb{animation:chase .8s linear infinite}
+@keyframes chase{0%{background:var(--c);box-shadow:0 0 14px 5px var(--c)}45%,100%{background:#4a3416;box-shadow:inset 0 -2px 2px rgba(0,0,0,.5)}}
+.stats{position:absolute;left:12px;right:12px;top:10px;height:92px;display:flex;gap:10px}
+.stats div{flex:1;background:rgba(0,0,0,.6);border:2px solid #3a2f20;border-radius:10px;text-align:center;padding-top:6px;min-width:0}
+.stats b{display:block;font:400 52px/54px 'Share Tech Mono',ui-monospace,monospace;color:#f2ead2;text-shadow:0 0 10px rgba(255,177,59,.6)}
+.stats small{font-size:22px;font-weight:500;color:#c9a45c;letter-spacing:1px}
+.t5h{position:absolute;left:18px;right:18px;top:112px;display:flex;justify-content:space-between;align-items:baseline}
+.t5h b{font-size:42px;letter-spacing:2px;color:var(--amber);text-shadow:0 0 10px rgba(255,177,59,.6)}
+.t5h small{font-size:22px;font-weight:500;color:#c9a45c}
+.t5{position:absolute;left:12px;right:12px;top:160px;height:340px}
+.rw{position:absolute;left:0;right:0;top:0;height:62px;border-radius:10px;background:rgba(10,8,6,.82);border:2px solid #3a2f20;border-left:8px solid var(--rc);opacity:0;transition:transform .6s cubic-bezier(.3,1.3,.5,1),opacity .4s;overflow:hidden;display:flex;align-items:center;gap:14px;padding:0 16px;font-size:38px;font-weight:700;color:var(--cream)}
+.rw.in{opacity:1}
+.rw.up{animation:up .7s}
+@keyframes up{0%{background:rgba(255,177,59,.55)}100%{background:rgba(10,8,6,.82)}}
+.rw .rk{width:56px;text-align:center;font-size:38px}
+.rw .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rw .sb{font-size:24px;font-weight:500;color:#c9a45c;white-space:nowrap}
+.rw .pt{min-width:110px;text-align:right;font:400 40px 'Share Tech Mono',ui-monospace,monospace;color:var(--amber)}
+.rw .bar{position:absolute;left:0;bottom:0;height:5px;width:0;background:var(--rc);transition:width .5s}
+.bulb{position:absolute;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:#4a3416;box-shadow:inset 0 -2px 2px rgba(0,0,0,.5);pointer-events:none}
+.party .bulb{animation:chase .8s linear infinite}
+.party .beams{opacity:1}
+.party .scr{animation:glow .45s ease-in-out infinite alternate}
+.fh{position:absolute;left:18px;top:510px;font-size:32px;font-weight:700;letter-spacing:2px;color:#c9a45c}
+.feed{position:absolute;left:12px;right:12px;top:550px;height:304px;overflow:hidden}
+.ev{height:46px;margin-bottom:4px;display:flex;align-items:center;gap:12px;padding:0 14px;border-radius:8px;background:rgba(10,8,6,.82);border-left:6px solid var(--ec,#6b5a3a);font-size:30px;color:var(--cream);white-space:nowrap;overflow:hidden;animation:evin .35s ease-out}
+.ev i{font-style:normal;font-size:28px;width:36px;text-align:center;flex:none}
+.ev b{color:var(--amber);font-weight:700;flex:none}
+.ev span{min-width:0;overflow:hidden;text-overflow:ellipsis;color:#d9ccaa;font-weight:500}
+.ev.cm{--ec:#ffb13b}.ev.lk{--ec:#ff5a5a}.ev.jn{--ec:#4dff7a}.ev.gf{--ec:#ff3b6b;background:rgba(80,10,30,.88)}
+@keyframes evin{from{height:0;margin-bottom:0;opacity:0}}
+.ban{position:absolute;left:36px;right:36px;top:230px;height:260px;border-radius:26px;border:6px solid #f2e6c4;background:linear-gradient(#ffd27a,#ff7a1a 55%,#e5391b);box-shadow:0 0 60px rgba(255,120,30,.9),inset 0 0 30px rgba(255,255,255,.35);display:flex;align-items:center;gap:44px;padding:0 40px;color:#2a0d02;opacity:0;pointer-events:none;transition:opacity .4s;z-index:6!important}
+.ban.show{opacity:1;animation:pop .6s cubic-bezier(.2,1.6,.4,1)}
+@keyframes pop{0%{transform:scale(.2) rotate(-6deg)}60%{transform:scale(1.1) rotate(2deg)}100%{transform:scale(1)}}
+.ban .av{position:relative;width:176px;height:176px;flex:none}
+.ban .av img,.ban .av b{position:absolute;left:0;top:0;width:100%;height:100%;border-radius:50%;border:6px solid #f2e6c4;box-shadow:0 0 24px rgba(0,0,0,.45);box-sizing:border-box}
+.ban .av img{display:none;object-fit:cover;background:#2a0d02}
+.ban .av b{display:flex;align-items:center;justify-content:center;font-size:100px;color:#fff;text-shadow:0 3px 0 rgba(0,0,0,.35)}
+.ban .bi{position:absolute;right:-26px;bottom:-18px;font-size:82px;line-height:1;animation:bob .5s ease-in-out infinite alternate}
+@keyframes bob{to{transform:translateY(-14px) rotate(8deg)}}
+.ban .bt{min-width:0;flex:1}
+.ban .bn{font-size:84px;font-weight:700;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ban .bg{font-size:50px;font-weight:700;line-height:1.1;margin-top:6px}
+.ban .bd{font:400 44px 'Share Tech Mono',ui-monospace,monospace;margin-top:4px}
+.av2{display:flex;align-items:center;justify-content:center;border-radius:50%;flex:none;overflow:hidden;color:#fff;font-weight:700;border:2px solid rgba(242,230,196,.75);box-sizing:border-box;line-height:1}
+.av2 img{width:100%;height:100%;object-fit:cover;display:block}
+.ev .av2{width:38px;height:38px;font-size:22px}
+.rw .av2{width:50px;height:50px;font-size:30px;order:1}
+.rw .rk{order:0}.rw .nm{order:2}.rw .sb{order:3}.rw .pt{order:4}
+#cv{position:absolute;left:0;top:0;pointer-events:none;z-index:7!important}
 
-  <style>
-    /* Estilos base para overlay transparente */
-    body {
-      background-color: transparent;
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      user-select: none;
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      min-height: 100vh;
-      min-height: 100dvh;
-    }
+#stage{max-width:none}
+#radioStatus{position:absolute;left:34px;top:796px;max-width:680px;z-index:3;display:flex;align-items:center;gap:14px;color:#ffe1a5;font:700 22px 'Barlow Condensed',sans-serif;letter-spacing:1px;text-shadow:0 2px 6px #000}
+#enableRadioAudio{border:2px solid #ffb13b;border-radius:6px;background:#1a1109;color:#ffdda0;padding:4px 10px;font:700 18px 'Barlow Condensed',sans-serif}
+#enableRadioAudio[hidden]{display:none}
+.stats{height:70px}
+.stats b{font-size:44px;line-height:46px}
+.stats small{font-size:19px}
+.goal-panel{position:absolute;left:18px;right:18px;top:100px;height:68px;display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;padding:4px 8px;background:rgba(0,0,0,.62);border:1px solid #5b492d;border-radius:8px;color:#e8d8b5;font-size:18px}
+.goal-row{min-width:0;display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center;letter-spacing:.5px}
+.goal-row span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.goal-row b{color:#ffbd55}
+.goal-row i{height:10px;border:1px solid #74603d;border-radius:8px;background:#1b1710;overflow:hidden}
+.goal-row em{display:block;width:0;height:100%;background:linear-gradient(90deg,#ff5a30,#ffbf45);transition:width .4s}
+#donors{grid-column:1/-1;color:#e8c77e;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:18px}
+.t5h{top:176px}
+.t5{top:218px;height:310px}
+.rw{height:56px}
+.fh{top:540px}
+.feed{top:578px;height:276px}
+.ev{height:42px;font-size:27px}
+</style></head><body>
+<div id="stage">
+<div class="radio off" id="radio">
+ <div class="grille"><div id="fr">91.5 FM</div><div class="plate"><b id="pn">FE Y ESPERANZA</b><small>MÚSICA · ORACIÓN · ALABANZA</small></div><div id="live">RADIO EN VIVO</div></div>
 
-    /* Aspect ratio 9:16 contenedor principal */
-    .aspect-tiktok {
-      width: 100vw;
-      height: 100vh;
-      height: 100dvh;
-      max-width: 506px; /* 9:16 proporcional */
-      max-height: 900px;
-      margin: 0 auto;
-      position: relative;
-    }
+ <div class="bz" id="dialb"><svg id="dial" viewBox="0 0 640 96" width="990" height="148">
+  <defs><linearGradient id="gl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fbf0cf"/><stop offset="1" stop-color="#dcc998"/></linearGradient>
+  <radialGradient id="lamp" cx=".5" cy=".5" r=".6"><stop offset="0" stop-color="#ffd27a" stop-opacity=".7"/><stop offset="1" stop-color="#ffd27a" stop-opacity="0"/></radialGradient></defs>
+  <rect width="640" height="96" fill="url(#gl)"/><rect width="640" height="96" fill="url(#lamp)"/>
+  <g id="ticks" stroke="#3a2a1a"></g>
+  <g id="stn" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-weight="700" font-size="21" fill="#7a2c0a" text-anchor="middle"></g>
+  <text id="srcT" x="624" y="92" text-anchor="end" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-size="12" letter-spacing="2" fill="#8a3b0f">RADIO</text>
+  <g id="nd"><rect x="-2" y="2" width="4" height="86" fill="#e5391b"/><circle cy="4" r="5" fill="#e5391b"/></g>
+  <rect width="640" height="96" fill="none" stroke="rgba(0,0,0,.35)" stroke-width="6"/>
+  <path d="M0 0H300L200 96H0Z" fill="rgba(255,255,255,.12)"/>
+ </svg></div>
 
-    #overlayContainer {
-      padding: 16px 16px calc(clamp(120px, 23vh, 210px) + env(safe-area-inset-bottom));
-    }
+ <div class="bz" id="wellb"><svg viewBox="96 6 448 296" width="557" height="368" id="wsvg">
+  <defs>
+   <linearGradient id="hub" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#b9bcc2"/></linearGradient>
+   <linearGradient id="mt" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#6c7078"/><stop offset=".5" stop-color="#d7dae0"/><stop offset="1" stop-color="#5b5f67"/></linearGradient>
+   <linearGradient id="pk" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6b4526"/><stop offset=".5" stop-color="#2a180c"/><stop offset="1" stop-color="#4a2e18"/></linearGradient>
+   <linearGradient id="deckp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a2c31"/><stop offset="1" stop-color="#101114"/></linearGradient>
+  </defs>
+  <rect x="0" y="0" width="640" height="330" fill="#08090b"/>
+  <rect x="20" y="290" width="600" height="30" rx="6" fill="url(#deckp)" stroke="#4a4d55" stroke-width="2"/>
+  <rect x="294" y="270" width="52" height="32" rx="3" fill="url(#mt)" stroke="#333" stroke-width="2"/>
+  <rect x="300" y="262" width="40" height="12" rx="2" fill="#2b2d33" stroke="#111"/><rect x="302" y="263" width="36" height="2" fill="#d9b24a"/>
+  <rect x="226" y="272" width="30" height="24" rx="3" fill="url(#mt)" stroke="#333" stroke-width="2"/><rect x="230" y="266" width="22" height="9" fill="#2b2d33"/>
+  <defs><linearGradient id="sh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a3a40"/><stop offset=".5" stop-color="#1d1d21"/><stop offset="1" stop-color="#0f0f11"/></linearGradient><linearGradient id="pp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4ead0"/><stop offset="1" stop-color="#e2d4aa"/></linearGradient><g id="sc"><circle r="7" fill="url(#hub)" stroke="#555" stroke-width="1.5"/><path d="M-4 0H4M0 -4V4" stroke="#444" stroke-width="1.6"/></g></defs><rect x="107" y="8" width="426" height="270" rx="12" fill="url(#sh)" stroke="#5a5d66" stroke-width="3"/><rect x="113" y="14" width="414" height="258" rx="9" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="2"/><rect x="128" y="6" width="14" height="9" fill="#08090b"/><rect x="498" y="6" width="14" height="9" fill="#08090b"/><use href="#sc" x="124" y="26"/><use href="#sc" x="516" y="26"/><use href="#sc" x="126" y="226"/><use href="#sc" x="514" y="226"/><use href="#sc" x="320" y="229"/>
+  <defs><clipPath id="wclip"><rect x="138" y="138" width="364" height="76" rx="38"/></clipPath>
+   <clipPath id="tclip"><rect x="138" y="138" width="364" height="76" rx="38"/><rect x="100" y="233" width="440" height="60"/></clipPath>
+   <clipPath id="penclip"><rect id="penr" x="146" y="48" width="0" height="46"/></clipPath>
+   <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".16"/><stop offset=".45" stop-color="#fff" stop-opacity=".02"/><stop offset="1" stop-color="#000" stop-opacity=".25"/></linearGradient></defs>
+  <rect x="137" y="20" width="366" height="92" rx="4" fill="url(#pp)" stroke="rgba(0,0,0,.35)" stroke-width="1"/>
+  <rect x="137" y="20" width="366" height="34" rx="4" fill="#d04a1d"/><rect x="137" y="46" width="366" height="8" fill="#b23a14"/>
+  <text x="152" y="46" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-weight="700" font-size="28" fill="#fff4dc" letter-spacing="3">ALABANZAS</text>
+  <text x="488" y="46" text-anchor="end" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-weight="700" font-size="26" fill="#fff4dc">C-120</text>
+  <g stroke="#8a9ab8" stroke-width="1" opacity=".7"><path d="M148 82H440M148 100H440"/></g><circle cx="476" cy="82" r="15" fill="#14151a"/><text x="476" y="90" text-anchor="middle" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-weight="700" font-size="24" fill="#f3e6c4">A</text>
+  <text id="radioTrackTitle" x="152" y="78" font-family="Caveat,Comic Sans MS,cursive" font-size="23" fill="#1c3aa9" opacity=".95" transform="rotate(-1 152 78)">Conectando con la radio…</text>
+  <text id="lbTit" x="152" y="79" font-family="Caveat,Comic Sans MS,cursive" font-weight="500" font-size="27" fill="#1c3aa9" clip-path="url(#penclip)" transform="rotate(-1.5 152 79)" visibility="hidden"></text>
+  <text x="152" y="97" font-family="Caveat,Comic Sans MS,cursive" font-size="17" fill="#2c3a6b" opacity=".85">Lado A, 60 min</text>
+  <rect x="130" y="130" width="380" height="92" rx="46" fill="#16171b" stroke="#aeb2ba" stroke-width="3"/>
+  <rect x="138" y="138" width="364" height="76" rx="38" fill="#050507"/>
+  <g clip-path="url(#wclip)">
+  <circle id="pL" cx="231" cy="176" r="76" fill="url(#pk)"/><circle id="pR" cx="409" cy="176" r="26" fill="url(#pk)"/>
+  <g id="hL" transform="translate(231 176) scale(2)"><circle r="13" fill="url(#hub)"/><circle r="8.5" fill="#0a0a0c"/><g fill="url(#hub)" id="teethL"></g></g>
+  <g id="hR" transform="translate(409 176) scale(2)"><circle r="13" fill="url(#hub)"/><circle r="8.5" fill="#0a0a0c"/><g fill="url(#hub)" id="teethR"></g></g>
+  </g>
+  <rect x="138" y="138" width="364" height="76" rx="38" fill="url(#glass)"/>
+  <rect x="141" y="141" width="358" height="70" rx="35" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="1.5"/>
+  <g stroke="#e6e8ec" stroke-opacity=".55" stroke-width="1.5"><path d="M182 138v6M200 138v4M218 138v6M236 138v4M254 138v6M272 138v4M290 138v6M308 138v4M326 138v6M344 138v4M362 138v6M380 138v4M398 138v6M416 138v4M434 138v6M452 138v4"/></g>
+  <text x="138" y="231" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-size="11" letter-spacing="2" fill="#8e9099">STEREO</text><text x="502" y="231" text-anchor="end" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-size="11" letter-spacing="2" fill="#8e9099">NORMAL 120 µs</text>
+  <path d="M108 278 L128 236 H512 L532 278 Z" fill="#08080a" stroke="#4a4b50" stroke-width="2"/><g fill="#000" stroke="#6a6c72" stroke-width="1.5"><circle cx="150" cy="270" r="4"/><circle cx="490" cy="270" r="4"/></g><rect x="302" y="238" width="36" height="14" rx="2" fill="url(#mt)" stroke="#333"/><rect x="309" y="252" width="22" height="8" fill="#b9b49a"/><rect x="304" y="266" width="32" height="16" rx="2" fill="url(#mt)" stroke="#333"/><rect x="307" y="265" width="26" height="4" fill="#2b2d33"/><rect x="309" y="265.5" width="22" height="1.6" fill="#d9b24a"/><rect x="240" y="268" width="20" height="14" rx="2" fill="url(#mt)" stroke="#333"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round" clip-path="url(#tclip)">
+   <path id="tL" stroke="#5b3a1e" stroke-width="4"/><path id="tF" stroke="#5b3a1e" stroke-width="4"/><path id="tR" stroke="#5b3a1e" stroke-width="4"/>
+   <path id="sL" stroke="#e6c79a" stroke-opacity=".45" stroke-width="1.4" stroke-dasharray="3 17"/><path id="sF" stroke="#e6c79a" stroke-opacity=".45" stroke-width="1.4" stroke-dasharray="3 17"/><path id="sR" stroke="#e6c79a" stroke-opacity=".45" stroke-width="1.4" stroke-dasharray="3 17"/>
+  </g>
+  <g fill="url(#mt)" stroke="#222" stroke-width="1.5"><circle cx="118" cy="262" r="7"/><circle cx="522" cy="262" r="7"/></g>
+  <circle cx="430" cy="281" r="7" fill="url(#mt)" stroke="#222" stroke-width="1.5"/>
+  <g id="pr" transform="translate(430 249)"><circle r="15" fill="#111" stroke="#333" stroke-width="2"/><circle r="5" fill="#8c8f97"/><rect x="-1" y="-14" width="2" height="6" fill="#444"/></g>
+  <path d="M107 8H340L220 278H107Z" fill="rgba(255,255,255,.07)"/><path d="M200 138H290L254 214H200Z" fill="rgba(255,255,255,.1)"/>
+ </svg></div>
 
-    /* Glassmorphism de lujo */
-    .glass-card {
-      background: rgba(30, 10, 40, 0.55);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1.5px solid rgba(255, 255, 255, 0.18);
-      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.25);
-    }
+ <div class="side">
+  <div class="bz" id="vub"><svg id="vu" viewBox="0 0 400 130" width="363" height="118">
+   <defs><linearGradient id="vgl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fbf0cf"/><stop offset="1" stop-color="#dcc998"/></linearGradient>
+   <radialGradient id="vlamp" cx=".5" cy=".95" r=".8"><stop offset="0" stop-color="#ffd27a" stop-opacity=".75"/><stop offset="1" stop-color="#ffd27a" stop-opacity="0"/></radialGradient>
+   <radialGradient id="vcv" cx=".35" cy=".3" r=".9"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#8d9099"/></radialGradient></defs>
+   <rect width="400" height="130" fill="url(#vgl)"/><rect width="400" height="130" fill="url(#vlamp)"/>
+   <path id="vArc" fill="none" stroke="#3a2a1a" stroke-width="2.5"/><path id="vRed" fill="none" stroke="#c8281a" stroke-width="6"/>
+   <g id="vTk" stroke="#3a2a1a"></g>
+   <g id="vLb" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-weight="700" font-size="18" fill="#3a2a1a" text-anchor="middle" letter-spacing="0"></g>
+   <text x="200" y="86" text-anchor="middle" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-weight="700" font-style="italic" font-size="28" fill="#7a2c0a" letter-spacing="0">dB</text>
+   <text x="200" y="101" text-anchor="middle" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-weight="700" font-size="12" fill="#8a3b0f" letter-spacing="3">SONÓMETRO</text>
+   <rect x="8" y="104" width="68" height="22" rx="4" fill="#0b0b0b" stroke="#333" stroke-width="1.5"/>
+   <text id="vTx" x="42" y="120" text-anchor="middle" font-family="Share Tech Mono,ui-monospace,monospace" font-weight="400" font-size="16" fill="#ffb13b" letter-spacing="0">-- dB</text>
+   <circle id="vLg" cx="368" cy="109" r="12" fill="#ff3b30" opacity="0"/><circle id="vLamp" cx="368" cy="109" r="6" fill="#4a1511" stroke="#222" stroke-width="1.5"/>
+   <text x="368" y="126" text-anchor="middle" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-weight="700" font-size="10" fill="#7a2c0a" letter-spacing="1">PICO</text>
+   <g id="vPk" opacity="0"><path d="M200 18L194 6H206Z" fill="#ff3b30" stroke="#7a1208" stroke-width=".8"/></g>
+   <g id="vN" transform="rotate(-52 200 190)"><line x1="203" y1="190" x2="203" y2="16" stroke="rgba(0,0,0,.25)" stroke-width="3"/><line x1="200" y1="190" x2="200" y2="14" stroke="#16100a" stroke-width="2.4"/><line x1="200" y1="44" x2="200" y2="14" stroke="#c8281a" stroke-width="2.4"/></g>
+   <path d="M176 130A24 24 0 0 1 224 130Z" fill="url(#vcv)" stroke="#333" stroke-width="2"/>
+   <rect width="400" height="130" fill="none" stroke="rgba(0,0,0,.35)" stroke-width="6"/>
+   <path d="M0 0H210L120 130H0Z" fill="rgba(255,255,255,.12)"/>
+  </svg></div>
+  <div class="cnt" id="cnt"><b>0</b><b>0</b><b>0</b></div>
+  <div style="left:12px;width:142px;top:248px;font-size:18px">CONTADOR</div>
+  <div class="kb" style="left:158px"><div class="kn" id="knT"></div>SINTONÍA</div>
+  <div class="kb" style="left:280px"><div class="kn" id="knV"></div>VOLUMEN</div>
+  <button class="pw" id="pw" type="button" aria-label="Reproducir o pausar la radio">ENCENDER</button>
+  <div id="radioStatus"><span id="radioHint">Esperando estado de la radio…</span><button id="enableRadioAudio" type="button" hidden>ACTIVAR AUDIO</button></div>
+ </div>
 
-    .glass-gold {
-      background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(124, 58, 237, 0.35));
-      backdrop-filter: blur(12px);
-      border: 1.5px solid rgba(245, 158, 11, 0.5);
-    }
+ <div class="keys" id="keys">
+  <button class="key" data-k="rew">⏪<small>REB</small></button>
+  <button class="key" data-k="play">▶<small>PLAY</small></button>
+  <button class="key" data-k="ff">⏩<small>AVA</small></button>
+  <button class="key down" data-k="stop">⏹<small>STOP</small></button>
+ </div>
+ <div class="tick"><span id="tk"></span></div>
+</div>
+<div class="deck" id="deck">
+ <div class="scr">
+  <div class="beams"></div>
+  <div class="stats">
+   <div><b id="sLk">0</b><small>me gusta</small></div>
+   <div><b id="sCm">0</b><small>comentarios</small></div>
+   <div><b id="sJn">0</b><small>entraron</small></div>
+   <div><b id="sGf">0</b><small>regalos</small></div>
+  </div>
+  <div class="goal-panel">
+   <div class="goal-row"><span>META TAP TAP <b id="goalTaps">0 / 5.000</b></span><i><em id="goalTapBar"></em></i></div>
+   <div class="goal-row"><span>META CANCIÓN <b id="goalCoins">0 / 500 monedas</b></span><i><em id="goalCoinBar"></em></i></div>
+   <div id="donors" aria-label="Principales colaboradores"></div>
+  </div>
+  <div class="t5h"><b>TOP 5 DEL LIVE</b><small>❤ 1 punto   💬 5 puntos   💎 10 puntos</small></div>
+  <div class="t5" id="t5"></div>
+  <div class="fh">ACTIVIDAD</div>
+  <div class="feed" id="feed"></div>
+  <div class="ban" id="ban"><div class="av"><b id="avl"></b><img id="avi" alt=""><span class="bi" id="bi">🎁</span></div><div class="bt"><div class="bn" id="bn"></div><div class="bg" id="bg"></div><div class="bd" id="bd"></div></div></div>
+  <canvas id="cv" width="982" height="872"></canvas>
+ </div>
+</div>
+</div>
 
-    /* Ecualizador animado */
-    .eq-bar {
-      width: 4px;
-      background: linear-gradient(to top, #F472B6, #F59E0B);
-      border-radius: 4px;
-      animation: eqAnim 1.2s ease-in-out infinite alternate;
-    }
-    .eq-bar:nth-child(1) { height: 18px; animation-delay: 0.1s; }
-    .eq-bar:nth-child(2) { height: 28px; animation-delay: 0.4s; }
-    .eq-bar:nth-child(3) { height: 12px; animation-delay: 0.2s; }
-    .eq-bar:nth-child(4) { height: 32px; animation-delay: 0.6s; }
-    .eq-bar:nth-child(5) { height: 20px; animation-delay: 0.3s; }
-
-    @keyframes eqAnim {
-      0% { transform: scaleY(0.3); }
-      100% { transform: scaleY(1.1); }
-    }
-
-    /* Canvas para partículas y corazones */
-    #particleCanvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 40;
-    }
-
-    /* Scrollbar personalizada para el panel de control */
-    ::-webkit-scrollbar {
-      width: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: rgba(0, 0, 0, 0.2);
-      border-radius: 4px;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #DB2777;
-      border-radius: 4px;
-    }
-
-    /* Animaciones de entrada/salida */
-    .toast-enter {
-      animation: slideInRight 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-    }
-    .toast-exit {
-      animation: fadeOutUp 0.5s ease-in forwards;
-    }
-
-    #alertContainer { position: absolute; top: 0; right: 0; width: min(88%, 360px); max-height: 26vh; overflow: hidden; align-items: flex-end; }
-    #songUnlockedBanner { position: absolute; top: 28%; right: 0; width: min(90%, 360px); }
-    .alert-card { max-width: min(94vw, 390px); }
-    .event-subtitle { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: anywhere; }
-    .event-kind { flex: 0 0 auto; border-radius: 999px; padding: 2px 7px; background: rgba(244, 114, 182, .18); color: #fce7f3; font-size: 9px; font-weight: 800; letter-spacing: .06em; }
-    .event-kind.gift { background: rgba(245, 158, 11, .2); color: #fde68a; }
-    .event-avatar { position: relative; display: flex; flex: 0 0 42px; width: 42px; height: 42px; align-items: center; justify-content: center; overflow: hidden; border-radius: 50%; background: linear-gradient(135deg, #ec4899, #7c3aed); color: white; font-size: 20px; box-shadow: 0 4px 12px rgba(0, 0, 0, .3); }
-    .event-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-    .event-avatar-mark { position: absolute; right: -1px; bottom: -1px; display: grid; width: 17px; height: 17px; place-items: center; border: 2px solid #2b1539; border-radius: 50%; background: #7c3aed; font-size: 9px; }
-    .gift-vip .event-avatar-mark, .gift-special .event-avatar-mark, .gift-collaborator .event-avatar-mark { background: #b45309; }
-    .gift-collaborator { border-color: rgba(244, 114, 182, .55); }
-    .gift-special { border-color: rgba(196, 181, 253, .8); }
-    .gift-vip { border-color: rgba(253, 230, 138, .9); }
-    #topContributors { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; margin-top: 8px; }
-    .contributor { min-width: 0; overflow: hidden; border-radius: 9px; background: rgba(15, 10, 25, .48); padding: 5px 6px; text-align: center; }
-    .contributor-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 9px; font-weight: 800; color: #fce7f3; }
-    .contributor-value { display: block; font-size: 8px; color: #fde68a; }
-    #songDedication { overflow-wrap: anywhere; }
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
-    }
-
-    @keyframes slideInRight {
-      from { transform: translateX(100%) scale(0.8); opacity: 0; }
-      to { transform: translateX(0) scale(1); opacity: 1; }
-    }
-
-    @keyframes fadeOutUp {
-      from { transform: translateY(0) scale(1); opacity: 1; }
-      to { transform: translateY(-30px) scale(0.9); opacity: 0; }
-    }
-
-    /* Destellos brillantes */
-    .sparkle-icon {
-      filter: drop-shadow(0 0 6px #FDE68A);
-    }
-
-    audio {
-      width: 100%;
-      height: 34px;
-      accent-color: #F472B6;
-    }
-
-    @media (max-height: 720px) {
-      #overlayContainer { padding: 10px 12px calc(clamp(96px, 18vh, 140px) + env(safe-area-inset-bottom)); }
-      #overlayContainer footer { gap: 7px; }
-      #overlayContainer footer > div { padding: 8px; }
-      #overlayContainer audio { height: 30px; }
-    }
-  </style>
-</head>
-<body class="flex items-start justify-center min-h-screen text-white font-sans overflow-hidden">
-
-  <!-- CONTENEDOR 9:16 OVERLAY TIKTOK -->
-  <div id="overlayContainer" class="aspect-tiktok relative overflow-hidden flex flex-col justify-between p-4 selection:bg-none">
+<div id="legacyOverlayState" hidden aria-hidden="true">
+<div id="overlayContainer" class="aspect-tiktok relative overflow-hidden flex flex-col justify-between p-4 selection:bg-none">
 
     <!-- CANVAS PARA CORAZONES Y DESTELLOS -->
     <canvas id="particleCanvas"></canvas>
@@ -307,9 +347,6 @@
         <div class="flex items-center gap-2 mb-2">
           <div class="min-w-0">
             <p class="text-[9px] uppercase tracking-wider text-amber-200 font-bold">Radio en vivo</p>
-            <p id="radioTrackTitle" class="text-xs font-extrabold text-white truncate">Conectando con la radio…</p>
-            <p id="radioHint" class="text-[10px] text-pink-200/80">Esperando estado…</p>
-            <button id="enableRadioAudio" type="button" class="mt-1 rounded bg-amber-300 px-2 py-1 text-[10px] font-bold text-black" hidden>Activar audio</button>
           </div>
         </div>
         <audio id="radioPlayer" preload="metadata" aria-hidden="true" class="hidden"></audio>
@@ -377,10 +414,9 @@
     </footer>
 
   </div>
+</div>
+<script>
 
-
-  <!-- ================= JAVASCRIPT PRINCIPAL DE LA APLICACIÓN ================= -->
-  <script>
     /* ==========================================================================
        ESTADO GLOBAL Y CONFIGURACIÓN
        ========================================================================== */
@@ -453,7 +489,6 @@
           console.error('No se pudo preparar la instalación de la radio:', error);
         });
       }
-      initCanvas();
       startCtaRotator();
       updateUI();
       initRadioPlayer();
@@ -510,7 +545,7 @@
     }
 
     function spawnHeartBurst(count = 5) {
-      if (!state.animationsEnabled) return;
+      if (!state.animationsEnabled || !canvas || !ctx) return;
       const startX = canvas.width * (0.18 + Math.random() * 0.64);
       const startY = canvas.height - 120;
       const emojis = ['❤️', '💖', '✨', '💕', '🌸', '🕊️'];
@@ -591,6 +626,7 @@
         ? '¡Meta desbloqueada! La comunidad ya puede elegir una canción.'
         : `Faltan ${(state.coinGoal - coinsInGoal).toLocaleString()} monedas. Dedicatoria por chat: «Dedico a…»`;
       renderTopContributors();
+      renderGoalPanel();
     }
 
     function renderTopContributors() {
@@ -626,6 +662,7 @@
       dedication.textContent = state.songDedication
         ? `Dedicatoria de @${state.songDedication.username}: ${state.songDedication.message}`
         : 'Puedes dedicar una canción escribiendo en el chat: «Dedico a…»';
+      showDeckBanner(userName, '¡META DE CANCIÓN!', dedication.textContent, '🎶');
       banner.classList.remove('hidden');
 
       setTimeout(() => {
@@ -665,6 +702,7 @@
         setTimeout(() => {
           state.ctaIndex = (state.ctaIndex + 1) % state.ctaMessages.length;
           ctaText.textContent = state.ctaMessages[state.ctaIndex];
+          setVisibleTicker(ctaText.textContent);
           ctaText.style.opacity = '1';
           ctaText.style.transform = 'translateY(0)';
         }, 500);
@@ -672,15 +710,18 @@
       ctaTimer = setInterval(advanceMessage, state.ctaIntervalSeconds * 1000);
       if (state.ctaMessages.length > 0) {
         ctaText.textContent = state.ctaMessages[0];
+        setVisibleTicker(ctaText.textContent);
       }
     }
 
     function showTemporaryCta(message) {
       const ctaText = document.getElementById('ctaRotatorText');
       ctaText.textContent = message;
+      setVisibleTicker(message);
       if (ctaRestoreTimer) clearTimeout(ctaRestoreTimer);
       ctaRestoreTimer = setTimeout(() => {
         ctaText.textContent = state.ctaMessages[state.ctaIndex] || '';
+        setVisibleTicker(ctaText.textContent);
         ctaRestoreTimer = null;
       }, state.ctaIntervalSeconds * 1000);
     }
@@ -758,12 +799,14 @@
     /* ==========================================================================
        FUNCIONES PÚBLICAS RECEPTORAS DE EVENTOS (INTEGRACIÓN TIKTOK LIVE)
        ========================================================================== */
-    window.onTikTokLike = function(count = 1) {
+    window.onTikTokLike = function(count = 1, user = 'Comunidad') {
       registerTaps(count);
+      if (window.liveEvent) window.liveEvent({ type: 'like', user, count });
     };
 
-    window.onTikTokGift = function({ user, giftName, coins = 0, icon = '🎁', avatar = '' }) {
+    window.onTikTokGift = function({ user, giftName, coins = 0, count = 1, icon = '🎁', avatar = '' }) {
       const coinValue = Number.isFinite(coins) ? Math.max(0, Math.floor(coins)) : 0;
+      if (window.liveEvent) window.liveEvent({ type: 'gift', user, gift: giftName, diamonds: coinValue, count, icon, avatar });
       if (!coinValue) return;
       const contributor = String(user || 'usuario').replace(/^@+/, '');
       const previousCoins = state.contributors[contributor] || 0;
@@ -801,6 +844,7 @@
 
     window.onTikTokChat = function(user, message, avatar = '') {
       const text = String(message).trim();
+      if (window.liveEvent) window.liveEvent({ type: 'comment', user, text, avatar });
       const dedicationMatch = text.match(/^(?:dedico(?:\s+esta\s+canci[oó]n)?\s+a|dedicatoria\s*:)\s*(.{2,100})$/i);
       if (dedicationMatch) {
         state.songDedication = { username: String(user || 'espectador').replace(/^@+/, ''), message: dedicationMatch[1].trim() };
@@ -833,7 +877,7 @@
 
         const user = entry.username || 'usuario';
         if (entry.type === 'like') {
-          window.onTikTokLike(Number.isFinite(entry.activityCount) ? entry.activityCount : 1);
+          window.onTikTokLike(Number.isFinite(entry.activityCount) ? entry.activityCount : 1, user);
         } else if (entry.type === 'gift') {
           const giftName = (entry.content || 'Envió un regalo')
             .replace(/^Envió\s*/i, '')
@@ -844,10 +888,25 @@
             user,
             giftName,
             coins: giftCoins,
+            count: giftCount,
             avatar: entry.avatar,
           });
         } else if (entry.type === 'chat') {
           window.onTikTokChat(user, entry.content || 'Envió un mensaje', entry.avatar);
+        } else if (entry.type === 'member') {
+          window.onTikTokJoin(user, entry.avatar);
+        } else if (entry.type === 'follow') {
+          window.onTikTokFollow(user, entry.avatar);
+        } else if (entry.type === 'share') {
+          window.liveEvent({ type: 'share', user, text: entry.content || 'Compartió el live', avatar: entry.avatar });
+        } else {
+          window.liveEvent({
+            type: 'activity',
+            user,
+            text: entry.content || entry.eventLabel || entry.type,
+            avatar: entry.avatar,
+            icon: '📻',
+          });
         }
       });
       eventStream.addEventListener('open', () => {
@@ -933,6 +992,7 @@
           player.pause();
           player.removeAttribute('src');
           player.load();
+          setRadioPower(false);
           trackTitle.textContent = 'Agrega canciones desde la biblioteca musical.';
           radioHint.textContent = 'La playlist está vacía.';
           enableAudio.hidden = true;
@@ -952,6 +1012,7 @@
         } else if (!radioState.isPlaying && !player.paused) {
           player.pause();
         }
+        setRadioPower(radioState.isPlaying && !player.paused);
       }
 
       player.addEventListener('play', () => {
@@ -975,7 +1036,123 @@
     }
 
 
-  </script>
 
-</body>
-</html>
+</script>
+<script>
+
+function setVisibleTicker(message) {
+  const ticker = document.getElementById('tk');
+  if (!ticker) return;
+  const text = String(message || '');
+  ticker.textContent = text ? (text + '   ✦   ' + text + '   ✦   ') : '';
+}
+const stage = document.getElementById('stage');
+function fitStage() {
+  const scale = Math.min(window.innerWidth / 1080, window.innerHeight / 1920);
+  stage.style.transform = 'scale(' + scale + ')';
+  stage.style.left = Math.max(0, (window.innerWidth - 1080 * scale) / 2) + 'px';
+}
+window.addEventListener('resize', fitStage);
+fitStage();
+const liveStats = { like: 0, comment: 0, join: 0, gift: 0 };
+const liveUsers = new Map();
+const feed = document.getElementById('feed');
+const donors = document.getElementById('donors');
+let celebrationTimer;
+{
+  const deck = document.getElementById('deck');
+  const colors = ['#ffd27a', '#ff3b6b', '#4dff7a', '#4aa8ff'];
+  const points = [];
+  for (let x = 14; x < 1026; x += 38) points.push([x, 14]);
+  for (let y = 52; y < 916; y += 38) points.push([1026, y]);
+  for (let x = 1026; x > 14; x -= 38) points.push([x, 916]);
+  for (let y = 916; y > 14; y -= 38) points.push([14, y]);
+  points.forEach(([x, y], index) => {
+    const bulb = document.createElement('span');
+    bulb.className = 'bulb';
+    bulb.style.left = x + 'px';
+    bulb.style.top = y + 'px';
+    bulb.style.setProperty('--c', colors[index % colors.length]);
+    bulb.style.animationDelay = (-(index % 16) * 0.05) + 's';
+    deck.appendChild(bulb);
+  });
+}
+function renderGoalPanel() {
+  const tapCount = state.tapCount, coinCount = state.coinCount;
+  const tapProgress = tapCount ? tapCount % state.tapGoal || state.tapGoal : 0;
+  const coinProgress = coinCount ? coinCount % state.coinGoal || state.coinGoal : 0;
+  document.getElementById('goalTaps').textContent = tapCount.toLocaleString() + ' / ' + state.tapGoal.toLocaleString();
+  document.getElementById('goalCoins').textContent = coinProgress.toLocaleString() + ' / ' + state.coinGoal.toLocaleString() + ' monedas';
+  document.getElementById('goalTapBar').style.width = Math.min(100, tapProgress / state.tapGoal * 100) + '%';
+  document.getElementById('goalCoinBar').style.width = Math.min(100, coinProgress / state.coinGoal * 100) + '%';
+  const top = Object.entries(state.contributors).sort((a, b) => b[1] - a[1]).slice(0, 3);
+  donors.textContent = top.length ? 'TOP DONANTES  ' + top.map(([name, value], index) => (index + 1) + '. @' + name + ' · ' + value.toLocaleString()).join('   ') : 'TOP DONANTES  —';
+}
+function updateLiveStats() {
+  document.getElementById('sLk').textContent = liveStats.like.toLocaleString();
+  document.getElementById('sCm').textContent = liveStats.comment.toLocaleString();
+  document.getElementById('sJn').textContent = liveStats.join.toLocaleString();
+  document.getElementById('sGf').textContent = liveStats.gift.toLocaleString();
+  const ranking = [...liveUsers.values()].filter((item) => item.points > 0).sort((a, b) => b.points - a.points).slice(0, 5);
+  const list = document.getElementById('t5'); list.replaceChildren();
+  ranking.forEach((item, index) => {
+    const row = document.createElement('div'); row.className = 'rw in'; row.style.transform = 'translateY(' + (index * 60) + 'px)';
+    row.style.setProperty('--rc', ['#ffd447', '#d7dae0', '#d9884a', '#c9a45c', '#c9a45c'][index]);
+    const rank = document.createElement('span'); rank.className = 'rk'; rank.textContent = ['🥇', '🥈', '🥉', '4', '5'][index];
+    const name = document.createElement('span'); name.className = 'nm'; name.textContent = item.name;
+    const summary = document.createElement('span'); summary.className = 'sb'; summary.textContent = '❤' + item.likes + '  💬' + item.comments + (item.diamonds ? '  💎' + item.diamonds : '');
+    const points = document.createElement('span'); points.className = 'pt'; points.textContent = item.points.toLocaleString();
+    row.append(rank, name, summary, points); list.appendChild(row);
+  });
+}
+function addLiveFeed(type, user, text, icon, avatar) {
+  const row = document.createElement('div'); row.className = 'ev ' + ({ comment: 'cm', like: 'lk', join: 'jn', follow: 'jn', gift: 'gf' }[type] || 'cm');
+  const mark = document.createElement('i'); mark.textContent = icon || ({ like: '❤', comment: '💬', join: '👋', follow: '➕', gift: '🎁', share: '↗' }[type] || '📻');
+  const author = document.createElement('b'); author.textContent = String(user || 'Alguien').replace(/^@+/, '').slice(0, 20);
+  const detail = document.createElement('span'); detail.textContent = String(text || '').slice(0, 100);
+  if (avatar) { try { const imageUrl = new URL(avatar, location.href); if (imageUrl.protocol === 'https:') { const image = new Image(); image.src = imageUrl.href; image.alt = ''; image.referrerPolicy = 'no-referrer'; image.style.cssText = 'width:34px;height:34px;border-radius:50%;object-fit:cover;flex:none'; row.appendChild(image); } } catch {} }
+  row.append(mark, author, detail); feed.prepend(row); while (feed.children.length > 6) feed.lastElementChild.remove();
+}
+function showDeckBanner(user, title, detail, icon, avatar) {
+  const banner = document.getElementById('ban');
+  document.getElementById('bn').textContent = String(user || 'la comunidad').replace(/^@+/, '').slice(0, 22);
+  document.getElementById('bg').textContent = title; document.getElementById('bd').textContent = detail; document.getElementById('bi').textContent = icon || '🎁';
+  document.getElementById('avl').textContent = String(user || 'F').trim().charAt(0).toUpperCase() || 'F';
+  const image = document.getElementById('avi'); image.style.display = 'none'; image.removeAttribute('src');
+  if (avatar) { try { const url = new URL(avatar, location.href); if (url.protocol === 'https:') { image.src = url.href; image.onload = () => { image.style.display = 'block'; }; } } catch {} }
+  document.getElementById('deck').classList.add('party');
+  banner.classList.remove('show'); void banner.offsetWidth; banner.classList.add('show'); clearTimeout(celebrationTimer);
+  celebrationTimer = setTimeout(() => { banner.classList.remove('show'); document.getElementById('deck').classList.remove('party'); }, 8000);
+}
+window.liveEvent = function(event) {
+  if (!event || !event.type) return;
+  const type = event.type, user = String(event.user || 'Alguien').replace(/^@+/, '').trim() || 'Alguien', key = event.id || user;
+  let person = liveUsers.get(key); if (!person) { person = { name: user, likes: 0, comments: 0, diamonds: 0, points: 0 }; liveUsers.set(key, person); }
+  person.name = user;
+  if (type === 'like') { const count = Math.max(1, Number(event.count) || 1); liveStats.like += count; person.likes += count; person.points += count; addLiveFeed(type, user, 'dio ' + count.toLocaleString() + ' me gusta', '❤', event.avatar); }
+  else if (type === 'comment') { liveStats.comment += 1; person.comments += 1; person.points += 5; addLiveFeed(type, user, event.text || 'Envió un comentario', '💬', event.avatar); }
+  else if (type === 'join') { liveStats.join += 1; addLiveFeed(type, user, 'se unió al live', '👋', event.avatar); }
+  else if (type === 'follow') { addLiveFeed(type, user, 'siguió la radio', '➕', event.avatar); }
+  else if (type === 'gift') { const diamonds = Math.max(0, Number(event.diamonds) || 0), count = Math.max(1, Number(event.count) || 1); liveStats.gift += count; person.diamonds += diamonds; person.points += diamonds * 10; const gift = event.gift || 'envió un regalo'; addLiveFeed(type, user, gift + (count > 1 ? ' ×' + count : '') + ' · 💎' + diamonds.toLocaleString(), event.icon || '🎁', event.avatar); showDeckBanner(user, gift, '💎 ' + diamonds.toLocaleString(), event.icon || '🎁', event.avatar); }
+  else addLiveFeed(type, user, event.text || 'actividad en el live', event.icon || '📻', event.avatar);
+  updateLiveStats();
+};
+window.onTikTokFollow = function(user, avatar = '') { window.liveEvent({ type: 'follow', user, avatar }); showNotificationAlert({ title: '¡Bienvenido/a @' + user + '!', subtitle: 'Comenzó a seguir la radio', icon: '➕', avatar, badge: 'SEGUIDOR' }); };
+window.onTikTokJoin = function(user, avatar = '') { window.liveEvent({ type: 'join', user, avatar }); };
+const radioPlayer = document.getElementById('radioPlayer'), powerButton = document.getElementById('pw');
+function setRadioPower(isOn) { powerButton.classList.toggle('on', isOn); powerButton.textContent = isOn ? 'APAGAR' : 'ENCENDER'; document.getElementById('radio').classList.toggle('off', !isOn); document.querySelector('[data-k=\"play\"]').classList.toggle('down', isOn); document.querySelector('[data-k=\"stop\"]').classList.toggle('down', !isOn); }
+powerButton.addEventListener('click', () => { if (radioPlayer.paused) radioPlayer.play().catch(() => { document.getElementById('enableRadioAudio').hidden = false; }); else radioPlayer.pause(); });
+document.getElementById('enableRadioAudio').addEventListener('click', () => radioPlayer.play().catch(() => {}));
+document.querySelectorAll('.key').forEach((button) => button.addEventListener('click', async () => {
+  const action = button.dataset.k;
+  try { if (action === 'play') await radioPlayer.play(); else if (action === 'stop') radioPlayer.pause(); else { const response = await fetch('/api/radio/' + (action === 'ff' ? 'next' : 'previous'), { method: 'POST' }); const result = await response.json(); if (!response.ok) throw new Error(result.message || 'No se pudo cambiar de pista.'); } }
+  catch (error) { document.getElementById('radioHint').textContent = error.message || 'Toca activar el audio.'; }
+}));
+radioPlayer.addEventListener('play', () => setRadioPower(true)); radioPlayer.addEventListener('pause', () => setRadioPower(false));
+const volumeKnob = document.getElementById('knV'); let volumePointer;
+volumeKnob.addEventListener('pointerdown', (event) => { volumePointer = event.clientY; volumeKnob.setPointerCapture(event.pointerId); });
+volumeKnob.addEventListener('pointermove', (event) => { if (volumePointer === undefined) return; radioPlayer.volume = Math.max(0, Math.min(1, radioPlayer.volume + (volumePointer - event.clientY) / 180)); volumePointer = event.clientY; volumeKnob.style.transform = 'rotate(' + (radioPlayer.volume * 270 - 135) + 'deg)'; });
+volumeKnob.addEventListener('pointerup', () => { volumePointer = undefined; });
+window.addEventListener('DOMContentLoaded', renderGoalPanel);
+
+</script>
