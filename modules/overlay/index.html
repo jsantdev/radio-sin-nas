@@ -28,6 +28,11 @@ html.tr,html.tr body{background:transparent}
 #dialb{left:16px;top:102px;width:1008px;height:150px}
 #dial{transition:filter 1.2s;border-radius:8px}
 .off #dial{filter:brightness(.12)}
+#hL .reelSpin,#hR .reelSpin{transform-box:fill-box;transform-origin:center}
+.radio.playing #hL .reelSpin,.radio.playing #hR .reelSpin{animation:reel-spin .9s linear infinite}
+.radio.playing #sL,.radio.playing #sF,.radio.playing #sR{animation:tape-run .45s linear infinite}
+@keyframes reel-spin{to{transform:rotate(360deg)}}
+@keyframes tape-run{to{stroke-dashoffset:-20}}
 #wellb{left:16px;top:260px;width:579px;height:384px}
 .side{left:609px;top:260px;width:415px;height:384px;border-radius:14px;background:repeating-linear-gradient(0deg,rgba(255,255,255,.07) 0 1px,rgba(0,0,0,.05) 1px 2px),linear-gradient(#d4d7dc,#a1a5ac 45%,#bfc2c7);border:3px solid #202125;box-shadow:inset 0 3px 0 rgba(255,255,255,.7),inset 0 -4px 8px rgba(0,0,0,.35);color:#1b1c1f;font-weight:700;letter-spacing:3px;font-size:22px;text-align:center}
 .side>*{position:absolute}
@@ -124,11 +129,11 @@ html.tr,html.tr body{background:transparent}
 .goal-row i{height:10px;border:1px solid #74603d;border-radius:8px;background:#1b1710;overflow:hidden}
 .goal-row em{display:block;width:0;height:100%;background:linear-gradient(90deg,#ff5a30,#ffbf45);transition:width .4s}
 #donors{grid-column:1/-1;color:#e8c77e;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:18px}
-.t5h{top:176px}
-.t5{top:218px;height:310px}
+.t5h{top:540px}
+.t5{top:578px;height:276px}
 .rw{height:56px}
-.fh{top:540px}
-.feed{top:578px;height:276px}
+.fh{top:176px}
+.feed{top:218px;height:310px}
 .ev{height:42px;font-size:27px}
 </style></head><body>
 <div id="stage">
@@ -176,8 +181,8 @@ html.tr,html.tr body{background:transparent}
   <rect x="138" y="138" width="364" height="76" rx="38" fill="#050507"/>
   <g clip-path="url(#wclip)">
   <circle id="pL" cx="231" cy="176" r="76" fill="url(#pk)"/><circle id="pR" cx="409" cy="176" r="26" fill="url(#pk)"/>
-  <g id="hL" transform="translate(231 176) scale(2)"><circle r="13" fill="url(#hub)"/><circle r="8.5" fill="#0a0a0c"/><g fill="url(#hub)" id="teethL"></g></g>
-  <g id="hR" transform="translate(409 176) scale(2)"><circle r="13" fill="url(#hub)"/><circle r="8.5" fill="#0a0a0c"/><g fill="url(#hub)" id="teethR"></g></g>
+  <g id="hL" transform="translate(231 176) scale(2)"><g class="reelSpin"><path d="M0-11v-13M9.5 5.5l11.3 6.5M-9.5 5.5l-11.3 6.5" stroke="#d7dae0" stroke-width="3" stroke-linecap="round"/><circle r="13" fill="url(#hub)"/><circle r="8.5" fill="#0a0a0c"/><g fill="url(#hub)" id="teethL"></g></g></g>
+  <g id="hR" transform="translate(409 176) scale(2)"><g class="reelSpin"><path d="M0-11v-13M9.5 5.5l11.3 6.5M-9.5 5.5l-11.3 6.5" stroke="#d7dae0" stroke-width="3" stroke-linecap="round"/><circle r="13" fill="url(#hub)"/><circle r="8.5" fill="#0a0a0c"/><g fill="url(#hub)" id="teethR"></g></g></g>
   </g>
   <rect x="138" y="138" width="364" height="76" rx="38" fill="url(#glass)"/>
   <rect x="141" y="141" width="358" height="70" rx="35" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="1.5"/>
@@ -992,7 +997,10 @@ html.tr,html.tr body{background:transparent}
 
       function playAudio() {
         triedAutoplay = true;
-        player.play().catch(() => {
+        player.play().then(() => {
+          radioHint.textContent = 'En reproducción';
+          enableAudio.hidden = true;
+        }).catch(() => {
           radioHint.textContent = 'Toca para habilitar el audio de la biblioteca.';
           enableAudio.hidden = false;
         });
@@ -1013,18 +1021,19 @@ html.tr,html.tr body{background:transparent}
         }
 
         trackTitle.textContent = radioState.currentTrack.title;
-        radioHint.textContent = radioState.isPlaying ? 'En reproducción' : 'Lista para reproducir';
         const nextUrl = new URL(radioState.currentTrack.url, window.location.href).href;
         if (nextUrl !== currentUrl) {
           currentUrl = nextUrl;
           player.src = currentUrl;
           player.load();
-          playAudio();
-        } else if (radioState.isPlaying && player.paused) {
+        }
+        if (radioState.isPlaying && player.paused) {
+          radioHint.textContent = 'Conectando reproducción…';
           playAudio();
         } else if (!radioState.isPlaying && !player.paused) {
           player.pause();
         }
+        if (!radioState.isPlaying) radioHint.textContent = 'Lista para reproducir';
         setRadioPower(radioState.isPlaying && !player.paused);
       }
 
@@ -1154,7 +1163,7 @@ window.liveEvent = function(event) {
 window.onTikTokFollow = function(user, avatar = '') { window.liveEvent({ type: 'follow', user, avatar }); showNotificationAlert({ title: '¡Bienvenido/a @' + user + '!', subtitle: 'Comenzó a seguir la radio', icon: '➕', avatar, badge: 'SEGUIDOR' }); };
 window.onTikTokJoin = function(user, avatar = '') { window.liveEvent({ type: 'join', user, avatar }); };
 const radioPlayer = document.getElementById('radioPlayer'), powerButton = document.getElementById('pw');
-function setRadioPower(isOn) { powerButton.classList.toggle('on', isOn); powerButton.textContent = isOn ? 'APAGAR' : 'ENCENDER'; document.getElementById('radio').classList.toggle('off', !isOn); document.querySelector('[data-k=\"play\"]').classList.toggle('down', isOn); document.querySelector('[data-k=\"stop\"]').classList.toggle('down', !isOn); }
+function setRadioPower(isOn) { powerButton.classList.toggle('on', isOn); powerButton.textContent = isOn ? 'APAGAR' : 'ENCENDER'; document.getElementById('radio').classList.toggle('off', !isOn); document.getElementById('radio').classList.toggle('playing', isOn); document.querySelector('[data-k=\"play\"]').classList.toggle('down', isOn); document.querySelector('[data-k=\"stop\"]').classList.toggle('down', !isOn); }
 powerButton.addEventListener('click', () => { if (radioPlayer.paused) radioPlayer.play().catch(() => { document.getElementById('enableRadioAudio').hidden = false; }); else radioPlayer.pause(); });
 document.getElementById('enableRadioAudio').addEventListener('click', () => radioPlayer.play().catch(() => {}));
 document.querySelectorAll('.key').forEach((button) => button.addEventListener('click', async () => {

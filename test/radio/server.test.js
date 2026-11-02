@@ -101,9 +101,14 @@ test('radio server keeps TikTok configuration, event monitoring, and radio state
     assert.match(overlayHtml, /entry\.type === 'member'/);
     assert.match(overlayHtml, /eventStream\.addEventListener\('status'/);
     assert.match(overlayHtml, /indicator\.textContent = status\.connected/);
-    assert.match(overlayHtml, /player\.load\(\);\s*playAudio\(\);/);
     assert.doesNotMatch(overlayHtml, /AudioContext|pw\.onclick|setSt\(/);
     assert.match(overlayHtml, /setRadioPower\(radioState\.isPlaying && !player\.paused\)/);
+    assert.match(overlayHtml, /\.radio\.playing #hL \.reelSpin/);
+    assert.match(overlayHtml, /@keyframes reel-spin/);
+    assert.match(overlayHtml, /if \(radioState\.isPlaying && player\.paused\)/);
+    assert.match(overlayHtml, /enableAudio\.hidden = false/);
+    assert.match(overlayHtml, /\.fh\{top:176px\}/);
+    assert.match(overlayHtml, /\.t5h\{top:540px\}/);
     assert.match(overlayHtml, /radioPlayer\.addEventListener\('play', \(\) => setRadioPower\(true\)\)/);
     assert.match(overlayHtml, /radioPlayer\.addEventListener\('pause', \(\) => setRadioPower\(false\)\)/);
     assert.match(overlayHtml, /powerButton\.addEventListener\('click'/);
