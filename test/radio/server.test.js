@@ -106,6 +106,12 @@ test('radio server keeps TikTok configuration, event monitoring, and radio state
     assert.match(overlayHtml, /viewBox="40 6 560 296" width="684" height="368" id="wsvg"/);
     assert.match(overlayHtml, /function drawCassette\(\)/);
     assert.match(overlayHtml, /function animateCassette\(time\)/);
+    assert.match(overlayHtml, /const TAPE_DURATION_SECONDS = 3600/);
+    assert.match(overlayHtml, /const REWIND_SPEED = 20/);
+    assert.match(overlayHtml, /function advanceTape\(elapsedSeconds\)/);
+    assert.match(overlayHtml, /REBOBINANDO/);
+    assert.match(overlayHtml, /frequency <= 108; frequency \+= 0\.5/);
+    assert.match(overlayHtml, /dialNeedle\.setAttribute\('transform', `translate\(\$\{frequencyToX\(91\.5\)\} 0\)`\)/);
     assert.match(overlayHtml, /function writeTrackTitle\(value\)/);
     assert.match(overlayHtml, /penr0.*penr1.*penr2/);
     assert.match(overlayHtml, /if \(radioState\.isPlaying && player\.paused\)/);

@@ -28,11 +28,7 @@ html.tr,html.tr body{background:transparent}
 #dialb{left:16px;top:102px;width:1008px;height:150px}
 #dial{transition:filter 1.2s;border-radius:8px}
 .off #dial{filter:brightness(.12)}
-#hL .reelSpin,#hR .reelSpin{transform-box:fill-box;transform-origin:center}
-.radio.playing #hL .reelSpin,.radio.playing #hR .reelSpin{animation:reel-spin .9s linear infinite}
-.radio.playing #sL,.radio.playing #sF,.radio.playing #sR{animation:tape-run .45s linear infinite}
-@keyframes reel-spin{to{transform:rotate(360deg)}}
-@keyframes tape-run{to{stroke-dashoffset:-20}}
+#radio.playing #nd{filter:drop-shadow(0 0 5px #e5391b)}
 #wellb{left:16px;top:260px;width:700px;height:384px}
 .side{left:730px;top:260px;width:294px;height:384px;border-radius:14px;background:repeating-linear-gradient(0deg,rgba(255,255,255,.07) 0 1px,rgba(0,0,0,.05) 1px 2px),linear-gradient(#d4d7dc,#a1a5ac 45%,#bfc2c7);border:3px solid #202125;box-shadow:inset 0 3px 0 rgba(255,255,255,.7),inset 0 -4px 8px rgba(0,0,0,.35);color:#1b1c1f;font-weight:700;letter-spacing:3px;font-size:22px;text-align:center}
 .side>*{position:absolute}
@@ -145,7 +141,7 @@ html.tr,html.tr body{background:transparent}
   <rect width="640" height="96" fill="url(#gl)"/><rect width="640" height="96" fill="url(#lamp)"/>
   <g id="ticks" stroke="#3a2a1a"></g>
   <g id="stn" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-weight="700" font-size="21" fill="#7a2c0a" text-anchor="middle"></g>
-  <text id="srcT" x="624" y="92" text-anchor="end" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-size="12" letter-spacing="2" fill="#8a3b0f">RADIO</text>
+  <text id="srcT" x="624" y="92" text-anchor="end" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-size="12" letter-spacing="2" fill="#8a3b0f">FE Y ESPERANZA</text>
   <g id="nd"><rect x="-2" y="2" width="4" height="86" fill="#e5391b"/><circle cy="4" r="5" fill="#e5391b"/></g>
   <rect width="640" height="96" fill="none" stroke="rgba(0,0,0,.35)" stroke-width="6"/>
   <path d="M0 0H300L200 96H0Z" fill="rgba(255,255,255,.12)"/>
@@ -200,8 +196,8 @@ html.tr,html.tr body{background:transparent}
 
  <div class="side">
   <div class="cnt" id="cnt"><b>0</b><b>0</b><b>0</b></div>
-  <div style="left:0;right:0;top:128px;font-size:18px">PROGRESO</div>
-  <div class="kb" style="left:20px"><div class="kn" id="knT" aria-label="Posición de reproducción"></div>POSICIÓN</div>
+  <div id="tapeMode" style="left:0;right:0;top:128px;font-size:18px">CINTA · 60 MIN</div>
+  <div class="kb" style="left:20px"><div class="kn" id="knT" aria-label="Posición de reproducción"></div>PISTA</div>
   <div class="kb" style="right:20px"><div class="kn" id="knV" aria-label="Volumen"></div>VOLUMEN</div>
   <button class="pw" id="pw" type="button" aria-label="Reproducir o pausar la radio">ENCENDER</button>
   <div id="radioStatus"><span id="radioHint">Esperando estado de la radio…</span><span id="tiktokStatus" aria-live="polite">TikTok: conectando…</span><button id="enableRadioAudio" type="button" hidden>ACTIVAR AUDIO</button></div>
@@ -975,14 +971,82 @@ html.tr,html.tr body{background:transparent}
       const tapeShineRight = document.getElementById('sR');
       const progressDigits = [...document.querySelectorAll('#cnt b')];
       const progressKnob = document.getElementById('knT');
+      const tapeMode = document.getElementById('tapeMode');
+      const dialTicks = document.getElementById('ticks');
+      const dialStations = document.getElementById('stn');
+      const dialNeedle = document.getElementById('nd');
+      const TAPE_DURATION_SECONDS = 3600;
+      const REWIND_SPEED = 20;
       let currentUrl = '';
       let writtenTitle = '';
       let titleAnimation = 0;
       let cassetteAnimation = 0;
       let cassetteFrameTime = 0;
+      let tapePosition = 0;
+      let tapeRewinding = false;
       let leftRotation = 0;
       let rightRotation = 0;
       let tapeOffset = 0;
+
+      function frequencyToX(frequency) {
+        return 40 + ((frequency - 88) / 20) * 560;
+      }
+
+      for (let frequency = 88; frequency <= 108; frequency += 0.5) {
+        const major = frequency % 2 === 0;
+        const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        tick.setAttribute('x1', String(frequencyToX(frequency)));
+        tick.setAttribute('x2', String(frequencyToX(frequency)));
+        tick.setAttribute('y1', '8');
+        tick.setAttribute('y2', major ? '34' : frequency % 1 === 0 ? '24' : '17');
+        tick.setAttribute('stroke-width', major ? '2' : '1');
+        dialTicks.append(tick);
+
+        if (major) {
+          const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          label.setAttribute('x', String(frequencyToX(frequency)));
+          label.setAttribute('y', '57');
+          label.setAttribute('font-size', '17');
+          label.setAttribute('text-anchor', 'middle');
+          label.setAttribute('font-family', 'Barlow Condensed,Arial Narrow,sans-serif');
+          label.setAttribute('fill', '#3a2a1a');
+          label.textContent = String(frequency);
+          dialStations.append(label);
+        }
+      }
+      dialNeedle.setAttribute('transform', `translate(${frequencyToX(91.5)} 0)`);
+
+      function updateTapeMode() {
+        tapeMode.textContent = player.paused
+          ? 'PAUSADA · CINTA 60 MIN'
+          : tapeRewinding ? `REBOBINANDO · ${REWIND_SPEED}×` : 'PLAY · CINTA 60 MIN';
+      }
+
+      function setTapeRewinding(isRewinding) {
+        tapeRewinding = isRewinding;
+        updateTapeMode();
+      }
+
+      function advanceTape(elapsedSeconds) {
+        let remaining = elapsedSeconds;
+        const fullCycle = TAPE_DURATION_SECONDS * (1 + 1 / REWIND_SPEED);
+        while (remaining > 0) {
+          if (tapePosition === 0 && !tapeRewinding && remaining >= fullCycle) {
+            remaining %= fullCycle;
+          }
+          const secondsToBoundary = tapeRewinding
+            ? tapePosition * TAPE_DURATION_SECONDS / REWIND_SPEED
+            : (1 - tapePosition) * TAPE_DURATION_SECONDS;
+          if (remaining < secondsToBoundary) {
+            tapePosition += (tapeRewinding ? -1 : 1)
+              * remaining * (tapeRewinding ? REWIND_SPEED : 1) / TAPE_DURATION_SECONDS;
+            break;
+          }
+          remaining -= secondsToBoundary;
+          tapePosition = tapeRewinding ? 0 : 1;
+          setTapeRewinding(!tapeRewinding);
+        }
+      }
 
       function measureTitle(text) {
         const span = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
@@ -1073,8 +1137,7 @@ html.tr,html.tr body{background:transparent}
       }
 
       function drawCassette() {
-        const duration = Number.isFinite(player.duration) && player.duration > 0 ? player.duration : 0;
-        const position = duration ? Math.min(1, Math.max(0, player.currentTime / duration)) : 0;
+        const position = tapePosition;
         const leftRadius = 2 * Math.sqrt(169 + 1275 * (1 - position));
         const rightRadius = 2 * Math.sqrt(169 + 1275 * position);
         const leftPoint = `${(231 + leftRadius * Math.cos(2.3)).toFixed(1)} ${(176 + leftRadius * Math.sin(2.3)).toFixed(1)}`;
@@ -1094,7 +1157,9 @@ html.tr,html.tr body{background:transparent}
         });
         const progress = String(Math.floor(position * 999)).padStart(3, '0');
         progressDigits.forEach((digit, index) => { digit.textContent = progress[index]; });
-        progressKnob.style.transform = `rotate(${position * 270 - 135}deg)`;
+        const trackDuration = Number.isFinite(player.duration) && player.duration > 0 ? player.duration : 0;
+        const trackPosition = trackDuration ? player.currentTime / trackDuration : 0;
+        progressKnob.style.transform = `rotate(${trackPosition * 270 - 135}deg)`;
       }
 
       function animateCassette(time) {
@@ -1104,14 +1169,16 @@ html.tr,html.tr body{background:transparent}
           drawCassette();
           return;
         }
-        const delta = cassetteFrameTime ? Math.min(.05, (time - cassetteFrameTime) / 1000) : 0;
+        const delta = cassetteFrameTime ? Math.max(0, (time - cassetteFrameTime) / 1000) : 0;
         cassetteFrameTime = time;
-        const duration = Number.isFinite(player.duration) && player.duration > 0 ? player.duration : 0;
-        const position = duration ? Math.min(1, Math.max(0, player.currentTime / duration)) : 0;
+        advanceTape(delta);
+        const position = tapePosition;
         const leftRadius = 2 * Math.sqrt(169 + 1275 * (1 - position));
         const rightRadius = 2 * Math.sqrt(169 + 1275 * position);
-        const tapeSpeed = 140 * (player.playbackRate || 1);
-        leftRotation -= tapeSpeed / leftRadius * delta * 57.3;
+        const direction = tapeRewinding ? -1 : 1;
+        const tapeSpeed = 140 * direction * (tapeRewinding ? REWIND_SPEED : 1)
+          * (player.playbackRate || 1);
+        leftRotation += tapeSpeed / leftRadius * delta * 57.3;
         rightRotation += tapeSpeed / rightRadius * delta * 57.3;
         tapeOffset -= tapeSpeed * delta;
         hubLeft.setAttribute('transform', `translate(231 176) rotate(${leftRotation}) scale(2)`);
@@ -1188,10 +1255,12 @@ html.tr,html.tr body{background:transparent}
 
       player.addEventListener('play', () => {
         enableAudio.hidden = true;
+        updateTapeMode();
         startCassette();
         postPlayback(true).catch((error) => { radioHint.textContent = error.message; });
       });
       player.addEventListener('pause', () => {
+        updateTapeMode();
         cancelAnimationFrame(cassetteAnimation);
         cassetteAnimation = 0;
         cassetteFrameTime = 0;
