@@ -11,6 +11,7 @@ Para el despliegue integrado, configura `APP_DATA_DIR=/app/data` y `BIBLIOTECA_D
 - Usa [`.env.example`](../.env.example) como referencia para las variables; configura los secretos en Easypanel y no subas un archivo `.env` real.
 - `BIBLIOTECA_DATA_DIR`: carpeta persistente para los temas (predeterminada en `/app/data/biblioteca/discs` en Easypanel).
 - `BIBLIOTECA_ADMIN_PASSWORD`: contraseña administrativa de al menos 12 caracteres. Sin este valor, la API permite lecturas públicas, pero bloquea subidas, cambios, borrados y operaciones administrativas.
+- `BIBLIOTECA_AUTH_DISABLED`: junto con `NODE_ENV=development`, ponlo en `true` solo para desarrollo local. El acceso sin contraseña se limita a conexiones loopback, requiere que no haya contraseña configurada y el servidor se niega a arrancar si `NODE_ENV` no es `development`.
 - `RADIO_LIBRARY_ADMIN_PASSWORD`: configura la misma contraseña en el servidor de Radio que consume esta Biblioteca. El panel de Radio no recibe ni guarda esta contraseña.
 - `BIBLIOTECA_MIGRATION_ALLOWED_HOSTS`: lista separada por comas de hosts exactos a los que este servidor puede enviar migraciones. Déjalo vacío si no migras. Por ejemplo: `biblioteca-destino.ejemplo.com,10.0.0.8:3001`. Añade solo destinos confiables; no uses comodines. Para redes públicas usa HTTPS.
 - `BIBLIOTECA_MIGRATION_ALLOW_HTTP`: solo pon `true` para una red privada confiable sin TLS. Por defecto las migraciones exigen HTTPS.

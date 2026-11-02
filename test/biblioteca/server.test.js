@@ -122,7 +122,7 @@ test('upload page creates discs and uploads audio tracks', async () => {
   }
 });
 
-test('library protects mutations with password-backed browser sessions', async () => {
+test('library protects remote mutations with password sessions and permits local development access', async () => {
   const storage = fs.mkdtempSync(path.join(os.tmpdir(), 'radio-library-auth-'));
   const server = createTestLibraryServer({ dataDirectory: path.join(storage, 'discs') });
   server.listen(0, '127.0.0.1');
@@ -173,6 +173,10 @@ test('library protects mutations with password-backed browser sessions', async (
     });
     assert.equal(afterLogout.status, 401);
 
+    const originalNodeEnv = process.env.NODE_ENV;
+    const originalAuthDisabled = process.env.BIBLIOTECA_AUTH_DISABLED;
+    process.env.NODE_ENV = 'development';
+    process.env.BIBLIOTECA_AUTH_DISABLED = 'true';
     const unconfigured = createLibraryServer({
       adminPassword: '',
       dataDirectory: path.join(storage, 'unconfigured'),
@@ -181,16 +185,37 @@ test('library protects mutations with password-backed browser sessions', async (
     await once(unconfigured, 'listening');
     const unconfiguredUrl = `http://127.0.0.1:${unconfigured.address().port}`;
     try {
+      const localConfig = await globalThis.fetch(`${unconfiguredUrl}/api/admin/config`).then((response) => response.json());
+      assert.deepEqual(localConfig, { configured: false, authRequired: false });
       const mutation = await globalThis.fetch(`${unconfiguredUrl}/api/discs`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: 'Deshabilitado' }),
       });
-      assert.equal(mutation.status, 503);
+      assert.equal(mutation.status, 201);
     } finally {
       const closed = once(unconfigured, 'close');
       unconfigured.close();
       await closed;
+      if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = originalNodeEnv;
+      if (originalAuthDisabled === undefined) delete process.env.BIBLIOTECA_AUTH_DISABLED;
+      else process.env.BIBLIOTECA_AUTH_DISABLED = originalAuthDisabled;
+    }
+    const productionNodeEnv = process.env.NODE_ENV;
+    const productionAuthDisabled = process.env.BIBLIOTECA_AUTH_DISABLED;
+    process.env.NODE_ENV = 'production';
+    process.env.BIBLIOTECA_AUTH_DISABLED = 'true';
+    try {
+      assert.throws(() => createLibraryServer({
+        adminPassword: '',
+        dataDirectory: path.join(storage, 'production'),
+      }), /solo se puede activar en desarrollo/);
+    } finally {
+      if (productionNodeEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = productionNodeEnv;
+      if (productionAuthDisabled === undefined) delete process.env.BIBLIOTECA_AUTH_DISABLED;
+      else process.env.BIBLIOTECA_AUTH_DISABLED = productionAuthDisabled;
     }
     assert.throws(() => createLibraryServer({
       adminPassword: 'short',

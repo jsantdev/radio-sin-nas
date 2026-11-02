@@ -46,6 +46,7 @@ function createWebserver({
     ? createLibraryServer({
       dataDirectory: libraryDataDirectory,
       adminPassword: libraryAdminPassword,
+      trustClientAddressHeader: true,
     })
     : null;
   if (libraryServer) {

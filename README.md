@@ -7,6 +7,7 @@ Servidor Node.js modular para una radio vinculada a TikTok Live. Sirve el overla
 Se requiere Node.js 22 o posterior. En Windows, ejecuta [`iniciar-servidores.bat`](iniciar-servidores.bat): inicia el servidor integrado en el puerto 80 y abre la radio y la administración en Chrome. Para iniciarlo manualmente, ejecuta `npm start` desde esta carpeta. Define `PORT` para cambiar el puerto del servidor (predeterminado: `3000`).
 
 Las variables están documentadas en [`.env.example`](.env.example). No copies secretos reales al repositorio ni uses valores de ejemplo en producción.
+Para desarrollo local sin contraseña en Biblioteca, configura `NODE_ENV=development` y `BIBLIOTECA_AUTH_DISABLED=true`; solo permite conexiones loopback y el servidor rechazará esa opción fuera de desarrollo.
 
 La radio pública está en `/`; el inicio de administración está en `/backend` (`/panel` redirige allí). Desde allí se accede a las páginas de Radio (`/backend/radio`), TikTok (`/backend/tiktok`), Overlay (`/backend/overlay`) y Biblioteca (`/biblioteca`). Biblioteca también puede ejecutarse como servicio independiente.
 
@@ -28,7 +29,7 @@ Selecciona **Nixpacks** como proveedor y deja la raíz del proyecto en el reposi
 
 Para conservar Biblioteca como servicio HTTP independiente dentro del mismo proyecto, inicia `npm run start:biblioteca`; en producción normalmente se usa el arranque integrado. Si conectas otra instancia externa, configúrala desde **Radio → Biblioteca de reproducción**. Los datos de otros volúmenes no se copian automáticamente: consérvalos o migra la biblioteca antes de retirarlos.
 
-En modo integrado, administra la biblioteca en `/biblioteca`; configura una fuente externa desde **Radio → Biblioteca de reproducción**. En **Datos** puedes exportar a otra Biblioteca o importar desde su URL. Autoriza el panel con el token, configura `BIBLIOTECA_MIGRATION_ALLOWED_HOSTS` en el servidor que inicia la operación y revisa el resumen antes de continuar. Se requiere HTTPS por defecto; habilita `BIBLIOTECA_MIGRATION_ALLOW_HTTP=true` solo para una red privada confiable. La vista previa indica espacio, archivos repetidos, diferencias de checksum y el resultado de unir playlist/programación. El proceso se puede reanudar después de un reinicio.
+En modo integrado, administra la biblioteca en `/biblioteca`; configura una fuente externa desde **Radio → Biblioteca de reproducción**. En **Datos** puedes exportar a otra Biblioteca o importar desde su URL. Inicia sesión con la contraseña, configura `BIBLIOTECA_MIGRATION_ALLOWED_HOSTS` en el servidor que inicia la operación y revisa el resumen antes de continuar. Se requiere HTTPS por defecto; habilita `BIBLIOTECA_MIGRATION_ALLOW_HTTP=true` solo para una red privada confiable. La vista previa indica espacio, archivos repetidos, diferencias de checksum y el resultado de unir playlist/programación. El proceso se puede reanudar después de un reinicio.
 
 La migración copia archivos, playlists y programación sin borrar el origen. Los archivos existentes en destino nunca se sobrescriben; playlist y programación se unen sin duplicados. Protege el volumen y conserva backups independientes. Más detalles: [`docs/biblioteca.md`](docs/biblioteca.md).
 
@@ -80,6 +81,8 @@ El conector de TikTok normaliza y filtra eventos antes de publicarlos por SSE. L
 - `GET /audio/current`: transmite el audio actual y admite encabezado `Range`.
 
 El contrato HTTP completo y los detalles de autenticación entre servicios están en la [guía de contratos](docs/contratos/README.md), con especificaciones [OpenAPI de Radio](docs/contratos/radio.openapi.yaml) y [OpenAPI de Biblioteca](docs/contratos/biblioteca.openapi.yaml).
+
+La [guía de desarrollo](docs/desarrollo.md) documenta los módulos, variables de entorno, comandos de prueba y cobertura.
 
 El conector escucha los eventos que declara `tiktok-live-connector`: `like`, `gift`, `member`, `follow`, `share`, `chat` y `subNotify` (suscripciones). Se publican por `GET /api/events` como `update` con `entry.id`, `activityCount` y `diamondCount`; el ID del mensaje del proveedor se usa para deduplicar y las rachas de regalos contabilizan solo el incremento. `member` y `subNotify` dependen de que TikTok/proveedor los envíe para ese directo. El overlay reconoce dedicatorias escritas en el chat como `Dedico a María` o `Dedico esta canción a María`.
 

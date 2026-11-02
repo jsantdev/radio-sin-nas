@@ -194,6 +194,7 @@
       let schedules = [];
       let busy = false;
       let adminAccess = false;
+      let adminAuthRequired = true;
 
       function hasAdminAccess() {
         return adminAccess;
@@ -232,7 +233,7 @@
           }
           button.disabled = busy || !hasAdminAccess();
         });
-        document.querySelector('#adminLogoutButton').hidden = !adminAccess;
+        document.querySelector('#adminLogoutButton').hidden = !adminAuthRequired || !adminAccess;
       }
 
       async function authorize(password) {
@@ -686,8 +687,13 @@
         updateAdminControls();
         try {
           const configuration = await requestJson('/api/admin/config');
-          document.querySelector('#adminAuthForm').hidden = false;
-          if (!configuration.configured) {
+          adminAuthRequired = configuration.authRequired !== false;
+          document.querySelector('#adminAuthForm').hidden = !adminAuthRequired;
+          if (!adminAuthRequired) {
+            adminAccess = true;
+            document.querySelector('#adminAuthStatus').textContent =
+              'Acceso sin contraseña habilitado solo para desarrollo local.';
+          } else if (!configuration.configured) {
             document.querySelector('#adminAuthStatus').textContent =
               'El servidor no acepta cambios hasta configurar BIBLIOTECA_ADMIN_PASSWORD.';
           } else {

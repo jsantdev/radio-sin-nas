@@ -24,6 +24,19 @@ function registerIntegratedLibrary(app, libraryServer, libraryPort) {
     });
   });
 
+  app.get(['/biblioteca/datos', '/biblioteca/datos/'], (request, response, next) => {
+    fs.readFile(path.join(libraryPublicDirectory, 'datos.html'), 'utf8', (error, html) => {
+      if (error) {
+        next(error);
+        return;
+      }
+      response.type('html').send(html
+        .replaceAll('href="/"', 'href="/biblioteca/"')
+        .replaceAll('href="/datos"', 'href="/biblioteca/datos"')
+        .replaceAll('/dashboard.css', '/biblioteca/dashboard.css'));
+    });
+  });
+
   app.get('/biblioteca/dashboard.css', (request, response, next) => {
     response.sendFile(path.resolve(__dirname, '..', '..', 'public', 'dashboard.css'), (error) => {
       if (error) next(error);
@@ -91,7 +104,11 @@ function registerIntegratedLibrary(app, libraryServer, libraryPort) {
         port: libraryPort,
         method: request.method,
         path: request.originalUrl,
-        headers: { ...request.headers, host: `127.0.0.1:${libraryPort}` },
+        headers: {
+          ...request.headers,
+          host: `127.0.0.1:${libraryPort}`,
+          'x-radio-client-address': request.socket.remoteAddress || '',
+        },
       }, (upstream) => {
         response.writeHead(upstream.statusCode || 502, upstream.headers);
         upstream.pipe(response);

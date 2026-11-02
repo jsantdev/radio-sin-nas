@@ -31,13 +31,13 @@ async function close(server) {
   await closed;
 }
 
-function createIntegratedServer(storageDirectory, libraryPort) {
+function createIntegratedServer(storageDirectory, libraryPort, password = adminPassword) {
   return createWebserver({
     integratedLibrary: true,
     libraryPort,
     dataDirectory: storageDirectory,
     libraryDataDirectory: path.join(storageDirectory, 'biblioteca', 'discs'),
-    libraryAdminPassword: adminPassword,
+    libraryAdminPassword: password,
     externalLibraryConfigurationPath: path.join(storageDirectory, 'radio', 'library-config.json'),
     monitorService: {
       state: { username: '', status: 'idle', isConnected: false, error: '' },
@@ -68,6 +68,12 @@ test('one deployment serves the library panel and API and persists its data in t
     const dashboardStyles = await fetch(`${baseUrl}/biblioteca/dashboard.css`);
     assert.equal(dashboardStyles.status, 200);
     assert.match(await dashboardStyles.text(), /--accent:\s*#00b37e/);
+    const dataPageResponse = await fetch(`${baseUrl}/biblioteca/datos`);
+    assert.equal(dataPageResponse.status, 200);
+    const dataPageHtml = await dataPageResponse.text();
+    assert.match(dataPageHtml, /Exportar a otra Biblioteca/);
+    assert.match(dataPageHtml, /href="\/biblioteca\/datos"/);
+    assert.match(dataPageHtml, /href="\/biblioteca\/"/);
 
     const manifest = await fetch(`${baseUrl}/biblioteca/manifest.webmanifest`).then((response) => response.json());
     assert.equal(manifest.start_url, '/biblioteca/');
@@ -80,6 +86,36 @@ test('one deployment serves the library panel and API and persists its data in t
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ password: adminPassword }),
+    });
+
+    test('integrated library allows password-free mutations only for local development', async () => {
+      const storageDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'radio-integrated-local-'));
+      const originalNodeEnv = process.env.NODE_ENV;
+      const originalAuthDisabled = process.env.BIBLIOTECA_AUTH_DISABLED;
+      process.env.NODE_ENV = 'development';
+      process.env.BIBLIOTECA_AUTH_DISABLED = 'true';
+      let appServer;
+
+      try {
+        const instance = createIntegratedServer(storageDirectory, await findFreePort(), '');
+        appServer = instance.server;
+        const baseUrl = await listen(appServer);
+        const config = await fetch(`${baseUrl}/api/admin/config`).then((response) => response.json());
+        assert.deepEqual(config, { configured: false, authRequired: false });
+        const createdDisc = await fetch(`${baseUrl}/api/discs`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: 'Disco local' }),
+        });
+        assert.equal(createdDisc.status, 201);
+      } finally {
+        if (appServer) await close(appServer);
+        if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
+        else process.env.NODE_ENV = originalNodeEnv;
+        if (originalAuthDisabled === undefined) delete process.env.BIBLIOTECA_AUTH_DISABLED;
+        else process.env.BIBLIOTECA_AUTH_DISABLED = originalAuthDisabled;
+        fs.rmSync(storageDirectory, { recursive: true, force: true });
+      }
     });
     assert.equal(login.status, 200);
     const sessionCookie = (login.headers.get('set-cookie') || '').split(';', 1)[0];
@@ -114,9 +150,15 @@ test('one deployment serves the library panel and API and persists its data in t
     const savedDiscs = await fetch(`${baseUrl}/api/discs`).then((response) => response.json());
     assert.equal(savedDiscs.discs[0].tracks[0].id, track.id);
 
+    const reLogin = await fetch(`${baseUrl}/api/admin/session`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: adminPassword }),
+    });
+    const reSession = { Cookie: (reLogin.headers.get('set-cookie') || '').split(';', 1)[0] };
     const playlist = await fetch(`${baseUrl}/api/player/playlist`, {
       method: 'PUT',
-      headers: { ...authorization, 'Content-Type': 'application/json' },
+      headers: { ...reSession, 'Content-Type': 'application/json' },
       body: JSON.stringify({ tracks: [track.id] }),
     });
     assert.equal(playlist.status, 200);

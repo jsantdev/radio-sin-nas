@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#121214">
+    <meta name="description" content="Importación, exportación y migración de copias de Biblioteca.">
+    <title>Datos y copias | Biblioteca</title>
+    <link rel="stylesheet" href="/dashboard.css">
+    <style>
+      body { padding: 24px 16px 48px; }
+      header, section { padding: 20px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
+      header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+      h1, h2, p { margin-top: 0; }
+      h1 { margin-bottom: 6px; }
+      .data-nav { display: flex; gap: 8px; overflow-x: auto; margin: 12px 0; padding: 8px; border: 1px solid var(--line); border-radius: 14px; background: #17171bef; }
+      .data-nav a { flex: 0 0 auto; padding: 9px 13px; border-radius: 10px; color: inherit; background: var(--surface-2); text-decoration: none; font-weight: 650; }
+      .data-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+      .wide { grid-column: 1 / -1; }
+      label { display: grid; gap: 7px; margin: 12px 0; }
+      input { width: 100%; min-height: 42px; padding: 9px; border: 1px solid var(--line); border-radius: 9px; color: inherit; background: #17171b; font: inherit; }
+      .hint, .muted { color: var(--muted); line-height: 1.5; }
+      .summary, .history-row { margin-top: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; }
+      .summary[hidden], #migrationHistory[hidden] { display: none; }
+      progress { display: block; width: 100%; height: 12px; margin-top: 10px; accent-color: var(--accent); }
+      progress[hidden] { display: none; }
+      #notice { min-height: 1.4em; margin: 12px 0; }
+      .error { color: #ff9298; }
+      .success { color: var(--accent); }
+      .row { display: flex; align-items: end; gap: 8px; flex-wrap: wrap; }
+      @media (max-width: 680px) {
+        body { padding: 12px 12px 32px; }
+        header, section { padding: 16px; }
+        .data-grid { grid-template-columns: 1fr; }
+        .wide { grid-column: auto; }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+        <p class="muted">FE Y ESPERANZA · BIBLIOTECA</p>
+        <h1>Datos y copias</h1>
+        <p class="hint">Migra discos, temas, playlist y programación entre servidores Biblioteca.</p>
+      </div>
+      <a href="/">← Volver a Biblioteca</a>
+    </header>
+
+    <section class="admin-auth" aria-labelledby="adminAuthHeading" style="margin-top:12px">
+      <h2 id="adminAuthHeading">Acceso administrativo</h2>
+      <p id="adminAuthStatus" class="hint" role="status">Comprobando configuración…</p>
+      <form id="adminAuthForm" class="row">
+        <label for="adminPassword">Contraseña de administrador
+          <input id="adminPassword" type="password" autocomplete="current-password" required>
+        </label>
+        <button id="adminLoginButton" type="submit">Autorizar esta sesión</button>
+        <button id="adminLogoutButton" type="button" class="secondary" hidden>Cerrar sesión</button>
+      </form>
+    </section>
+
+    <nav class="data-nav" aria-label="Dominios de Biblioteca">
+      <a href="/">Biblioteca y playlist</a>
+      <a href="/datos" aria-current="page">Datos y copias</a>
+    </nav>
+    <p id="notice" role="status" aria-live="polite"></p>
+
+    <main class="data-grid">
+      <section>
+        <h2>Exportar a otra Biblioteca</h2>
+        <p class="hint">Envía una copia a un servidor Biblioteca. No se eliminan ni reemplazan datos del destino.</p>
+        <form id="migrationForm">
+          <label for="migrationDestination">URL de la Biblioteca de destino
+            <input id="migrationDestination" type="url" autocomplete="url" placeholder="https://biblioteca-destino.ejemplo.com" required>
+          </label>
+          <p class="hint">El host debe estar autorizado en BIBLIOTECA_MIGRATION_ALLOWED_HOSTS. Ambos servidores deben compartir la contraseña administrativa.</p>
+          <button id="previewMigrationButton" type="button" class="secondary">Revisar destino</button>
+          <div id="migrationSummary" class="summary" hidden></div>
+          <button id="migrationButton" type="submit" disabled>Iniciar exportación</button>
+          <progress id="migrationProgress" max="100" value="0" hidden aria-label="Progreso de exportación"></progress>
+          <p id="migrationProgressText" class="hint" role="status" aria-live="polite" hidden></p>
+        </form>
+      </section>
+
+      <section>
+        <h2>Importar desde otra Biblioteca</h2>
+        <p class="hint">Copia aquí los temas faltantes y combina playlist y programación sin duplicados.</p>
+        <form id="importForm">
+          <label for="importSource">URL de la Biblioteca de origen
+            <input id="importSource" type="url" autocomplete="url" placeholder="https://biblioteca-origen.ejemplo.com" required>
+          </label>
+          <p class="hint">El host de origen debe estar autorizado en BIBLIOTECA_MIGRATION_ALLOWED_HOSTS.</p>
+          <button id="previewImportButton" type="button" class="secondary">Revisar origen</button>
+          <div id="importSummary" class="summary" hidden></div>
+          <button id="importButton" type="submit" disabled>Iniciar importación</button>
+          <progress id="importProgress" max="100" value="0" hidden aria-label="Progreso de importación"></progress>
+          <p id="importProgressText" class="hint" role="status" aria-live="polite" hidden></p>
+        </form>
+      </section>
+
+      <section class="wide">
+        <h2>Historial de operaciones</h2>
+        <p class="hint">Consulta el progreso y reanuda una transferencia si se interrumpió.</p>
+        <div id="migrationHistory" hidden></div>
+      </section>
+    </main>
+
+    <script>
+      const notice = document.querySelector('#notice');
+      const migrationProgress = document.querySelector('#migrationProgress');
+      const migrationProgressText = document.querySelector('#migrationProgressText');
+      const migrationSummary = document.querySelector('#migrationSummary');
+      const importProgress = document.querySelector('#importProgress');
+      const importProgressText = document.querySelector('#importProgressText');
+      const importSummary = document.querySelector('#importSummary');
+      const migrationHistory = document.querySelector('#migrationHistory');
+      let adminAuthenticated = false;
+      let adminAuthRequired = true;
+      let busy = false;
+      let migrationPreview = null;
+      let importPreview = null;
+
+      function hasAdminAccess() {
+        return !adminAuthRequired || adminAuthenticated;
+      }
+
+      function showNotice(message, kind = '') {
+        notice.className = kind;
+        notice.textContent = message;
+      }
+
+      async function requestJson(url, options = {}) {
+        const headers = new Headers(options.headers || {});
+        const response = await fetch(url, { ...options, headers });
+        let payload;
+        try {
+          payload = await response.json();
+        } catch {
+          throw new Error('El servidor devolvió una respuesta inválida.');
+        }
+        if (!response.ok) throw new Error(payload.message || 'No se pudo completar la solicitud.');
+        return payload;
+      }
+
+      function setBusy(value) {
+        busy = value;
+        updateControls();
+      }
+
+      function updateControls() {
+        document.querySelectorAll('button').forEach((button) => {
+          if (button.id === 'adminLoginButton') {
+            button.disabled = busy;
+            return;
+          }
+          if (button.id === 'adminLogoutButton') return;
+          button.disabled = busy || !hasAdminAccess();
+        });
+        document.querySelector('#adminLogoutButton').hidden = !adminAuthenticated;
+        document.querySelector('#migrationButton').disabled =
+          busy || !hasAdminAccess() || !migrationPreview || !migrationPreview.stateFits
+          || migrationPreview.enoughSpace === false;
+        document.querySelector('#importButton').disabled =
+          busy || !hasAdminAccess() || !importPreview || !importPreview.stateFits
+          || importPreview.enoughSpace === false || importPreview.oversizedTracks > 0;
+      }
+
+      async function authorize(password) {
+        const response = await fetch('/api/admin/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password }),
+        });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.message || 'No se pudo autorizar la sesión.');
+        adminAuthenticated = true;
+        document.querySelector('#adminPassword').value = '';
+        document.querySelector('#adminAuthStatus').textContent = 'Sesión administrativa autorizada en este navegador.';
+        updateControls();
+        await loadHistory();
+      }
+
+      function formatBytes(bytes) {
+        if (bytes === null) return 'desconocido';
+        const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        let value = bytes;
+        let unit = 0;
+        while (value >= 1024 && unit < units.length - 1) {
+          value /= 1024;
+          unit += 1;
+        }
+        return `${value.toFixed(unit ? 1 : 0)} ${units[unit]}`;
+      }
+
+      function showProgress(migration) {
+        const progress = migration.direction === 'import' ? importProgress : migrationProgress;
+        const text = migration.direction === 'import' ? importProgressText : migrationProgressText;
+        progress.hidden = false;
+        text.hidden = false;
+        progress.value = migration.percent;
+        text.textContent =
+          `${migration.currentTrack ? `${migration.direction === 'import' ? 'Importando' : 'Copiando'} ${migration.currentTrack}` : 'Procesando biblioteca'} · ${migration.percent}% (${migration.completedTracks}/${migration.totalTracks} temas)`;
+      }
+
+      async function waitForOperation(migration) {
+        showProgress(migration);
+        while (migration.status === 'running') {
+          await new Promise((resolve) => window.setTimeout(resolve, 750));
+          const result = await requestJson(`/api/migrations/${encodeURIComponent(migration.id)}`);
+          migration = result.migration;
+          showProgress(migration);
+        }
+        if (migration.status !== 'completed') {
+          throw new Error(migration.error || 'La operación se interrumpió y puede reanudarse.');
+        }
+        const progress = migration.direction === 'import' ? importProgress : migrationProgress;
+        const text = migration.direction === 'import' ? importProgressText : migrationProgressText;
+        progress.value = 100;
+        text.textContent =
+          `Completa: ${migration.transferredTracks} temas copiados, ${migration.skippedTracks} ya existentes y ${migration.conflictTracks} con contenido distinto omitidos.`;
+        return migration;
+      }
+
+      async function loadHistory() {
+        if (!hasAdminAccess()) return;
+        const result = await requestJson('/api/migrations');
+        migrationHistory.replaceChildren();
+        if (!result.migrations.length) {
+          migrationHistory.hidden = true;
+          return;
+        }
+        migrationHistory.hidden = false;
+        for (const migration of result.migrations) {
+          const row = document.createElement('div');
+          row.className = 'history-row row';
+          const description = document.createElement('span');
+          description.textContent =
+            `${migration.direction === 'import' ? 'Importación' : 'Exportación'} · ${migration.status} · ${migration.completedTracks}/${migration.totalTracks} temas · ${migration.percent}%${migration.error ? ` · ${migration.error}` : ''}`;
+          row.append(description);
+          if (['paused', 'failed'].includes(migration.status)) {
+            const resume = document.createElement('button');
+            resume.type = 'button';
+            resume.className = 'secondary';
+            resume.textContent = 'Reanudar';
+            resume.addEventListener('click', () => resumeOperation(migration.id));
+            row.append(resume);
+          }
+          migrationHistory.append(row);
+        }
+      }
+
+      async function resumeOperation(id) {
+        if (busy || !hasAdminAccess()) return;
+        setBusy(true);
+        try {
+          const started = await requestJson(`/api/migrations/${encodeURIComponent(id)}/resume`, { method: 'POST' });
+          await waitForOperation(started.migration);
+          showNotice('Operación completada correctamente.', 'success');
+        } catch (error) {
+          showNotice(error.message, 'error');
+        } finally {
+          setBusy(false);
+          await loadHistory().catch((error) => showNotice(error.message, 'error'));
+        }
+      }
+
+      function renderPreview(container, preview, direction) {
+        container.replaceChildren();
+        const items = [
+          `${preview.sourceDiscCount} discos · ${preview.sourceTrackCount} temas (${formatBytes(preview.totalBytes)})`,
+          `${preview.existingTracks} temas ya existentes · ${preview.checksumConflicts} con contenido distinto`,
+          `Espacio requerido: ${formatBytes(preview.requiredBytes)} · libre: ${formatBytes(preview.destinationFreeBytes)}${preview.enoughSpace === false ? ' · espacio insuficiente' : ''}`,
+          `Playlist: ${preview.mergedPlaylistCount} temas · programación: ${preview.mergedScheduleCount}`,
+          preview.oversizedTracks
+            ? `${preview.oversizedTracks} temas superan el tamaño máximo permitido.`
+            : preview.stateFits ? 'La operación respeta los límites de la biblioteca.'
+              : 'La combinación excede los límites de playlist o programación.',
+        ];
+        for (const item of items) {
+          const line = document.createElement('p');
+          line.textContent = item;
+          container.append(line);
+        }
+        container.hidden = false;
+        const allowed = preview.stateFits && preview.enoughSpace !== false
+          && (direction !== 'import' || preview.oversizedTracks === 0);
+        return allowed;
+      }
+
+      document.querySelector('#migrationDestination').addEventListener('input', () => {
+        migrationPreview = null;
+        migrationSummary.hidden = true;
+        updateControls();
+      });
+
+      document.querySelector('#previewMigrationButton').addEventListener('click', async () => {
+        const destinationUrl = document.querySelector('#migrationDestination').value.trim();
+        if (busy || !hasAdminAccess() || !destinationUrl) return;
+        setBusy(true);
+        migrationPreview = null;
+        migrationSummary.hidden = true;
+        try {
+          const result = await requestJson('/api/migrations/preview', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ destinationUrl }),
+          });
+          migrationPreview = { destinationUrl, ...result.preview };
+          renderPreview(migrationSummary, result.preview, 'export');
+          showNotice('Vista previa lista. Los datos existentes en destino no se reemplazarán.', 'success');
+        } catch (error) {
+          showNotice(error.message, 'error');
+        } finally {
+          setBusy(false);
+        }
+      });
+
+      document.querySelector('#migrationForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (busy || !hasAdminAccess() || !migrationPreview) return;
+        if (migrationPreview.destinationUrl !== document.querySelector('#migrationDestination').value.trim()) {
+          showNotice('Revisa de nuevo el destino antes de iniciar la exportación.', 'error');
+          return;
+        }
+        if (!migrationPreview.stateFits || migrationPreview.enoughSpace === false) {
+          showNotice('La exportación no cabe en destino o supera los límites permitidos.', 'error');
+          return;
+        }
+        if (!window.confirm('Se copiarán los temas faltantes y se combinarán playlist y programación. Los temas existentes no se reemplazarán. ¿Continuar?')) return;
+        setBusy(true);
+        try {
+          const started = await requestJson('/api/migrations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ destinationUrl: migrationPreview.destinationUrl }),
+          });
+          await waitForOperation(started.migration);
+          showNotice('Exportación completada.', 'success');
+        } catch (error) {
+          migrationProgressText.textContent = `Exportación interrumpida: ${error.message}`;
+          showNotice(error.message, 'error');
+        } finally {
+          setBusy(false);
+          await loadHistory().catch((error) => showNotice(error.message, 'error'));
+        }
+      });
+
+      document.querySelector('#importSource').addEventListener('input', () => {
+        importPreview = null;
+        importSummary.hidden = true;
+        updateControls();
+      });
+
+      document.querySelector('#previewImportButton').addEventListener('click', async () => {
+        const sourceUrl = document.querySelector('#importSource').value.trim();
+        if (busy || !hasAdminAccess() || !sourceUrl) return;
+        setBusy(true);
+        importPreview = null;
+        importSummary.hidden = true;
+        try {
+          const result = await requestJson('/api/imports/preview', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sourceUrl }),
+          });
+          importPreview = { sourceUrl, ...result.preview };
+          renderPreview(importSummary, result.preview, 'import');
+          showNotice('Vista previa lista. Los temas existentes no se reemplazarán.', 'success');
+        } catch (error) {
+          showNotice(error.message, 'error');
+        } finally {
+          setBusy(false);
+        }
+      });
+
+      document.querySelector('#importForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (busy || !hasAdminAccess() || !importPreview) return;
+        if (importPreview.sourceUrl !== document.querySelector('#importSource').value.trim()) {
+          showNotice('Revisa de nuevo el origen antes de iniciar la importación.', 'error');
+          return;
+        }
+        if (!importPreview.stateFits || importPreview.enoughSpace === false || importPreview.oversizedTracks) {
+          showNotice('La importación no cabe en esta biblioteca o supera los límites permitidos.', 'error');
+          return;
+        }
+        if (!window.confirm('Se importarán los temas faltantes y se combinarán playlist y programación. No se borrarán ni reemplazarán temas existentes. ¿Continuar?')) return;
+        setBusy(true);
+        try {
+          const started = await requestJson('/api/imports', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sourceUrl: importPreview.sourceUrl }),
+          });
+          await waitForOperation(started.migration);
+          showNotice('Importación completada.', 'success');
+        } catch (error) {
+          importProgressText.textContent = `Importación interrumpida: ${error.message}`;
+          showNotice(error.message, 'error');
+        } finally {
+          setBusy(false);
+          await loadHistory().catch((error) => showNotice(error.message, 'error'));
+        }
+      });
+
+      document.querySelector('#adminAuthForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const password = document.querySelector('#adminPassword').value;
+        if (!password) return;
+        try {
+          await authorize(password);
+          showNotice('Acceso administrativo habilitado.', 'success');
+        } catch (error) {
+          adminAuthenticated = false;
+          document.querySelector('#adminAuthStatus').textContent = error.message;
+          updateControls();
+        }
+      });
+
+      document.querySelector('#adminLogoutButton').addEventListener('click', async () => {
+        await fetch('/api/admin/session', { method: 'DELETE' });
+        adminAuthenticated = false;
+        migrationHistory.hidden = true;
+        document.querySelector('#adminAuthStatus').textContent = 'Sesión administrativa cerrada.';
+        updateControls();
+      });
+
+      async function initialize() {
+        try {
+          const configuration = await requestJson('/api/admin/config');
+          adminAuthRequired = configuration.authRequired !== false;
+          document.querySelector('#adminAuthForm').hidden = !adminAuthRequired;
+          if (!adminAuthRequired) {
+            document.querySelector('#adminAuthStatus').textContent = 'Acceso de administración disponible.';
+          } else if (!configuration.configured) {
+            document.querySelector('#adminAuthStatus').textContent =
+              'El servidor no acepta operaciones hasta configurar BIBLIOTECA_ADMIN_PASSWORD.';
+          } else {
+            document.querySelector('#adminAuthStatus').textContent = 'Ingresa la contraseña para habilitar las operaciones.';
+            const session = await requestJson('/api/admin/session');
+            adminAuthenticated = session.authenticated;
+            if (adminAuthenticated) {
+              document.querySelector('#adminAuthStatus').textContent = 'Sesión administrativa activa en este navegador.';
+              await loadHistory();
+            }
+          }
+          if (!adminAuthRequired) await loadHistory();
+          updateControls();
+        } catch (error) {
+          showNotice(error.message, 'error');
+        }
+      }
+
+      updateControls();
+      initialize();
+    </script>
+  </body>
+</html>
