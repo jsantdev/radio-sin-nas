@@ -109,7 +109,8 @@ test('radio overlay renders the actual TikTok connection state', () => {
   const lnkT = { textContent: '' };
   const renderTikTokStatus = vm.runInNewContext(`(${overlay.slice(start, end)})`, { lnk, lnkT });
   renderTikTokStatus({ connected: true, username: 'canal', status: 'connected' });
-  assert.equal(lnkT.textContent, 'EN LÍNEA · @canal');
+  assert.equal(lnkT.textContent, 'EN LÍNEA');
+  assert.doesNotMatch(lnk.title, /canal/);
   assert.equal(classes.has('bad'), false);
 
   renderTikTokStatus({ connector: { isConnected: false, status: 'reconnecting' } });
@@ -123,4 +124,55 @@ test('radio overlay renders the actual TikTok connection state', () => {
   renderTikTokStatus({});
   assert.equal(lnkT.textContent, 'ESTADO DESCONOCIDO');
   assert.equal(classes.has('unknown'), true);
+});
+
+test('radio advances one track per completed coin goal and keeps leftover coins', async () => {
+  const overlay = fs.readFileSync(path.join(__dirname, '../../Radio_Cristiana_Pentecostal_BUBSDT_TikTok_Live_v10.html'), 'utf8');
+  const start = overlay.indexOf('let songGoalCoinGoal=500,songGoalCoinProgress=0;');
+  const end = overlay.indexOf('\nfunction ev(', start);
+  assert.notEqual(start, -1, 'song-goal progress handler exists in the active overlay');
+  assert.notEqual(end, -1, 'song-goal progress handler has a clear boundary');
+
+  const actions = [];
+  const saved = new Map();
+  const radioHint = { textContent: '' };
+  const context = {
+    localStorage: {
+      getItem: (key) => saved.get(key) || null,
+      setItem: (key, value) => saved.set(key, value),
+    },
+    radioHint,
+    requestRadioAction: async (action) => actions.push(action),
+    console,
+  };
+  vm.runInNewContext(overlay.slice(start, end), context);
+  vm.runInContext('setSongGoalCoinGoal(500); addSongGoalCoins(450); addSongGoalCoins(100);', context);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(vm.runInContext('songGoalCoinProgress', context), 50);
+  assert.equal(saved.get('radio-song-goal-progress-v1'), '50');
+  assert.deepEqual(actions, ['next']);
+
+  vm.runInContext('addSongGoalCoins(1000);', context);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(vm.runInContext('songGoalCoinProgress', context), 50);
+  assert.deepEqual(actions, ['next', 'next', 'next']);
+  assert.match(radioHint.textContent, /Meta musical alcanzada/);
+});
+
+test('overlay engagement alerts appear centered in a TikTok-style panel', () => {
+  const overlay = fs.readFileSync(path.join(__dirname, '../../Radio_Cristiana_Pentecostal_BUBSDT_TikTok_Live_v10.html'), 'utf8');
+  assert.match(overlay, /#al\{position:absolute;left:50%;top:50%/);
+  assert.match(overlay, /background:rgba\(15,16,24,\.97\)/);
+  assert.match(overlay, /EN VIVO\s+·\s+TU PARTICIPACIÓN CUENTA/);
+  assert.match(overlay, /¡Saluda en el chat!/);
+  assert.match(overlay, /Cada toque suma para la meta comunitaria/);
+  assert.match(overlay, /¡Invita a alguien!/);
+});
+
+test('radio overlay removes the scrolling ticker and enlarges the Walkman case', () => {
+  const overlay = fs.readFileSync(path.join(__dirname, '../../Radio_Cristiana_Pentecostal_BUBSDT_TikTok_Live_v10.html'), 'utf8');
+  assert.doesNotMatch(overlay, /class="tick"|id="tk"|@keyframes mq/);
+  assert.match(overlay, /\.wm\{position:absolute;left:0;top:122px;width:1080px;height:900px/);
+  assert.match(overlay, /\.wm>div\{position:absolute;transform:scale\(1\.06\);transform-origin:top left\}/);
+  assert.match(overlay, /\.deck\{position:absolute;left:20px;top:1044px;width:1040px;height:850px/);
 });

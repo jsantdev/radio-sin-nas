@@ -10,6 +10,19 @@ const emptySnapshot = {
   queue: [],
 };
 
+function addAudioUrls(radioSnapshot) {
+  function addAudioUrl(track) {
+    const trackId = track.id || track.name || track.title;
+    return { ...track, url: `/audio/current?track=${encodeURIComponent(trackId)}` };
+  }
+
+  return {
+    ...radioSnapshot,
+    currentTrack: radioSnapshot.currentTrack ? addAudioUrl(radioSnapshot.currentTrack) : null,
+    queue: radioSnapshot.queue.map(addAudioUrl),
+  };
+}
+
 function createRadioModule({
   stream,
   externalLibrary,
@@ -55,14 +68,11 @@ function createRadioModule({
     }
     const operation = (async () => {
       try {
-        const [nextSnapshot, discs] = await Promise.all([
+        const [remoteSnapshot, discs] = await Promise.all([
           externalLibrary.fetchPlaybackState(),
           externalLibrary.fetchDiscs(),
         ]);
-        nextSnapshot.currentTrack = nextSnapshot.currentTrack
-          ? { ...nextSnapshot.currentTrack, url: '/audio/current' }
-          : null;
-        nextSnapshot.queue = nextSnapshot.queue.map((track) => ({ ...track, url: '/audio/current' }));
+        const nextSnapshot = addAudioUrls(remoteSnapshot);
         const changed = JSON.stringify(snapshot) !== JSON.stringify(nextSnapshot);
         snapshot = nextSnapshot;
         externalDiscs = discs;
@@ -116,7 +126,7 @@ function createRadioModule({
 
   async function playerAction(action, body) {
     try {
-      snapshot = await externalLibrary.playerAction(action, body);
+      snapshot = addAudioUrls(await externalLibrary.playerAction(action, body));
       externalConnected = true;
       externalError = '';
       stream.broadcast('update', snapshot);

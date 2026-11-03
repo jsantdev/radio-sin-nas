@@ -157,7 +157,9 @@ test('library manages tracks directly and radio plays them after restart', async
   let appServer = createWebserver(appOptions).server;
   let radioUrl = await listen(appServer);
   const audio = Buffer.from('external audio bytes');
+  const nextAudio = Buffer.from('next external audio bytes');
   const trackId = 'clasicos-latinos/Tema uno.mp3';
+  const nextTrackId = 'clasicos-latinos/Tema dos.mp3';
 
   try {
     const savedConfiguration = await fetch(`${radioUrl}/api/radio/storage`, {
@@ -206,16 +208,31 @@ test('library manages tracks directly and radio plays them after restart', async
     assert.equal(uploaded.status, 201);
     assert.equal((await uploaded.json()).queued, true);
 
+    const uploadedNext = await libraryFetch(`${libraryUrl}/api/tracks?disc=${encodeURIComponent('Clásicos Latinos')}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'audio/mpeg',
+        'X-File-Name': encodeURIComponent('Tema dos.mp3'),
+      },
+      body: nextAudio,
+    });
+    assert.equal(uploadedNext.status, 201);
+
     const tracks = await fetch(`${libraryUrl}/api/discs`).then((response) => response.json());
-    assert.equal(tracks.discs[0].tracks[0].id, trackId);
-    assert.equal(tracks.discs[0].tracks[0].discName, 'Clásicos Latinos');
+    assert.deepEqual(new Set(tracks.discs[0].tracks.map((track) => track.id)), new Set([trackId, nextTrackId]));
     const playlist = await libraryFetch(`${libraryUrl}/api/player/playlist`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tracks: [trackId], repeat: false }),
+      body: JSON.stringify({ tracks: [trackId, nextTrackId], repeat: false }),
     });
     assert.equal(playlist.status, 200);
-    assert.equal((await playlist.json()).state.currentTrack.title, 'Tema uno');
+    const selectFirstTrack = await libraryFetch(`${libraryUrl}/api/player/current`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ index: 0 }),
+    });
+    assert.equal(selectFirstTrack.status, 200);
+    assert.equal((await selectFirstTrack.json()).state.currentTrack.title, 'Tema uno');
     const playback = await fetch(`${radioUrl}/api/radio/playback`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -227,30 +244,51 @@ test('library manages tracks directly and radio plays them after restart', async
     const audioResponse = await fetch(`${radioUrl}/audio/current`);
     assert.equal(audioResponse.status, 200);
     assert.deepEqual(Buffer.from(await audioResponse.arrayBuffer()), audio);
+    const firstRadioState = await fetch(`${radioUrl}/api/radio-state`).then((response) => response.json());
+    assert.match(firstRadioState.currentTrack.url, /track=clasicos-latinos%2FTema%20uno\.mp3/);
+    const nextTrack = await fetch(`${radioUrl}/api/radio/next`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    assert.equal(nextTrack.status, 200);
+    const nextRadioState = await nextTrack.json();
+    assert.equal(nextRadioState.state.currentTrack.name, nextTrackId);
+    assert.match(nextRadioState.state.currentTrack.url, /track=clasicos-latinos%2FTema%20dos\.mp3/);
+    const nextAudioResponse = await fetch(`${radioUrl}${nextRadioState.state.currentTrack.url}`);
+    assert.equal(nextAudioResponse.status, 200);
+    assert.equal(nextAudioResponse.headers.get('cache-control'), 'no-store');
+    assert.deepEqual(Buffer.from(await nextAudioResponse.arrayBuffer()), nextAudio);
     const partialAudioResponse = await fetch(`${radioUrl}/audio/current`, {
       headers: { Range: 'bytes=0-7' },
     });
     assert.equal(partialAudioResponse.status, 206);
-    assert.equal(partialAudioResponse.headers.get('content-range'), `bytes 0-7/${audio.length}`);
-    assert.deepEqual(Buffer.from(await partialAudioResponse.arrayBuffer()), audio.subarray(0, 8));
+    assert.equal(partialAudioResponse.headers.get('content-range'), `bytes 0-7/${nextAudio.length}`);
+    assert.deepEqual(Buffer.from(await partialAudioResponse.arrayBuffer()), nextAudio.subarray(0, 8));
 
     await close(appServer);
     appServer = createWebserver(appOptions).server;
     radioUrl = await listen(appServer);
     const reloadedTracks = await fetch(`${libraryUrl}/api/discs`).then((response) => response.json());
-    assert.equal(reloadedTracks.discs[0].tracks[0].id, trackId);
-    assert.equal(reloadedTracks.discs[0].tracks[0].discName, 'Clásicos Latinos');
+    assert.deepEqual(new Set(reloadedTracks.discs[0].tracks.map((track) => track.id)), new Set([trackId, nextTrackId]));
     const reloadedPlaylist = await fetch(`${radioUrl}/api/radio-state`).then((response) => response.json());
-    assert.equal(reloadedPlaylist.currentTrack.name, trackId);
+    assert.equal(reloadedPlaylist.currentTrack.name, nextTrackId);
     assert.equal(reloadedPlaylist.repeat, false);
     assert.equal(reloadedPlaylist.isPlaying, true);
+    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(storage, 'player-state.json'), 'utf8')), {
+      queue: [trackId, nextTrackId],
+      currentIndex: 1,
+      isPlaying: true,
+      repeat: false,
+    });
     assert.equal((await fetch(`${radioUrl}/api/radio/storage`).then((response) => response.json())).connected, true);
 
     const deleted = await libraryFetch(`${libraryUrl}/api/tracks?id=${encodeURIComponent(trackId)}`, {
       method: 'DELETE',
     });
     assert.equal(deleted.status, 200);
-    assert.deepEqual((await fetch(`${libraryUrl}/api/discs`).then((response) => response.json())).discs[0].tracks, []);
+    assert.deepEqual((await fetch(`${libraryUrl}/api/discs`).then((response) => response.json()))
+      .discs[0].tracks.map((track) => track.id), [nextTrackId]);
   } finally {
     await close(appServer);
     await close(libraryServer);

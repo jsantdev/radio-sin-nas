@@ -14,8 +14,8 @@
 html,body{height:100%;overflow:hidden;background:transparent}
 html.tr,html.tr body{background:transparent}
 #stage{position:absolute;left:0;top:0;width:1080px;height:1920px;transform-origin:0 0;font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;color:var(--cream);user-select:none;-webkit-user-select:none}
-.wm{position:absolute;left:20px;top:122px;width:1040px;height:826px;border-radius:44px;background:linear-gradient(160deg,#ffd84a,#f0b81a 55%,#d99a0b);box-shadow:0 20px 50px rgba(0,0,0,.8),inset 0 4px 0 rgba(255,255,255,.5),inset 0 -8px 16px rgba(120,70,0,.5);border:5px solid #7a5200}
-.wm>div{position:absolute}
+.wm{position:absolute;left:0;top:122px;width:1080px;height:900px;border-radius:44px;background:linear-gradient(160deg,#ffd84a,#f0b81a 55%,#d99a0b);box-shadow:0 20px 50px rgba(0,0,0,.8),inset 0 4px 0 rgba(255,255,255,.5),inset 0 -8px 16px rgba(120,70,0,.5);border:5px solid #7a5200}
+.wm>div{position:absolute;transform:scale(1.06);transform-origin:top left}
 .hd{left:22px;top:18px;width:996px;height:72px;border-radius:16px;background:linear-gradient(#222327,#101113);border:3px solid #0a0a0b;box-shadow:inset 0 0 18px #000}
 .plate{position:absolute;left:20px;top:50%;transform:translateY(-50%);white-space:nowrap}
 .plate b{display:block;font-size:36px;letter-spacing:8px;line-height:1.05;color:var(--amber)}.plate small{display:block;font-size:18px;font-weight:700;letter-spacing:4px;line-height:1;color:#cfd2d8}
@@ -51,12 +51,8 @@ html.tr,html.tr body{background:transparent}
 #radioHint{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#d5d8df}
 #enableRadioAudio{border:1px solid #ffb13b;border-radius:5px;background:#1a1109;color:#ffdda0;padding:3px 8px;font:700 13px 'Barlow Condensed',sans-serif}
 #enableRadioAudio[hidden]{display:none}
-.tick{left:22px;top:714px;width:996px;height:50px;border-radius:10px;background:#0a0806;border:3px solid #3a2f20;box-shadow:inset 0 0 14px #000;overflow:hidden;font-size:34px;font-weight:700;letter-spacing:3px;color:var(--amber);text-shadow:0 0 10px rgba(255,177,59,.6);line-height:44px}
-.tick span{display:inline-block;white-space:nowrap;animation:mq 32s linear infinite}
-@keyframes mq{to{transform:translateX(-50%)}}
-
 /* ===== Pantalla de abajo: eventos del live ===== */
-.deck{position:absolute;left:20px;top:972px;width:1040px;height:930px;border-radius:30px;background:repeating-linear-gradient(92deg,rgba(0,0,0,0) 0 13px,rgba(0,0,0,.13) 13px 15px),radial-gradient(ellipse at 50% 0,#8a5630,#3b2111 85%);box-shadow:0 20px 50px rgba(0,0,0,.8),inset 0 2px 0 rgba(255,255,255,.18),inset 0 -6px 12px rgba(0,0,0,.5);border:4px solid #1e1109}
+.deck{position:absolute;left:20px;top:1044px;width:1040px;height:850px;border-radius:30px;background:repeating-linear-gradient(92deg,rgba(0,0,0,0) 0 13px,rgba(0,0,0,.13) 13px 15px),radial-gradient(ellipse at 50% 0,#8a5630,#3b2111 85%);box-shadow:0 20px 50px rgba(0,0,0,.8),inset 0 2px 0 rgba(255,255,255,.18),inset 0 -6px 12px rgba(0,0,0,.5);border:4px solid #1e1109}
 .scr{position:absolute;left:22px;top:22px;right:22px;bottom:22px;border-radius:16px;background:#0a0806;border:3px solid var(--chrome);box-shadow:inset 0 0 30px #000;overflow:hidden;color:var(--amber)}
 .scr>*{z-index:1}
 .beams{position:absolute;left:50%;top:50%;width:2400px;height:2400px;margin:-1200px 0 0 -1200px;background:repeating-conic-gradient(rgba(255,177,59,.26) 0 10deg,rgba(0,0,0,0) 10deg 20deg,rgba(255,59,107,.24) 20deg 30deg,rgba(0,0,0,0) 30deg 40deg,rgba(77,170,255,.22) 40deg 50deg,rgba(0,0,0,0) 50deg 60deg);opacity:0;transition:opacity .5s;animation:spin 7s linear infinite;z-index:0!important}
@@ -103,7 +99,7 @@ html.tr,html.tr body{background:transparent}
 .ev .av2{width:46px;height:46px;font-size:26px}
 .rw .av2{width:76px;height:76px;font-size:44px;order:1}
 .rw .rk{order:0}.rw .nm{order:2}.rw .sb{order:3}.rw .pt{order:4}
-#cv{position:absolute;left:0;top:0;pointer-events:none;z-index:7!important}
+#cv{position:absolute;left:0;top:0;width:982px;height:796px;pointer-events:none;z-index:7!important}
 
 /* ===== v10: Sony + gamificación ===== */
 .sony{left:34px;top:774px;width:972px;height:42px;display:flex;align-items:center;gap:22px;color:#3a2600;text-shadow:0 2px 0 rgba(255,255,255,.55)}
@@ -123,16 +119,17 @@ html.tr,html.tr body{background:transparent}
 .mvp{left:320px;top:10px;width:470px;height:62px;background:linear-gradient(#050505,#1d1d1d);border:3px solid #555;border-radius:6px;padding:3px 12px;overflow:hidden}
 .mvp b{display:block;font:400 30px/32px 'Share Tech Mono',monospace;color:var(--amber);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mvp span{display:block;font-size:21px;font-weight:500;color:#c9a45c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#al{position:absolute;left:22px;top:108px;width:850px;min-height:132px;border-radius:22px;display:flex;align-items:center;gap:24px;padding:14px 28px;z-index:6;opacity:0;transform:translateY(-42px) scale(.82);pointer-events:none;border:6px solid #fff0c7;background:linear-gradient(145deg,#ffe39a,#ff8a24 55%,#d82722);color:#261006;box-shadow:0 18px 42px rgba(0,0,0,.85),0 0 35px rgba(255,153,43,.75),inset 0 3px 0 rgba(255,255,255,.55);text-shadow:0 1px 0 rgba(255,255,255,.45)}
+#al{position:absolute;left:50%;top:50%;width:min(850px,calc(100% - 64px));min-height:184px;border-radius:24px;display:flex;align-items:center;gap:24px;padding:34px 32px 28px;z-index:20;opacity:0;transform:translate(-50%,-50%) scale(.92);pointer-events:none;border:1px solid rgba(255,255,255,.2);border-left:8px solid #25f4ee;background:rgba(15,16,24,.97);color:#fff;box-shadow:0 24px 80px rgba(0,0,0,.72),0 0 36px rgba(37,244,238,.18),12px 0 36px rgba(254,44,85,.18);text-shadow:none;backdrop-filter:blur(16px)}
+#al::before{content:"EN VIVO  ·  TU PARTICIPACIÓN CUENTA";position:absolute;left:28px;top:-16px;border-radius:999px;padding:7px 16px;background:linear-gradient(90deg,#fe2c55,#d92770 52%,#25bde5);color:#fff;font-size:20px;font-weight:700;letter-spacing:2px;box-shadow:0 5px 18px rgba(0,0,0,.4)}
 #al.show{animation:alin .55s cubic-bezier(.16,1.45,.35,1) forwards}
-@keyframes alin{0%{opacity:0;transform:translateY(-42px) scale(.82)}75%{opacity:1;transform:translateY(5px) scale(1.025)}100%{opacity:1;transform:none}}
-#al .ai{font-size:78px;line-height:1;filter:drop-shadow(0 4px 3px rgba(0,0,0,.3))}
-#al .at{min-width:0;flex:1}#al .at b{display:block;font-size:54px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:690px}
-#al .at span{font-size:34px;font-weight:700;line-height:1.15}
-#al.goal{background:linear-gradient(#fff0a8,#ffc21a 60%,#d99a0b)}
-#al.x2{background:linear-gradient(#bfe6ff,#3aa0ff 60%,#1b5fd9);color:#06143a}
-#al.lead{background:linear-gradient(#f4f1e6,#c9a45c)}
-#al.cta{background:linear-gradient(#2a2b30,#111214);color:var(--amber);border-color:#555}
+@keyframes alin{0%{opacity:0;transform:translate(-50%,calc(-50% + 34px)) scale(.92)}75%{opacity:1;transform:translate(-50%,calc(-50% - 4px)) scale(1.02)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+#al .ai{width:88px;height:88px;flex:none;display:grid;place-items:center;border-radius:22px;background:linear-gradient(145deg,rgba(254,44,85,.2),rgba(37,244,238,.16));border:1px solid rgba(255,255,255,.2);font-size:62px;line-height:1}
+#al .at{min-width:0;flex:1}#al .at b{display:block;font-size:54px;line-height:1.05;white-space:normal;overflow-wrap:anywhere;max-width:660px}
+#al .at span{display:block;margin-top:8px;color:#d4d7e1;font-size:32px;font-weight:500;line-height:1.2}
+#al.goal{border-left-color:#f7c948}
+#al.x2{border-left-color:#25f4ee}
+#al.lead{border-left-color:#c49bff}
+#al.cta{border-left-color:#fe2c55}
 .wm.flash{animation:fl .5s ease-in-out 5 alternate}
 @keyframes fl{to{box-shadow:0 0 70px 20px rgba(255,216,74,.85),0 20px 50px rgba(0,0,0,.8)}}
 #backendShortcut{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);z-index:9;padding:7px 15px;border:1px solid rgba(255,225,165,.65);border-radius:999px;background:rgba(12,12,14,.82);color:#ffe1a5;font:700 18px 'Barlow Condensed',sans-serif;letter-spacing:1px;text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,.55)}
@@ -200,10 +197,9 @@ html.tr,html.tr body{background:transparent}
  <div class="keys" id="keys">
   <button class="key" data-k="rew">⏪<small>REB</small></button><button class="key" data-k="play">▶<small>PLAY</small></button><button class="key" data-k="ff">⏩<small>AVA</small></button><button class="key" data-k="stop">⏹<small>STOP</small></button>
  </div>
- <div class="tick"><span id="tk"></span></div>
  <div class="sony"><a class="sony-mark" href="/backend" aria-label="Abrir el backend de administración"><i>SONY</i></a><small>STEREO CASSETTE-CORDER</small><b>WALKMAN</b></div>
- <div id="al" role="alert" aria-live="assertive" aria-atomic="true"><span class="ai"></span><div class="at"><b></b><span></span></div></div>
 </div>
+<div id="al" role="alert" aria-live="assertive" aria-atomic="true"><span class="ai"></span><div class="at"><b></b><span></span></div></div>
 <div class="deck" id="deck">
  <div class="scr">
   <div class="beams"></div>
@@ -229,8 +225,6 @@ if(q.get('tr')==='1')document.documentElement.classList.add('tr');
 function fit(){const s=Math.min(innerWidth/1080,innerHeight/1920);stg.style.transform='scale('+s+')';stg.style.left=Math.max(0,(innerWidth-1080*s)/2)+'px'}
 addEventListener('resize',fit);fit();
 if(q.get('name'))$('#pn').textContent=q.get('name');
-const msgs=(q.get('msg')||'BIENVENIDO A RADIO BUBSDT|ESCRIBE AMÉN EN EL CHAT = +5 PUNTOS|TOCA EL ❤ = +1 PUNTO CADA VEZ|DEJA TU PETICIÓN DE ORACIÓN Y LA LEEMOS EN VIVO|COMPARTE EL LIVE Y SUBE LA META|EL LÍDER DEL RANKING RECIBE UN SALUDO ESPECIAL').split('|').join(' ✦ ');
-$('#tk').textContent=(msgs+'   ✦   ').repeat(2);
 const TAPE={n:'CINTA',bpm:100,root:60,w:'sawtooth',pr:[[0,0],[9,1],[5,0],[7,0]],ar:[0,2,1,2,3,2,1,0]};
 let TAPE_SEC=Math.max(60,Math.min(3600,+q.get('cinta')||3600));const REW=+q.get('rew')||20,FF=+q.get('ff')||20,ALPHA=+q.get('alfa')||40,V1=140,REWIND_DURATION_MS=9000;
 const TAPE_SIDE_SECONDS=3600;
@@ -289,11 +283,10 @@ function renderTikTokStatus(status={}){
  lnk.classList.toggle('pending',pending);
  lnk.classList.toggle('unknown',!connected&&!pending&&state==='');
  lnk.dataset.c=connected?'1':pending?'pending':state||'unknown';
- const username=String(connector.username||status.username||status.configuredUsername||'').trim().replace(/^@+/,'');
- lnkT.textContent=connected?`EN LÍNEA${username?` · @${username}`:''}`
+ lnkT.textContent=connected?'EN LÍNEA'
   :pending?(state==='reconnecting'?'REINTENTANDO...':'CONECTANDO...')
    :state?'DESCONECTADO':'ESTADO DESCONOCIDO';
- lnk.title=connected?`Conectado a TikTok${username?` · @${username}`:''}`
+ lnk.title=connected?'Conectado a TikTok'
   :pending?'Conectando con TikTok':state?'TikTok desconectado':'No se pudo consultar el estado de TikTok';
 }
 async function refreshTikTokStatus(){
@@ -311,7 +304,7 @@ function initTikTokEventStream(){
   const {entry}=JSON.parse(event.data);if(!entry||typeof entry!=='object')return;
   const user=entry.username||'usuario';
   if(entry.type==='like')window.liveEvent({type:'like',user,count:Number.isFinite(entry.activityCount)?entry.activityCount:1});
-  else if(entry.type==='gift')window.liveEvent({type:'gift',user,gift:(entry.content||'EnviÃ³ un regalo').replace(/^EnviÃ³\s*/i,'').replace(/\s+x\d+$/i,''),diamonds:Number.isFinite(entry.diamondCount)?entry.diamondCount*(Number.isFinite(entry.activityCount)?entry.activityCount:1):0,count:Number.isFinite(entry.activityCount)?entry.activityCount:1,avatar:entry.avatar});
+  else if(entry.type==='gift')window.liveEvent({type:'gift',user,gift:(entry.content||'EnviÃ³ un regalo').replace(/^EnviÃ³\s*/i,'').replace(/\s+x\d+$/i,''),diamonds:Number.isFinite(entry.diamondCount)?entry.diamondCount:0,count:Number.isFinite(entry.activityCount)?entry.activityCount:1,avatar:entry.avatar});
   else if(entry.type==='chat')window.liveEvent({type:'comment',user,text:entry.content||'EnviÃ³ un mensaje',avatar:entry.avatar});
   else if(entry.type==='member')window.liveEvent({type:'join',user,avatar:entry.avatar});
   else if(entry.type==='follow')window.liveEvent({type:'follow',user,avatar:entry.avatar});
@@ -558,6 +551,30 @@ function row(ic,name,txt,cls,av){const r=document.createElement('div');r.classNa
  const t=document.createElement('div'),b=document.createElement('b'),s=document.createElement('span');t.className='tx';b.textContent=ic+' '+name;s.textContent=txt;t.append(b,s);r.append(mkAv(name,av),t);
  feed.prepend(r);while(feed.children.length>5)feed.lastChild.remove();return r}
 const first=s=>String(s||'Alguien').replace(/^@/,'').trim().split(/\s+/)[0].slice(0,14)||'Alguien';
+let songGoalCoinGoal=500,songGoalCoinProgress=0;
+try{
+ const savedProgress=JSON.parse(localStorage.getItem('radio-song-goal-progress-v1')||'0');
+ if(Number.isSafeInteger(savedProgress)&&savedProgress>=0)songGoalCoinProgress=savedProgress;
+}catch(error){console.warn('No se pudo recuperar el progreso de la meta musical:',error)}
+function setSongGoalCoinGoal(value){
+ if(!Number.isSafeInteger(value)||value<1)return;
+ songGoalCoinGoal=value;songGoalCoinProgress%=songGoalCoinGoal;
+}
+async function advanceSongGoalTracks(count){
+ for(let i=0;i<count;i++)await requestRadioAction('next');
+}
+function addSongGoalCoins(value){
+ if(!Number.isFinite(value)||value<=0)return;
+ const total=songGoalCoinProgress+Math.floor(value);
+ const completedGoals=Math.floor(total/songGoalCoinGoal);
+ songGoalCoinProgress=total%songGoalCoinGoal;
+ try{localStorage.setItem('radio-song-goal-progress-v1',String(songGoalCoinProgress))}
+ catch(error){console.warn('No se pudo guardar el progreso de la meta musical:',error)}
+ if(completedGoals>0){
+  radioHint.textContent='¡Meta musical alcanzada! Pasando al siguiente tema…';
+  advanceSongGoalTracks(completedGoals).catch(error=>{radioHint.textContent=error.message||'No se pudo avanzar al siguiente tema.'});
+ }
+}
 function ev(e){if(!e||!e.type)return;lastEv=performance.now();const key=e.id||e.user||'Alguien',name=first(e.user);
  let u=users.get(key);if(!u){u={name,l:0,c:0,d:0,pts:0,sp:0};users.set(key,u)}u.name=name;if(e.avatar||e.profilePictureUrl)u.av=e.avatar||e.profilePictureUrl;
  if(e.type==='like'){const n=(e.count|0)||1;tot.like+=n;u.l+=n;u.pts+=n*M();const now=performance.now();
@@ -566,10 +583,19 @@ function ev(e){if(!e||!e.type)return;lastEv=performance.now();const key=e.id||e.
  else if(e.type==='comment'){tot.comment++;u.c++;u.pts+=5*M();row('💬',name,String(e.text||'').slice(0,70),'cm',u.av)}
  else if(e.type==='join'){tot.join++;row('👋',name,'se unió al live','jn',u.av)}
  else if(e.type==='gift'){const n=(e.count|0)||1,dia=Math.max(1,(+e.diamonds||1)*n),g=e.gift||'regalo',ic=e.icon||'🎁';
+  addSongGoalCoins(Math.max(0,Math.floor(+e.diamonds||0))*n);
   tot.gift+=n;tot.dia+=dia;u.d+=dia;u.pts+=dia*10*M();row(ic,name,'envió '+(n>1?n+'× ':'')+g+'  💎'+dia,'gf',u.av);party(name,g,ic,n,dia,u.av);toast(ic,name+' envió '+g,'¡Gracias! 💎'+dia+(n>1?' ('+n+'×)':''),'gf',3000+Math.min(2500,dia*20))}
  dirty=1}
 let runtimeStatsLoaded=false;
 let runtimeHadEvents=false;
+fetch('/api/overlay/settings').then(async response=>{
+ if(!response.ok)throw new Error('No se pudo cargar la meta de monedas.');
+ const settings=await response.json();setSongGoalCoinGoal(settings.coinGoal);
+}).catch(error=>console.warn(error.message));
+const songGoalSettingsStream=new EventSource('/api/overlay/stream');
+songGoalSettingsStream.addEventListener('settings',event=>{
+ const settings=JSON.parse(event.data);setSongGoalCoinGoal(settings.coinGoal);
+});
 function syncRuntimeStats(stats){
  if(!stats||!stats.users||typeof stats.users!=='object')return;
  tot.like=Number(stats.likes)||0;tot.gift=Number(stats.gifts)||0;tot.dia=Number(stats.giftDiamonds)||0;
@@ -652,7 +678,7 @@ const vu=$('#vu'),gN=$('#gN'),gP=$('#gP'),gR=$('#gR'),mvp=$('#mvp'),al=$('#al'),
 for(let i=0;i<20;i++){const x=document.createElement('i');x.style.setProperty('--sc',i<12?'#4dff7a':i<17?'#ffb13b':'#ff4a3a');vu.appendChild(x)}
 let lvl=0,lead=null,x2End=0,nextX2=performance.now()+90000,tq=[],tBusy=0,ci=0;
 const M=()=>performance.now()<x2End?2:1;
-const CTA=[['🙌','Escribe AMÉN en el chat','+5 puntos por comentario'],['❤','Toca el corazón sin parar','+1 punto por cada toque'],['🙏','Deja tu petición de oración','La leemos en vivo'],['↗','Comparte el live','Cada hermano que entra suma a la meta']];
+const CTA=[['🙌','¡Saluda en el chat!','Escribe AMÉN y aparece en el live'],['❤','¡Toca la pantalla!','Cada toque suma para la meta comunitaria'],['🙏','¿Por quién oramos hoy?','Deja tu petición en los comentarios'],['↗','¡Invita a alguien!','Comparte este live con tu comunidad']];
 function toast(ic,t,s,c,ms){tq.push([ic,t,s,c,ms||3400]);if(!tBusy)nextTo()}
 function nextTo(){const x=tq.shift();if(!x){tBusy=0;return}tBusy=1;
  al.className='';void al.offsetWidth;al.className='show '+x[3];al.children[0].textContent=x[0];al.children[1].children[0].textContent=x[1];al.children[1].children[1].textContent=x[2];

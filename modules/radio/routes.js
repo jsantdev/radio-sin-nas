@@ -34,6 +34,7 @@ function registerRadioRoutes(app, {
   app.get('/audio/current', async (request, response, next) => {
     try {
       const audioResponse = await externalLibrary.fetchCurrentTrack(request.get('range'));
+      response.set('Cache-Control', 'no-store');
       for (const header of ['accept-ranges', 'content-length', 'content-range', 'content-type']) {
         const value = audioResponse.headers.get(header);
         if (value) response.set(header, value);
