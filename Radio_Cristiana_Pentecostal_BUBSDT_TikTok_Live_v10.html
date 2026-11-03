@@ -54,7 +54,7 @@ button:focus-visible,a:focus-visible,.cass:focus-visible{outline:6px solid var(-
 .chip b{font:inherit;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .chip.pop{animation:pop .3s ease-out}
 @keyframes pop{40%{transform:scale(1.07)}}
-#fan b{font-size:44px}
+#joinCount b{font-size:44px}
 
 /* ===== Meta: siguiente tema ===== */
 .goal{left:60px;top:1100px;width:960px;height:210px;border-radius:32px;background:var(--panel);padding:28px 36px}
@@ -92,6 +92,7 @@ button:focus-visible,a:focus-visible,.cass:focus-visible{outline:6px solid var(-
 .ctl{left:60px;top:1826px;width:960px;height:70px;display:flex;gap:16px;justify-content:center;opacity:0;transition:opacity .2s}
 .ctl:hover,.ctl:focus-within{opacity:1}
 .ctl button{width:140px;border:0;border-radius:20px;background:var(--panel2);font:900 34px var(--f);cursor:pointer}
+.ctl #resetCounters{width:260px;background:var(--pink);color:#fff}
 #backendShortcut{left:50%;bottom:6px;transform:translateX(-50%);z-index:9;padding:6px 14px;border-radius:999px;background:var(--panel);color:var(--txt);font:700 20px var(--f);text-decoration:none;opacity:0}
 #backendShortcut:hover,#backendShortcut:focus-visible{opacity:1}
 @media(prefers-reduced-motion:reduce){.cass.bump,#np.tin,.cta.in .ic,.cta.in .tx,.tick.in,.chip.pop,.cta.gift .ic{animation:none}}
@@ -151,7 +152,7 @@ button:focus-visible,a:focus-visible,.cass:focus-visible{outline:6px solid var(-
  <section class="chips" aria-label="Actividad del live">
   <div class="chip" id="chLk"><i>❤</i><b id="sLk">0</b></div>
   <div class="chip" id="chCm"><i>💬</i><b id="sCm">0</b></div>
-  <div class="chip" id="fan"><i>👑</i><b id="fanN">¿Tú?</b></div>
+  <div class="chip" id="joinCount"><i>👋</i><b id="joinN">0</b></div>
  </section>
 
  <section class="goal" aria-label="Meta para el siguiente tema">
@@ -164,7 +165,7 @@ button:focus-visible,a:focus-visible,.cass:focus-visible{outline:6px solid var(-
 
  <section class="tick in cm" id="tick"><span class="av2" id="tkA" style="background:#4a3a7a">💬</span><div class="tt"><b id="tkN">Sé el primero</b><span id="tkS">Escribe AMÉN en el chat y sales aquí</span></div></section>
 
- <nav class="ctl" aria-label="Controles de la radio"><button data-k="rew" aria-label="Tema anterior">⏮</button><button data-k="play" id="btnPlay" aria-label="Reproducir o pausar">▶</button><button data-k="ff" aria-label="Tema siguiente">⏭</button></nav>
+ <nav class="ctl" aria-label="Controles de la radio"><button data-k="rew" aria-label="Tema anterior">⏮</button><button data-k="play" id="btnPlay" aria-label="Reproducir o pausar">▶</button><button data-k="ff" aria-label="Tema siguiente">⏭</button><button type="button" id="resetCounters">↺ Reiniciar contadores</button></nav>
  <a id="backendShortcut" href="/backend" aria-label="Ir al backend de administración">⚙ Admin</a>
 </div>
 
@@ -199,7 +200,7 @@ function fitTitle(){let fs=88;np.style.fontSize=fs+'px';while(np.offsetHeight>tt
 function writeTrackTitle(value){
  const title=String(value||'').trim();
  if(title===curT)return;curT=title;
- np.textContent=title||'Alabanzas de avivamiento';np.classList.toggle('idle',!title);
+ np.textContent=title?title.split(/\s+/).slice(0,2).join(' '):'Alabanzas de avivamiento';np.classList.toggle('idle',!title);
  fitTitle();np.classList.remove('tin');void np.offsetWidth;np.classList.add('tin');
 }
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fitTitle);
@@ -356,6 +357,16 @@ function initTikTokEventStream(){
  es.addEventListener('error',refreshTikTokStatus);
 }
 lnk.onclick=async()=>{unlock();lnkT.textContent='CONECTANDO…';lnk.classList.add('pending');try{const r=await fetch('/api/reconnect',{method:'POST'});const res=await r.json();if(!r.ok)throw new Error(res.message||'No se pudo reconectar con TikTok.')}catch(e){refreshTikTokStatus();say(e.message)}};
+$('#resetCounters').addEventListener('click',async()=>{
+ const button=$('#resetCounters');button.disabled=true;
+ try{
+  const response=await fetch('/api/overlay/counters/reset',{method:'POST'});
+  const result=await response.json();
+  if(!response.ok)throw new Error(result.message||'No se pudieron reiniciar los contadores.');
+  syncRuntimeStats(result.stats);
+ }catch(error){say(error.message||'No se pudieron reiniciar los contadores.')}
+ finally{button.disabled=false}
+});
 renderTikTokStatus({});refreshTikTokStatus();initTikTokEventStream();
 
 /* ===== Interacción del live ===== */
@@ -393,7 +404,7 @@ const CTA=[
  ()=>['🙏','Escribe AMÉN','Tu nombre aparece aquí abajo'],
  ()=>['🎶','Pide tu alabanza','Déjala en los comentarios'],
  ()=>['🎁','Regala y cambia de tema','Faltan '+Math.max(0,goalMax-goalNow)+' 💎 para la siguiente'],
- ()=>['👑','¿Quién será el fan top?','Más ❤ y 💬 = el 👑 es tuyo'],
+ ()=>['👋','¡Bienvenido al live!','Ya somos parte de esta alabanza'],
  ()=>['↗','Comparte el live','Invita a alguien a escuchar']
 ];
 function paintCta(cls,ic,t,s){cta.className='cta '+(cls||'');ctaI.textContent=ic;ctaT.textContent=t;ctaS.textContent=s;retrig(cta,'in')}
@@ -420,7 +431,7 @@ function ev(e){
  }else if(e.type==='comment'){
   tot.comment++;u.c++;u.pts+=5;boostReels(.5);retrig($('#chCm'),'pop');
   showTick('cm','💬',name,String(e.text||'').slice(0,70),u.av);lastLike=null;
- }else if(e.type==='join'){showTick('jn','👋',name,'se unió al live',u.av);lastLike=null}
+ }else if(e.type==='join'){tot.join++;showTick('jn','👋',name,'se unió al live',u.av);lastLike=null}
  else if(e.type==='follow'){showTick('jn','➕',name,'empezó a seguirte',u.av);lastLike=null}
  else if(e.type==='share'){showTick('jn','↗',name,'compartió el live',u.av);lastLike=null}
  else if(e.type==='gift'){
@@ -434,23 +445,12 @@ function ev(e){
  renderStats();
 }
 function renderStats(){
- $('#sLk').textContent=tot.like;$('#sCm').textContent=tot.comment;
- let top=null;users.forEach(u=>{if(u.pts>0&&(!top||u.pts>top.pts))top=u});
- $('#fanN').textContent=top?top.name:'¿Tú?';
+ $('#sLk').textContent=tot.like;$('#sCm').textContent=tot.comment;$('#joinN').textContent=tot.join;
 }
 function syncRuntimeStats(stats){
- if(!stats||!stats.users||typeof stats.users!=='object')return;
- tot.like=Number(stats.likes)||0;tot.gift=Number(stats.gifts)||0;tot.comment=Number(stats.comments)||0;tot.join=Number(stats.members)||0;
- const seen=new Set();
- for(const [key,value] of Object.entries(stats.users)){
-  if(!value||typeof value!=='object')continue;seen.add(key);
-  const u=users.get(key)||{name:first(key),l:0,c:0,d:0,pts:0};
-  u.name=first(key);u.l=Number(value.likes)||0;u.c=Number(value.comments)||0;u.d=Number(value.diamonds)||0;u.pts=u.l+u.c*5+u.d*10;users.set(key,u);
- }
- for(const key of [...users.keys()])if(!seen.has(key))users.delete(key);
- const has=Object.values(stats.events||{}).some(c=>Number(c)>0);
- if(!has&&syncRuntimeStats.had){lastLike=null;showTick('cm','💬','Sé el primero','Escribe AMÉN en el chat y sales aquí')}
- syncRuntimeStats.had=has;renderStats();
+ if(!stats||typeof stats!=='object')return;
+ tot.like=Number(stats.likes)||0;tot.comment=Number(stats.comments)||0;tot.join=Number(stats.members)||0;
+ renderStats();
 }
 window.liveEvent=e=>ev(e);
 

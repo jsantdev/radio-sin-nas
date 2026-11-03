@@ -12,6 +12,7 @@ function createTikTokModule({
   monitorService = createTikTokMonitorService(),
   configurationPath = process.env.WEBSERVER_CONFIG_PATH || path.join(__dirname, '..', '..', 'data', 'monitor-config.json'),
   recentUsersPath = path.join(path.dirname(configurationPath), 'recent-tiktok-users.json'),
+  countersPath = path.join(path.dirname(configurationPath), 'overlay-counters.json'),
   defaultUsername = process.env.TIKTOK_USERNAME || '',
 } = {}) {
   if (!stream || typeof stream.attach !== 'function' || typeof stream.broadcast !== 'function') {
@@ -22,10 +23,23 @@ function createTikTokModule({
   const eventHistory = [];
   const events = [];
   let ignoredEvents = new Set();
+  const runtimeStats = { likes: 0, comments: 0, members: 0 };
   const environmentUsername = process.env.TIKTOK_USERNAME?.trim().replace(/^@+/, '');
   const normalizedDefaultUsername = String(defaultUsername || '').trim().replace(/^@+/, '');
   let configuration = { username: environmentUsername || normalizedDefaultUsername, saved: false };
   let recentUsers = [];
+
+  try {
+    const savedCounters = JSON.parse(fs.readFileSync(countersPath, 'utf8'));
+    if (!savedCounters || typeof savedCounters !== 'object' || Array.isArray(savedCounters)
+      || ['likes', 'comments', 'members'].some((key) => !Number.isSafeInteger(savedCounters[key])
+        || savedCounters[key] < 0)) {
+      throw new Error('Los contadores guardados del overlay no son válidos.');
+    }
+    Object.assign(runtimeStats, savedCounters);
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
 
   try {
     const savedRecentUsers = JSON.parse(fs.readFileSync(recentUsersPath, 'utf8'));
@@ -89,6 +103,38 @@ function createTikTokModule({
     stream.broadcast(event, payload);
   }
 
+  function saveRuntimeStats() {
+    fs.mkdirSync(path.dirname(countersPath), { recursive: true });
+    const temporaryPath = `${countersPath}.tmp`;
+    fs.writeFileSync(temporaryPath, JSON.stringify(runtimeStats, null, 2), { mode: 0o600 });
+    fs.renameSync(temporaryPath, countersPath);
+  }
+
+  function incrementRuntimeStats(entry) {
+    if (entry.type === 'like') {
+      const count = Number.isSafeInteger(entry.activityCount) && entry.activityCount > 0
+        ? entry.activityCount : 1;
+      runtimeStats.likes += count;
+    } else if (entry.type === 'chat') {
+      runtimeStats.comments += 1;
+    } else if (entry.type === 'member') {
+      runtimeStats.members += 1;
+    } else {
+      return;
+    }
+    saveRuntimeStats();
+    publish('runtime-state', { ...runtimeStats });
+  }
+
+  function resetRuntimeStats() {
+    runtimeStats.likes = 0;
+    runtimeStats.comments = 0;
+    runtimeStats.members = 0;
+    saveRuntimeStats();
+    publish('runtime-state', { ...runtimeStats });
+    return { ...runtimeStats };
+  }
+
   function rememberConnectedUser(username) {
     const normalizedUsername = String(username || '').trim().replace(/^@+/, '');
     if (!normalizedUsername || recentUsers[0] === normalizedUsername) return;
@@ -118,6 +164,7 @@ function createTikTokModule({
     events.unshift(entry);
     events.length = Math.min(events.length, maxEvents);
     publish('update', { entry, events });
+    incrementRuntimeStats(entry);
   }
 
   const unsubscribeEvents = monitorService.subscribeToEvents(handleTikTokEvent);
@@ -196,6 +243,7 @@ function createTikTokModule({
     stream.attach(response, [
       ['status', { ...state }],
       ['snapshot', events],
+      ['runtime-state', { ...runtimeStats }],
     ]);
   }
 
@@ -206,6 +254,7 @@ function createTikTokModule({
       saveConfiguration,
       reconnectConfiguredUser,
       openEventStream,
+      resetRuntimeStats,
     });
   }
 

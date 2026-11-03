@@ -62,10 +62,13 @@ test('radio server keeps TikTok configuration, event monitoring, and radio state
   const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), `radio-config-${randomUUID()}-`));
   const configurationPath = path.join(storagePath, 'monitor-config.json');
   const overlaySettingsPath = path.join(storagePath, 'overlay-settings.json');
+  const overlayCountersPath = path.join(storagePath, 'overlay-counters.json');
+  fs.writeFileSync(overlayCountersPath, JSON.stringify({ likes: 3, comments: 2, members: 4 }));
   const { server } = createWebserver({
     monitorService,
     configurationPath,
     overlaySettingsPath,
+    overlayCountersPath,
   });
   const baseUrl = await listen(server);
   let radioReader;
@@ -229,6 +232,8 @@ test('radio server keeps TikTok configuration, event monitoring, and radio state
     const initialEvents = new TextDecoder().decode((await eventReader.read()).value);
     assert.match(initialEvents, /event: status/);
     assert.match(initialEvents, /event: snapshot/);
+    assert.match(initialEvents, /event: runtime-state/);
+    assert.match(initialEvents, /"likes":3,"comments":2,"members":4/);
 
     const config = await fetch(`${baseUrl}/api/config`).then((response) => response.json());
     assert.equal(config.username, '');
@@ -301,6 +306,33 @@ test('radio server keeps TikTok configuration, event monitoring, and radio state
       subscriberUpdate += new TextDecoder().decode(next.value);
     }
     assert.match(subscriberUpdate, /new-subscriber/);
+
+    monitorService.emit({
+      type: 'like',
+      username: 'music-fan',
+      activityCount: 7,
+    });
+    monitorService.emit({
+      type: 'member',
+      username: 'new-viewer',
+    });
+    assert.deepEqual(JSON.parse(fs.readFileSync(overlayCountersPath, 'utf8')), {
+      likes: 10,
+      comments: 3,
+      members: 5,
+    });
+
+    const resetCounters = await sendJson('/api/overlay/counters/reset', 'POST', {});
+    assert.equal(resetCounters.status, 200);
+    assert.deepEqual(await resetCounters.json(), {
+      ok: true,
+      stats: { likes: 0, comments: 0, members: 0 },
+    });
+    assert.deepEqual(JSON.parse(fs.readFileSync(overlayCountersPath, 'utf8')), {
+      likes: 0,
+      comments: 0,
+      members: 0,
+    });
 
     const status = await fetch(`${baseUrl}/api/status`).then((response) => response.json());
     assert.equal(status.connected, true);

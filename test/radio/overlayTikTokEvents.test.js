@@ -183,6 +183,34 @@ test('radio overlay removes the scrolling ticker and enlarges the Walkman case',
   assert.match(overlay, /\.chips\{left:60px;top:950px/);
 });
 
+test('radio cassette shows only the first two words of the playing track', () => {
+  const overlay = fs.readFileSync(path.join(__dirname, '../../Radio_Cristiana_Pentecostal_BUBSDT_TikTok_Live_v10.html'), 'utf8');
+  const start = overlay.indexOf('const np=$(\'#np\'),ttl=$(\'.ttl\');');
+  const end = overlay.indexOf('\nif(document.fonts&&document.fonts.ready)', start);
+  assert.notEqual(start, -1);
+  assert.notEqual(end, -1);
+
+  const node = {
+    classList: { toggle() {}, remove() {}, add() {} },
+    style: {},
+    offsetHeight: 40,
+    offsetWidth: 10,
+    textContent: '',
+  };
+  vm.runInNewContext(`${overlay.slice(start, end)}\nwriteTrackTitle("  Cristo   es mi salvador  ");`, {
+    $: (selector) => selector === '#np' ? node : { clientHeight: 150 },
+  });
+  assert.equal(node.textContent, 'Cristo es');
+});
+
+test('radio overlay shows the join count and provides an explicit reset control', () => {
+  const overlay = fs.readFileSync(path.join(__dirname, '../../Radio_Cristiana_Pentecostal_BUBSDT_TikTok_Live_v10.html'), 'utf8');
+  assert.match(overlay, /<div class="chip" id="joinCount"><i>👋<\/i><b id="joinN">0<\/b><\/div>/);
+  assert.match(overlay, /id="resetCounters"/);
+  assert.match(overlay, /fetch\('\/api\/overlay\/counters\/reset',\{method:'POST'\}\)/);
+  assert.match(overlay, /tot\.join=Number\(stats\.members\)\|\|0/);
+});
+
 test('radio playback does not mix a generated white-noise track', () => {
   const overlay = fs.readFileSync(path.join(__dirname, '../../Radio_Cristiana_Pentecostal_BUBSDT_TikTok_Live_v10.html'), 'utf8');
   const audioSection = overlay.slice(overlay.indexOf('/* ===== Audio:'), overlay.indexOf('/* ===== Mensajes de ayuda */'));

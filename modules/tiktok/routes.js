@@ -4,6 +4,7 @@ function registerTikTokRoutes(app, {
   saveConfiguration,
   reconnectConfiguredUser,
   openEventStream,
+  resetRuntimeStats,
 }) {
   app.get('/api/status', (request, response) => {
     response.json(getStatus());
@@ -29,6 +30,10 @@ function registerTikTokRoutes(app, {
       return;
     }
     response.json(result);
+  });
+
+  app.post('/api/overlay/counters/reset', (request, response) => {
+    response.json({ ok: true, stats: resetRuntimeStats() });
   });
 
   app.get('/api/events', (request, response) => {

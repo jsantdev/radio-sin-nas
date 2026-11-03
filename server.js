@@ -35,6 +35,8 @@ function createWebserver({
   nasBaseUrl = process.env.NAS_BASE_URL || '',
   configurationPath = process.env.WEBSERVER_CONFIG_PATH
     || path.join(dataDirectory, 'radio', 'monitor-config.json'),
+  overlayCountersPath = process.env.RADIO_OVERLAY_COUNTERS_PATH
+    || path.join(dataDirectory, 'radio', 'overlay-counters.json'),
   overlaySettingsPath = process.env.RADIO_OVERLAY_SETTINGS_PATH
     || path.join(dataDirectory, 'radio', 'overlay-settings.json'),
   externalLibraryConfigurationPath = process.env.RADIO_LIBRARY_CONFIG_PATH
@@ -70,6 +72,7 @@ function createWebserver({
     stream: activityStream,
     monitorService,
     configurationPath,
+    countersPath: overlayCountersPath,
   });
 
   app.use(express.json({ limit: '1mb' }));
