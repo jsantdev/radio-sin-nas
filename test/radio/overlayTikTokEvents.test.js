@@ -176,3 +176,9 @@ test('radio overlay removes the scrolling ticker and enlarges the Walkman case',
   assert.match(overlay, /\.wm>\*\{position:absolute\}/);
   assert.match(overlay, /\.deck\{position:absolute;left:20px;top:958px;width:1040px;height:944px/);
 });
+
+test('radio playback does not mix a generated white-noise track', () => {
+  const overlay = fs.readFileSync(path.join(__dirname, '../../Radio_Cristiana_Pentecostal_BUBSDT_TikTok_Live_v10.html'), 'utf8');
+  assert.doesNotMatch(overlay, /nzF|nzG|nzG\.gain|set\(nz/);
+  assert.match(overlay, /set\(out\.gain,vol,\.25\);set\(musG\.gain,st==='play'\?1:0\)/);
+});

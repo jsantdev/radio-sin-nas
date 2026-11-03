@@ -221,7 +221,7 @@ const TAPE_SIDE_SECONDS=3600;
 let vN=0,wLp=0,wRp=0,alL=0,alR=0;const capf=(x,c)=>c*Math.tanh(x/c);
 let curT='';const lbT=$('#radioTrackTitle'),lbI=$('#lbIdle'),penRects=[0,1,2].map(index=>$('#penr'+index));
 let on=true,vol=.6,st=q.get('play')==='0'?'stop':'play',pos=0,aL=0,aR=0,aP=0,off=0;
-let A,out,musG,hpF,lpF,nzF,nzG,wowG,whine,whG,hum,hmG,nextT=0,stepI=0,curSong=null;
+let A,out,musG,hpF,lpF,wowG,whine,whG,hum,hmG,nextT=0,stepI=0,curSong=null;
 const radioPlayer=$('#radioPlayer'),radioHint=$('#radioHint'),enableAudio=$('#enableRadioAudio');
 let currentTrackKey='',currentTrackTitle='',currentDiscName='ALABANZAS',autoRewinding=false,autoRewindStartedAt=0,autoRewindStartPosition=0,rewindNodes=[];
 let tapeSide='A',tapePlayedSeconds=0,lastTapeMediaTime=null,lastTapeClockAt=0,lastTapePersistAt=0;
@@ -230,8 +230,6 @@ function boot(){if(A)return;A=new (window.AudioContext||window.webkitAudioContex
  out=A.createGain();out.gain.value=0;out.connect(A.destination);
  lpF=A.createBiquadFilter();lpF.type='lowpass';hpF=A.createBiquadFilter();hpF.type='highpass';
  musG=A.createGain();musG.gain.value=0;musG.connect(hpF);hpF.connect(lpF);lpF.connect(out);
- const n=A.sampleRate*2,b=A.createBuffer(1,n,A.sampleRate),d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;
- const s=A.createBufferSource();s.buffer=b;s.loop=true;nzF=A.createBiquadFilter();nzF.type='bandpass';nzF.Q.value=.5;nzG=A.createGain();nzG.gain.value=0;s.connect(nzF);nzF.connect(nzG);nzG.connect(out);s.start();
  wowG=A.createGain();wowG.gain.value=0;const w=A.createOscillator();w.frequency.value=.8;w.connect(wowG);w.start();
  whine=A.createOscillator();whine.type='sawtooth';whine.frequency.value=300;whG=A.createGain();whG.gain.value=0;whine.connect(whG);whG.connect(out);whine.start();
  hum=A.createOscillator();hum.type='triangle';hum.frequency.value=50;hmG=A.createGain();hmG.gain.value=0;hum.connect(hmG);hmG.connect(out);hum.start();nextT=A.currentTime+.1}
@@ -515,8 +513,8 @@ function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;
  $('#knV').style.transform='rotate('+(vol*270-135)+'deg)';
  writeTrackTitle(currentTrackTitle);
  if(A){const set=(p,x,k)=>p.setTargetAtTime(x,A.currentTime,k||.06);
-  set(out.gain,vol,.25);set(musG.gain,st==='play'?1:0);set(nzG.gain,st==='play'?.012:st==='stop'?0:.05);
-  set(nzF.frequency,6500);set(hpF.frequency,60);set(lpF.frequency,7000);
+  set(out.gain,vol,.25);set(musG.gain,st==='play'?1:0);
+  set(hpF.frequency,60);set(lpF.frequency,7000);
   set(wowG.gain,st==='play'?14+Math.random()*4:3);
   set(whG.gain,(st==='ff'||st==='rew')?.012:0);set(whine.frequency,180+Math.abs(spd)*(9/Math.max(FF,REW))*28*(1+pos*.6));
   set(hmG.gain,st!=='stop'?.01:0)}
