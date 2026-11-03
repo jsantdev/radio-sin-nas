@@ -3,6 +3,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Radio Cristiana Pentecostal BUBSDT · Sony Walkman · TikTok Live</title>
 <meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#4c1d95">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700&family=Share+Tech+Mono&family=Caveat:wght@500;700&display=swap" rel="stylesheet">
 <style>
 :root{--amber:#ffb13b;--cream:#f2e6c4;--chrome:#8d9099;color-scheme:dark}
@@ -686,4 +690,11 @@ if(q.get('bots')==='1'){
 // pruebas con el teclado: G regalo, C comentario, J entrada, L me gusta
 addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(k==='g')rgift();else if(k==='c')rcom();else if(k==='j')rjoin();else if(k==='l')rlike()});
 })();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/service-worker.js').catch((error) => {
+    console.error('No se pudo preparar la instalación de Radio:', error);
+  });
+}
 </script></body></html>

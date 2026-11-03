@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "Fe y Esperanza Radio",
-  "short_name": "Fe y Esperanza",
-  "description": "Overlay en vivo de Fe y Esperanza Radio.",
+  "name": "Radio",
+  "short_name": "Radio",
+  "description": "Radio cristiana en vivo.",
   "lang": "es",
   "start_url": "/",
   "scope": "/",
