@@ -88,3 +88,39 @@ test('overlay dispatches every TikTok event to its matching live handler', () =>
   update({ data: JSON.stringify({ entry: duplicate }) });
   assert.equal(dispatched.length, 1);
 });
+
+test('radio overlay renders the actual TikTok connection state', () => {
+  const overlay = fs.readFileSync(path.join(__dirname, '../../Radio_Cristiana_Pentecostal_BUBSDT_TikTok_Live_v10.html'), 'utf8');
+  const start = overlay.indexOf('function renderTikTokStatus(status={}){');
+  const end = overlay.indexOf('\nasync function refreshTikTokStatus()', start);
+  assert.notEqual(start, -1, 'connection-status renderer exists in the radio overlay');
+  assert.notEqual(end, -1, 'connection-status renderer has a clear boundary');
+
+  const classes = new Set();
+  const lnk = {
+    classList: {
+      toggle(name, enabled) {
+        if (enabled) classes.add(name);
+        else classes.delete(name);
+      },
+    },
+    dataset: {},
+  };
+  const lnkT = { textContent: '' };
+  const renderTikTokStatus = vm.runInNewContext(`(${overlay.slice(start, end)})`, { lnk, lnkT });
+  renderTikTokStatus({ connected: true, username: 'canal', status: 'connected' });
+  assert.equal(lnkT.textContent, 'EN LÍNEA · @canal');
+  assert.equal(classes.has('bad'), false);
+
+  renderTikTokStatus({ connector: { isConnected: false, status: 'reconnecting' } });
+  assert.equal(lnkT.textContent, 'REINTENTANDO...');
+  assert.equal(classes.has('pending'), true);
+
+  renderTikTokStatus({ connected: false, status: 'disconnected' });
+  assert.equal(lnkT.textContent, 'DESCONECTADO');
+  assert.equal(classes.has('bad'), true);
+
+  renderTikTokStatus({});
+  assert.equal(lnkT.textContent, 'ESTADO DESCONOCIDO');
+  assert.equal(classes.has('unknown'), true);
+});
