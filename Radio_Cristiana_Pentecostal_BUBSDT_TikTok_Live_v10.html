@@ -1,265 +1,327 @@
 <!DOCTYPE html>
 <html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Radio Cristiana Pentecostal BUBSDT · Walkman · TikTok Live</title>
+<title>Radio Cristiana Pentecostal BUBSDT · Casete · TikTok Live</title>
 <meta name="color-scheme" content="dark">
-<meta name="theme-color" content="#160f2e">
+<meta name="theme-color" content="#1f1838">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
 <link rel="apple-touch-icon" href="/icons/icon-192.png">
-<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Chakra+Petch:wght@500;700&family=Caveat:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700;800;900&display=swap" rel="stylesheet">
 <style>
-:root{--brasa:#ff5b22;--oro:#ffc83d;--hueso:#fff1d6;--cian:#4fe3ff;--borde:#4a4658;--sr:110px;--f1:'Big Shoulders Display','Arial Narrow',Arial,sans-serif;--f2:'Chakra Petch','Segoe UI',Arial,sans-serif;color-scheme:dark}
+/* Diseño pensado para la compresión de TikTok Live:
+   colores planos, formas grandes, sin degradados, sin sombras difusas, sin líneas finas, texto grande. */
+:root{--ink:#14101f;--panel:#1f1838;--panel2:#3a2d63;--cream:#f1e7d0;--cream2:#cfc3a8;--gold:#ffc83d;--flame:#ff5b22;--pink:#ff3b6b;--txt:#fff1d6;--mut:#b9aedb;--f:'Inter','Segoe UI',Arial,sans-serif;color-scheme:dark}
 *{box-sizing:border-box;margin:0}
 html,body{height:100%;overflow:hidden;background:transparent}
-#stage{position:absolute;left:0;top:0;width:1080px;height:1920px;transform-origin:0 0;font:500 24px var(--f2);color:var(--hueso);user-select:none;-webkit-user-select:none}
-button:focus-visible,a:focus-visible{outline:3px solid var(--oro);outline-offset:3px}
+#stage{position:absolute;left:0;top:0;width:1080px;height:1920px;transform-origin:0 0;font:700 32px var(--f);color:var(--txt);user-select:none;-webkit-user-select:none}
+#stage>*{position:absolute}
+button{font-family:var(--f);color:inherit}
+button:focus-visible,a:focus-visible,.cass:focus-visible{outline:6px solid var(--gold);outline-offset:6px}
 
-/* ===== Walkman ===== */
-.wm{position:absolute;left:20px;top:122px;width:1040px;height:650px;border-radius:44px;overflow:hidden;background:linear-gradient(165deg,#3b3748,#26232f 55%,#1a1722);border:3px solid #0c0912;box-shadow:0 24px 60px rgba(0,0,0,.75),inset 0 3px 0 rgba(255,255,255,.14),inset 0 -12px 24px rgba(0,0,0,.45)}
-.wm>*{position:absolute}
-.wm::before{content:"";position:absolute;left:0;right:0;top:0;height:12px;background:linear-gradient(90deg,var(--brasa),var(--oro) 55%,var(--brasa))}
-.hd{left:28px;top:28px;width:984px;height:76px}
-.plate{position:absolute;left:0;top:0;line-height:1}
-.plate b{display:block;font:900 66px/.95 var(--f1);letter-spacing:3px;color:var(--oro)}
-.plate small{display:block;margin-top:5px;font:700 25px/1 var(--f1);letter-spacing:1.5px;color:var(--hueso);opacity:.85}
-.sony-mark{position:absolute;left:530px;top:20px;font:800 italic 38px/1 var(--f1);letter-spacing:4px;color:#8d879c;text-decoration:none;border-radius:4px}
-.sony-mark:hover{color:var(--oro)}
-.lnk{position:absolute;right:0;top:10px;height:56px;padding:0 24px 0 16px;display:flex;align-items:center;gap:14px;border-radius:28px;background:#0b0813;border:2px solid var(--borde);color:#d8f5df;font:700 27px var(--f2);cursor:pointer}
-.lnk span{max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.led{width:28px;height:28px;border-radius:50%;background:#34e06b;box-shadow:0 0 14px 4px rgba(52,224,107,.7),inset 0 -3px 4px rgba(0,0,0,.35),inset 0 3px 3px rgba(255,255,255,.5)}
-.lnk.bad{color:#ff8a8a}.lnk.bad .led{background:#ff2a2a;box-shadow:0 0 16px 5px rgba(255,42,42,.8),inset 0 -3px 4px rgba(0,0,0,.35),inset 0 3px 3px rgba(255,255,255,.4);animation:rb .9s ease-in-out infinite}
-.lnk.pending,.lnk.unknown{color:#ffd27a}.lnk.pending .led,.lnk.unknown .led{background:#ffb13b;box-shadow:0 0 14px 4px rgba(255,177,59,.55),inset 0 -3px 4px rgba(0,0,0,.35),inset 0 3px 3px rgba(255,255,255,.5)}
-@keyframes rb{50%{opacity:.12;box-shadow:none}}
-.bay{left:24px;top:116px;width:640px;height:346px;border-radius:22px;background:#07050d;border:3px solid var(--borde);padding:8px;box-shadow:inset 0 0 24px #000,0 3px 0 rgba(255,255,255,.12)}
-.bay svg{display:block}
-.evp{left:676px;top:116px;width:340px;height:346px;border-radius:22px;background:#0f0a1c;border:3px solid var(--borde);overflow:hidden;box-shadow:inset 0 0 24px #000}
-.evp h3{position:absolute;left:16px;top:8px;font:800 28px/1 var(--f1);letter-spacing:1px;color:var(--oro)}
-.feed{position:absolute;left:8px;right:8px;top:44px;height:296px;overflow:hidden}
-.ev{height:54px;margin-bottom:5px;display:flex;align-items:center;gap:10px;padding:0 10px;border-radius:12px;background:rgba(255,255,255,.07);border-left:6px solid var(--ec,#6b5a3a);overflow:hidden;animation:evin .35s ease-out}
-.ev .tx{min-width:0;flex:1;display:flex;flex-direction:column;line-height:1.05}
-.ev .tx b{font:800 26px/1.05 var(--f1);color:var(--oro);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ev .tx span{font:500 21px/1.05 var(--f2);color:#e2d9f2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ev.cm{--ec:#ffc83d}.ev.lk{--ec:#ff5a7a}.ev.jn{--ec:#4dff7a}.ev.gf{--ec:#ff3b6b;background:rgba(255,59,107,.2)}
-@keyframes evin{from{height:0;margin-bottom:0;opacity:0}}
-.np{left:24px;top:470px;width:992px;height:80px;display:flex;align-items:center;gap:18px}
-.cnt{display:flex;gap:4px;flex:none}
-.cnt b{width:44px;height:64px;border-radius:8px;background:#050309;border:2px solid var(--borde);color:var(--oro);font:700 46px/60px var(--f2);text-align:center}
-.npt{min-width:0;flex:1}
-#np{display:block;font:800 40px/1.05 var(--f1);color:var(--hueso);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.st{display:flex;gap:14px;align-items:center;margin-top:5px;font:500 22px/1.1 var(--f2);color:#cfc8e0;min-width:0}
-#tapeMode{flex:none;color:var(--oro);font-weight:700}
-#radioHint{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#enableRadioAudio{flex:none;border:2px solid var(--oro);border-radius:8px;background:#2b1608;color:var(--hueso);padding:3px 12px;font:700 22px var(--f2);cursor:pointer}
+/* ===== Cabecera ===== */
+.top{left:60px;top:70px;width:960px;height:130px}
+.brand{position:absolute;left:0;top:0}
+.brand b{display:block;font:900 96px/1 var(--f);letter-spacing:-1px;color:var(--gold)}
+.brand small{display:block;margin-top:8px;font:700 34px/1 var(--f);color:var(--txt)}
+.lnk{position:absolute;right:0;top:14px;height:64px;padding:0 22px;display:flex;align-items:center;gap:14px;border-radius:32px;background:var(--panel);border:0;font:800 30px var(--f);cursor:pointer}
+.lnk span{display:inline}
+.lnk.bad span,.lnk.pending span,.lnk.unknown span{display:inline}
+.led{width:28px;height:28px;border-radius:50%;background:#34e06b}
+.lnk.bad .led{background:#ff2a2a}.lnk.bad{color:#ff9a9a}
+.lnk.pending .led,.lnk.unknown .led{background:#ffb13b}.lnk.pending,.lnk.unknown{color:#ffd27a}
+
+/* ===== Casete realista ===== */
+.cass{left:40px;top:235px;width:1000px;height:659px;cursor:pointer;transition:transform .2s}
+.cass:active{transform:translateY(6px)}
+.cass.bump{animation:bump .35s ease-out}
+@keyframes bump{40%{transform:scale(1.025)}}
+.cass svg{position:absolute;left:0;top:0;width:100%;height:100%;display:block}
+.ttl{position:absolute;left:109px;top:127px;width:732px;height:150px;display:flex;align-items:center;pointer-events:none}
+#np{display:block;width:100%;font:800 84px/1.05 var(--f);color:#14161c;overflow-wrap:anywhere;letter-spacing:-.5px}
+#np.idle{color:#6c6a70;font-weight:700}
+#np.tin{animation:tin .45s ease-out}
+@keyframes tin{from{opacity:0;transform:translateY(16px)}}
+
+.hint{left:60px;top:898px;width:960px;height:44px;text-align:center;font:700 32px/44px var(--f);color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#enableRadioAudio{left:190px;top:700px;width:700px;height:120px;border-radius:60px;border:0;background:var(--gold);color:var(--ink);font:900 44px var(--f);cursor:pointer;z-index:5;box-shadow:0 10px 0 var(--ink)}
 #enableRadioAudio[hidden]{display:none}
-.vol{display:flex;align-items:center;gap:10px;flex:none;font:700 22px var(--f2);color:#cfc8e0}
-.kn{position:relative;width:68px;height:68px;border-radius:50%;background:repeating-conic-gradient(#4a4658 0 6deg,#1c1925 6deg 12deg);border:3px solid #0c0912;box-shadow:0 5px 10px rgba(0,0,0,.6),inset 0 0 0 14px #2f2b3a;touch-action:none;cursor:grab}
-.kn::after{content:"";position:absolute;left:calc(50% - 3px);top:5px;width:6px;height:22px;background:var(--oro);border-radius:3px}
-.keys{left:24px;top:556px;width:992px;height:76px;display:flex;gap:14px}
-.key{flex:1;border-radius:18px;border:2px solid #0c0912;border-bottom-width:10px;background:linear-gradient(#4a4658,#2a2733);color:var(--hueso);font:700 30px var(--f2);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:12px;box-shadow:inset 0 2px 0 rgba(255,255,255,.2)}
-.key i{font-style:normal;font-size:34px;line-height:1}
-.key.down{border-bottom-width:2px;transform:translateY(8px);color:var(--oro);background:linear-gradient(#211d2b,#17141f);box-shadow:inset 0 0 18px rgba(255,91,34,.5)}
-.wm.flash{animation:fl .5s ease-in-out 5 alternate}
-@keyframes fl{to{box-shadow:0 0 70px 20px rgba(255,200,61,.8),0 24px 60px rgba(0,0,0,.75)}}
 
-/* ===== Barra de meta (la misión del live) ===== */
-.quest{position:absolute;left:20px;top:784px;width:1040px;height:156px;border-radius:30px;padding:14px 26px;background:linear-gradient(#241752,#150e30);border:3px solid #54398f;box-shadow:0 14px 36px rgba(0,0,0,.6),inset 0 2px 0 rgba(255,255,255,.12)}
+/* ===== Contadores ===== */
+.chips{left:60px;top:950px;width:960px;height:120px;display:grid;grid-template-columns:1fr 1fr 1.5fr;gap:20px}
+.chip{border-radius:28px;background:var(--panel);display:flex;align-items:center;justify-content:center;gap:16px;padding:0 20px;min-width:0;font:900 56px/1 var(--f)}
+.chip i{font-style:normal;font-size:48px}
+.chip b{font:inherit;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip.pop{animation:pop .3s ease-out}
+@keyframes pop{40%{transform:scale(1.07)}}
+#fan b{font-size:44px}
+
+/* ===== Meta: siguiente tema ===== */
+.goal{left:60px;top:1100px;width:960px;height:210px;border-radius:32px;background:var(--panel);padding:28px 36px}
 .gh{display:flex;justify-content:space-between;align-items:baseline;line-height:1}
-.gh b{font:900 42px var(--f1);letter-spacing:1px;color:var(--oro)}
-.gh b.x2{color:var(--cian);text-shadow:0 0 14px var(--cian)}
-.gh span{font:700 36px var(--f2);color:var(--hueso)}
-.vu{display:flex;gap:5px;height:40px;margin:8px 0 6px}
-.vu i{flex:1;border-radius:6px;background:#2b2145}
-.vu i.on{background:var(--sc);box-shadow:0 0 10px var(--sc)}
-.gr{font:600 30px/1.1 var(--f2);color:var(--hueso);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gh b{font:900 44px var(--f);color:var(--gold)}
+.gh span{font:900 48px var(--f)}
+.bar{margin-top:20px;height:52px;border-radius:26px;background:var(--panel2);overflow:hidden}
+.bar i{display:block;height:100%;width:0;border-radius:26px;background:var(--gold);transition:width .6s ease-out}
+.gs{margin-top:18px;font:700 32px/1 var(--f);color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* ===== Pantalla del live: estadísticas, líder y top 5 ===== */
-.deck{position:absolute;left:20px;top:958px;width:1040px;height:944px;border-radius:36px;background:linear-gradient(#1f1546,#0e0922);border:3px solid #54398f;box-shadow:0 20px 50px rgba(0,0,0,.75),inset 0 2px 0 rgba(255,255,255,.1)}
-.scr{position:absolute;inset:16px;border-radius:22px;background:#09061a;overflow:hidden;box-shadow:inset 0 0 30px #000}
-.scr>*{position:absolute;z-index:1}
-.beams{left:50%;top:50%;width:2400px;height:2400px;margin:-1200px 0 0 -1200px;background:repeating-conic-gradient(rgba(255,200,61,.2) 0 10deg,transparent 10deg 20deg,rgba(255,91,34,.18) 20deg 30deg,transparent 30deg 40deg,rgba(79,227,255,.14) 40deg 50deg,transparent 50deg 60deg);opacity:0;transition:opacity .5s;animation:spin 8s linear infinite;z-index:0}
-.deck:not(.party) .beams{animation-play-state:paused}
-.party .beams{opacity:1}
-@keyframes spin{to{transform:rotate(360deg)}}
-.party .scr{animation:glow .45s ease-in-out infinite alternate}
-@keyframes glow{from{box-shadow:inset 0 0 30px #000}to{box-shadow:inset 0 0 70px rgba(255,91,34,.55),0 0 40px rgba(255,200,61,.7)}}
-.stats{left:16px;right:var(--sr);top:14px;height:96px;display:flex;gap:10px}
-.stats div{flex:1;min-width:0;border-radius:16px;background:rgba(255,255,255,.07);border:2px solid #3b2d68;text-align:center;padding-top:8px}
-.stats b{display:block;font:700 46px/1 var(--f2);color:var(--hueso)}
-.stats small{display:block;margin-top:5px;font:500 23px/1 var(--f2);color:#c9b8ff}
-.mvp{left:16px;right:var(--sr);top:120px;height:88px;border-radius:18px;padding:8px 20px;background:linear-gradient(90deg,rgba(255,200,61,.24),rgba(255,91,34,.1));border:2px solid rgba(255,200,61,.55);overflow:hidden}
-.mvp b{display:block;font:900 40px/1.05 var(--f1);color:var(--oro);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mvp span{display:block;margin-top:2px;font:500 25px/1.1 var(--f2);color:var(--hueso);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.t5h{left:16px;right:var(--sr);top:220px;display:flex;justify-content:space-between;align-items:baseline}
-.t5h b{font:900 44px/1 var(--f1);letter-spacing:1px;color:var(--hueso)}
-.t5h small{font:500 23px var(--f2);color:#c9b8ff}
-.t5{left:16px;right:var(--sr);top:276px;height:636px}
-.rw{position:absolute;left:0;right:0;top:0;height:116px;border-radius:18px;background:rgba(255,255,255,.07);border:2px solid #3b2d68;border-left:8px solid var(--rc);opacity:0;transition:transform .6s cubic-bezier(.3,1.3,.5,1),opacity .4s;overflow:hidden;display:flex;align-items:center;gap:14px;padding:0 16px;color:var(--hueso)}
-.rw.in{opacity:1}
-.rw.up{animation:up .7s}
-@keyframes up{0%{background:rgba(255,200,61,.5)}100%{background:rgba(255,255,255,.07)}}
-.rw .rk{width:56px;text-align:center;font:700 42px var(--f2);order:0}
-.rw .av2{width:80px;height:80px;font-size:44px;order:1}
-.rw .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:800 46px/1 var(--f1);order:2}
-.rw .sb{font:500 24px var(--f2);color:#c9b8ff;white-space:nowrap;order:3}
-.rw .pt{min-width:110px;text-align:right;font:700 46px var(--f2);color:var(--oro);order:4}
-.rw .bar{position:absolute;left:0;bottom:0;height:8px;width:0;background:var(--rc);transition:width .5s}
+/* ===== Llamado a la acción (un solo mensaje a la vez) ===== */
+.cta{left:60px;top:1340px;width:960px;height:290px;border-radius:36px;background:var(--gold);color:var(--ink);display:flex;align-items:center;gap:36px;padding:0 44px;overflow:hidden}
+.cta .ic{flex:none;width:150px;height:150px;border-radius:50%;background:var(--ink);display:grid;place-items:center;font-size:84px;line-height:1}
+.cta .tx{min-width:0;flex:1}
+.cta .tx b{display:block;font:900 66px/1.05 var(--f);overflow-wrap:anywhere}
+.cta .tx span{display:block;margin-top:12px;font:700 38px/1.15 var(--f)}
+.cta.in .ic,.cta.in .tx{animation:cin .45s ease-out}
+@keyframes cin{from{opacity:0;transform:translateY(24px)}}
+.cta.gift{background:var(--pink);color:#fff}
+.cta.goalok{background:#34e06b}
+.cta.gift .ic{animation:hop .5s ease-in-out infinite alternate}
+@keyframes hop{to{transform:translateY(-12px)}}
 
-/* ===== Regalo: tarjeta grande ===== */
-.ban{left:16px;right:16px;top:236px;height:290px;border-radius:30px;border:6px solid var(--hueso);background:linear-gradient(135deg,#ffd166,#ff7a1a 55%,#e5391b);box-shadow:0 0 60px rgba(255,120,30,.9),inset 0 0 30px rgba(255,255,255,.35);display:flex;align-items:center;gap:40px;padding:0 40px;color:#2a0d02;opacity:0;pointer-events:none;transition:opacity .4s;z-index:6}
-.ban.show{opacity:1;animation:pop .6s cubic-bezier(.2,1.6,.4,1)}
-@keyframes pop{0%{transform:scale(.2) rotate(-6deg)}60%{transform:scale(1.1) rotate(2deg)}100%{transform:scale(1)}}
-.ban .av{position:relative;width:190px;height:190px;flex:none}
-.ban .av img,.ban .av b{position:absolute;left:0;top:0;width:100%;height:100%;border-radius:50%;border:6px solid var(--hueso);box-shadow:0 0 24px rgba(0,0,0,.45)}
-.ban .av img{display:none;object-fit:cover;background:#2a0d02}
-.ban .av b{display:flex;align-items:center;justify-content:center;font:900 110px var(--f1);color:#fff;text-shadow:0 3px 0 rgba(0,0,0,.35)}
-.ban .bi{position:absolute;right:-26px;bottom:-18px;font-size:86px;line-height:1;animation:bob .5s ease-in-out infinite alternate}
-@keyframes bob{to{transform:translateY(-14px) rotate(8deg)}}
-.ban .bt{min-width:0;flex:1}
-.ban .bn{font:900 96px/1 var(--f1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ban .bg{font:800 54px/1.1 var(--f1);margin-top:6px}
-.ban .bd{font:700 46px var(--f2);margin-top:6px}
-.av2{display:flex;align-items:center;justify-content:center;border-radius:50%;flex:none;overflow:hidden;color:#fff;font-weight:700;border:2px solid rgba(255,241,214,.75);line-height:1}
+/* ===== Último evento ===== */
+.tick{left:60px;top:1660px;width:960px;height:130px;border-radius:32px;background:var(--panel);border-left:14px solid var(--gold);display:flex;align-items:center;gap:24px;padding:0 30px 0 26px;overflow:hidden}
+.tick.cm{border-left-color:var(--gold)}.tick.lk{border-left-color:var(--pink)}.tick.jn{border-left-color:#4dff7a}.tick.gf{border-left-color:var(--pink)}
+.tick.in{animation:cin .35s ease-out}
+.av2{display:flex;align-items:center;justify-content:center;border-radius:50%;flex:none;overflow:hidden;color:#fff;font:900 52px var(--f);width:88px;height:88px;line-height:1}
 .av2 img{width:100%;height:100%;object-fit:cover;display:block}
-.ev .av2{width:44px;height:44px;font-size:24px}
-#cv{left:0;top:0;pointer-events:none;z-index:7}
+.tick .tt{min-width:0;flex:1}
+.tick .tt b{display:block;font:900 44px/1.1 var(--f);color:var(--gold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tick .tt span{display:block;margin-top:4px;font:700 36px/1.1 var(--f);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* ===== Avisos de participación ===== */
-#al{position:absolute;left:50%;top:50%;width:min(880px,calc(100% - 64px));min-height:170px;border-radius:28px;display:flex;align-items:center;gap:26px;padding:28px 32px;z-index:20;opacity:0;transform:translate(-50%,-50%) scale(.92);pointer-events:none;background:rgba(14,9,32,.96);border:2px solid rgba(255,255,255,.16);border-left:12px solid var(--oro);box-shadow:0 24px 80px rgba(0,0,0,.75)}
-#al.show{animation:alin .5s cubic-bezier(.16,1.45,.35,1) forwards}
-@keyframes alin{0%{opacity:0;transform:translate(-50%,calc(-50% + 34px)) scale(.92)}75%{opacity:1;transform:translate(-50%,calc(-50% - 4px)) scale(1.02)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
-#al .ai{width:96px;height:96px;flex:none;display:grid;place-items:center;border-radius:24px;background:rgba(255,255,255,.08);font-size:64px;line-height:1}
-#al .at{min-width:0;flex:1}
-#al .at b{display:block;font:800 56px/1.05 var(--f1);overflow-wrap:anywhere}
-#al .at span{display:block;margin-top:8px;color:#d9d2ee;font:500 32px/1.2 var(--f2)}
-#al.goal{border-left-color:var(--oro)}#al.x2{border-left-color:var(--cian)}#al.lead{border-left-color:#c49bff}#al.cta{border-left-color:var(--brasa)}#al.gf{border-left-color:#ff3b6b}
-#backendShortcut{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);z-index:9;padding:7px 15px;border:1px solid rgba(255,225,165,.65);border-radius:999px;background:rgba(12,12,14,.85);color:var(--hueso);font:700 20px var(--f2);text-decoration:none;opacity:0}
+/* ===== Controles del operador (aparecen al pasar el ratón) ===== */
+.ctl{left:60px;top:1826px;width:960px;height:70px;display:flex;gap:16px;justify-content:center;opacity:0;transition:opacity .2s}
+.ctl:hover,.ctl:focus-within{opacity:1}
+.ctl button{width:140px;border:0;border-radius:20px;background:var(--panel2);font:900 34px var(--f);cursor:pointer}
+#backendShortcut{left:50%;bottom:6px;transform:translateX(-50%);z-index:9;padding:6px 14px;border-radius:999px;background:var(--panel);color:var(--txt);font:700 20px var(--f);text-decoration:none;opacity:0}
 #backendShortcut:hover,#backendShortcut:focus-visible{opacity:1}
-@media(prefers-reduced-motion:reduce){.ban.show,#al.show,.ev{animation-duration:.01ms;animation-iteration-count:1}.party .beams,.party .scr{animation:none}}
+@media(prefers-reduced-motion:reduce){.cass.bump,#np.tin,.cta.in .ic,.cta.in .tx,.tick.in,.chip.pop,.cta.gift .ic{animation:none}}
 </style></head><body>
 <audio id="radioPlayer" preload="metadata" hidden></audio>
 <div id="stage">
-<div class="wm" id="wm">
- <div class="hd"><div class="plate"><b id="pn">BUBSDT</b><small>Radio cristiana pentecostal · 91.5 FM</small></div><a class="sony-mark" href="/backend" aria-label="Abrir el backend de administración">WALKMAN</a><button class="lnk bad" id="lnk" title="Conexión con TikTok · clic para reconectar"><i class="led"></i><span id="lnkT">SIN CONEXIÓN</span></button></div>
- <div class="bay"><svg viewBox="40 6 560 296" width="622" height="329" id="wsvg">
-  <defs>
-   <linearGradient id="hub" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#b9bcc2"/></linearGradient>
-   <linearGradient id="mt" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#6c7078"/><stop offset=".5" stop-color="#d7dae0"/><stop offset="1" stop-color="#5b5f67"/></linearGradient>
-   <linearGradient id="pk" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6b4526"/><stop offset=".5" stop-color="#2a180c"/><stop offset="1" stop-color="#4a2e18"/></linearGradient>
-   <linearGradient id="deckp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a2c31"/><stop offset="1" stop-color="#101114"/></linearGradient>
-  </defs>
-  <rect x="0" y="0" width="640" height="330" fill="#08090b"/><rect x="64" y="-6" width="512" height="296" rx="18" fill="#1a1b20" stroke="#34363d" stroke-width="3"/><rect x="72" y="2" width="496" height="282" rx="12" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="2"/>
-  <rect x="20" y="290" width="600" height="30" rx="6" fill="url(#deckp)" stroke="#4a4d55" stroke-width="2"/>
-  <rect x="294" y="270" width="52" height="32" rx="3" fill="url(#mt)" stroke="#333" stroke-width="2"/>
-  <rect x="300" y="262" width="40" height="12" rx="2" fill="#2b2d33" stroke="#111"/><rect x="302" y="263" width="36" height="2" fill="#d9b24a"/>
-  <rect x="226" y="272" width="30" height="24" rx="3" fill="url(#mt)" stroke="#333" stroke-width="2"/><rect x="230" y="266" width="22" height="9" fill="#2b2d33"/>
-  <defs><linearGradient id="sh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a3a40"/><stop offset=".5" stop-color="#1d1d21"/><stop offset="1" stop-color="#0f0f11"/></linearGradient><linearGradient id="pp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4ead0"/><stop offset="1" stop-color="#e2d4aa"/></linearGradient><g id="sc"><circle r="7" fill="url(#hub)" stroke="#555" stroke-width="1.5"/><path d="M-4 0H4M0 -4V4" stroke="#444" stroke-width="1.6"/></g></defs><rect x="107" y="8" width="426" height="270" rx="12" fill="url(#sh)" stroke="#5a5d66" stroke-width="3"/><rect x="113" y="14" width="414" height="258" rx="9" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="2"/><rect x="128" y="6" width="14" height="9" fill="#08090b"/><rect x="498" y="6" width="14" height="9" fill="#08090b"/><use href="#sc" x="124" y="26"/><use href="#sc" x="516" y="26"/><use href="#sc" x="126" y="226"/><use href="#sc" x="514" y="226"/><use href="#sc" x="320" y="229"/>
-  <defs><clipPath id="wclip"><rect x="138" y="138" width="364" height="76" rx="38"/></clipPath>
-   <clipPath id="tclip"><rect x="138" y="138" width="364" height="76" rx="38"/><rect x="100" y="233" width="440" height="60"/></clipPath>
-   <clipPath id="penclip"><rect id="penr0" x="146" y="56" width="0" height="48"/><rect id="penr1" x="146" y="56" width="0" height="48"/><rect id="penr2" x="146" y="56" width="0" height="48"/></clipPath>
-   <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".16"/><stop offset=".45" stop-color="#fff" stop-opacity=".02"/><stop offset="1" stop-color="#000" stop-opacity=".25"/></linearGradient></defs>
-  <rect x="137" y="20" width="366" height="92" rx="4" fill="url(#pp)" stroke="rgba(0,0,0,.35)" stroke-width="1"/>
-  <rect x="137" y="20" width="366" height="34" rx="4" fill="#d04a1d"/><rect x="137" y="46" width="366" height="8" fill="#b23a14"/>
-  <clipPath id="discNameClip"><rect x="148" y="20" width="211" height="34"/></clipPath>
-  <text id="tapeDiscName" x="152" y="48" font-family="Caveat,Comic Sans MS,cursive" font-weight="500" font-size="30" fill="#fff" stroke="#fff" stroke-width=".2" stroke-linecap="round" stroke-linejoin="round" paint-order="stroke fill" clip-path="url(#discNameClip)">ALABANZAS</text>
-  <text id="tapeSideLabel" x="378" y="43" text-anchor="middle" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-weight="700" font-size="14" fill="#fff4dc" opacity=".85" letter-spacing="2">LADO A · 60 MIN</text>
-  <text x="488" y="46" text-anchor="end" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-weight="700" font-size="26" fill="#fff4dc">C-120</text>
-  <g stroke="#8a9ab8" stroke-width="1" opacity=".7"><path d="M148 96H446M148 108H446"/></g><circle cx="476" cy="84" r="15" fill="#14151a"/><text id="tapeSideLetter" x="476" y="92" text-anchor="middle" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-weight="700" font-size="24" fill="#f3e6c4">A</text>
-  <text id="lbIdle" x="152" y="91" font-family="Caveat,Comic Sans MS,cursive" font-weight="500" font-size="26" fill="#55585f" opacity=".85" transform="rotate(-1 152 91)">Alabanzas de avivamiento ♫</text>
-  <text id="radioTrackTitle" x="152" y="92" font-family="Caveat,Comic Sans MS,cursive" font-weight="500" font-size="35" fill="#1745c1" stroke="#1745c1" stroke-width=".65" stroke-linecap="round" stroke-linejoin="round" paint-order="stroke fill" clip-path="url(#penclip)" transform="rotate(-1 152 92)" visibility="hidden"></text>
-  <rect x="130" y="130" width="380" height="92" rx="46" fill="#16171b" stroke="#aeb2ba" stroke-width="3"/>
-  <rect x="138" y="138" width="364" height="76" rx="38" fill="#050507"/>
-  <g clip-path="url(#wclip)">
-  <circle id="pL" cx="231" cy="176" r="76" fill="url(#pk)"/><circle id="pR" cx="409" cy="176" r="26" fill="url(#pk)"/>
-  <g id="hL" transform="translate(231 176) scale(2)"><circle r="13" fill="url(#hub)"/><circle r="8.5" fill="#0a0a0c"/><g fill="url(#hub)" id="teethL"></g></g>
-  <g id="hR" transform="translate(409 176) scale(2)"><circle r="13" fill="url(#hub)"/><circle r="8.5" fill="#0a0a0c"/><g fill="url(#hub)" id="teethR"></g></g>
-  </g>
-  <rect x="138" y="138" width="364" height="76" rx="38" fill="url(#glass)"/>
-  <rect x="141" y="141" width="358" height="70" rx="35" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="1.5"/>
-  <g stroke="#e6e8ec" stroke-opacity=".55" stroke-width="1.5"><path d="M182 138v6M200 138v4M218 138v6M236 138v4M254 138v6M272 138v4M290 138v6M308 138v4M326 138v6M344 138v4M362 138v6M380 138v4M398 138v6M416 138v4M434 138v6M452 138v4"/></g>
-  <text x="138" y="231" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-size="11" letter-spacing="2" fill="#8e9099">STEREO</text><text x="502" y="231" text-anchor="end" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-size="11" letter-spacing="2" fill="#8e9099">NORMAL 120 µs</text>
-  <path d="M108 278 L128 236 H512 L532 278 Z" fill="#08080a" stroke="#4a4b50" stroke-width="2"/><g fill="#000" stroke="#6a6c72" stroke-width="1.5"><circle cx="150" cy="270" r="4"/><circle cx="490" cy="270" r="4"/></g><rect x="302" y="238" width="36" height="14" rx="2" fill="url(#mt)" stroke="#333"/><rect x="309" y="252" width="22" height="8" fill="#b9b49a"/><rect x="304" y="266" width="32" height="16" rx="2" fill="url(#mt)" stroke="#333"/><rect x="307" y="265" width="26" height="4" fill="#2b2d33"/><rect x="309" y="265.5" width="22" height="1.6" fill="#d9b24a"/><rect x="240" y="268" width="20" height="14" rx="2" fill="url(#mt)" stroke="#333"/>
-  <g fill="none" stroke-linecap="round" stroke-linejoin="round" clip-path="url(#tclip)">
-   <path id="tL" stroke="#5b3a1e" stroke-width="4"/><path id="tF" stroke="#5b3a1e" stroke-width="4"/><path id="tR" stroke="#5b3a1e" stroke-width="4"/>
-   <path id="sL" stroke="#e6c79a" stroke-opacity=".45" stroke-width="1.4" stroke-dasharray="3 17"/><path id="sF" stroke="#e6c79a" stroke-opacity=".45" stroke-width="1.4" stroke-dasharray="3 17"/><path id="sR" stroke="#e6c79a" stroke-opacity=".45" stroke-width="1.4" stroke-dasharray="3 17"/>
-  </g>
-  <g fill="url(#mt)" stroke="#222" stroke-width="1.5"><circle cx="118" cy="262" r="7"/><circle cx="522" cy="262" r="7"/></g>
-  <circle cx="430" cy="281" r="7" fill="url(#mt)" stroke="#222" stroke-width="1.5"/>
-  <g id="pr" transform="translate(430 249)"><circle r="15" fill="#111" stroke="#333" stroke-width="2"/><circle r="5" fill="#8c8f97"/><rect x="-1" y="-14" width="2" height="6" fill="#444"/></g>
-  <path d="M107 8H340L220 278H107Z" fill="rgba(255,255,255,.07)"/><path d="M200 138H290L254 214H200Z" fill="rgba(255,255,255,.1)"/>
- </svg></div>
- <div class="evp"><h3>Últimos eventos</h3><div class="feed" id="feed"></div></div>
- <div class="np"><div class="cnt" id="cnt"><b>0</b><b>0</b><b>0</b></div><div class="npt"><b id="np">Sin tema en la cinta</b><div class="st"><span id="tapeMode">PAUSA · LADO A</span><span id="radioHint" role="status" aria-live="polite">Carga un disco desde el administrador para comenzar.</span><button id="enableRadioAudio" type="button" hidden>ACTIVAR AUDIO</button></div></div><div class="vol"><span>Vol</span><div class="kn" id="knV"></div></div></div>
- <div class="keys" id="keys"><button class="key" data-k="rew"><i>⏪</i>REB</button><button class="key" data-k="play"><i>▶</i>PLAY</button><button class="key" data-k="ff"><i>⏩</i>AVA</button><button class="key" data-k="stop"><i>⏹</i>STOP</button></div>
+
+ <header class="top">
+  <div class="brand"><b id="pn">BUBSDT</b><small>Radio cristiana pentecostal · 91.5 FM</small></div>
+  <button class="lnk bad" id="lnk" title="Conexión con TikTok · clic para reconectar"><i class="led"></i><span id="lnkT">SIN CONEXIÓN</span></button>
+ </header>
+
+ <main class="cass" id="cass" role="button" tabindex="0" aria-label="Reproducir o pausar la radio">
+  <svg viewBox="100 2 440 290" aria-hidden="true">
+   <defs>
+    <linearGradient id="hub" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#b9bcc2"/></linearGradient>
+    <linearGradient id="mt" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#6c7078"/><stop offset=".5" stop-color="#d7dae0"/><stop offset="1" stop-color="#5b5f67"/></linearGradient>
+    <linearGradient id="pk" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6b4526"/><stop offset=".5" stop-color="#2a180c"/><stop offset="1" stop-color="#4a2e18"/></linearGradient>
+    <linearGradient id="sh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a3a40"/><stop offset=".5" stop-color="#1d1d21"/><stop offset="1" stop-color="#0f0f11"/></linearGradient>
+    <linearGradient id="pp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4ead0"/><stop offset="1" stop-color="#e2d4aa"/></linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".16"/><stop offset=".45" stop-color="#fff" stop-opacity=".02"/><stop offset="1" stop-color="#000" stop-opacity=".25"/></linearGradient>
+    <g id="sc"><circle r="7" fill="url(#hub)" stroke="#555" stroke-width="1.5"/><path d="M-4 0H4M0 -4V4" stroke="#444" stroke-width="1.6"/></g>
+    <clipPath id="wclip"><rect x="138" y="138" width="364" height="76" rx="38"/></clipPath>
+    <clipPath id="tclip"><rect x="138" y="138" width="364" height="76" rx="38"/><rect x="100" y="233" width="440" height="60"/></clipPath>
+   </defs>
+   <rect x="107" y="8" width="426" height="270" rx="12" fill="url(#sh)" stroke="#5a5d66" stroke-width="3"/><rect x="113" y="14" width="414" height="258" rx="9" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="2"/>
+   <use href="#sc" x="124" y="26"/><use href="#sc" x="516" y="26"/><use href="#sc" x="126" y="226"/><use href="#sc" x="514" y="226"/><use href="#sc" x="320" y="229"/>
+   <rect x="137" y="20" width="366" height="108" rx="4" fill="url(#pp)" stroke="rgba(0,0,0,.35)" stroke-width="1"/>
+   <rect x="137" y="20" width="366" height="34" rx="4" fill="#d04a1d"/><rect x="137" y="46" width="366" height="8" fill="#b23a14"/>
+   <text id="tapeDiscName" x="152" y="45" font-family="Inter,Segoe UI,Arial,sans-serif" font-weight="800" font-size="22" fill="#fff">ALABANZAS</text>
+   <text x="488" y="45" text-anchor="end" font-family="Inter,Segoe UI,Arial,sans-serif" font-weight="800" font-size="22" fill="#fff4dc">91.5 FM</text>
+   <rect x="130" y="130" width="380" height="92" rx="46" fill="#16171b" stroke="#aeb2ba" stroke-width="3"/>
+   <rect x="138" y="138" width="364" height="76" rx="38" fill="#050507"/>
+   <g clip-path="url(#wclip)">
+    <circle id="pL" cx="231" cy="176" r="76" fill="url(#pk)"/><circle id="pR" cx="409" cy="176" r="26" fill="url(#pk)"/>
+    <g id="hL" transform="translate(231 176) scale(2)"><circle r="13" fill="url(#hub)"/><circle r="8.5" fill="#0a0a0c"/><g fill="url(#hub)" id="teethL"></g></g>
+    <g id="hR" transform="translate(409 176) scale(2)"><circle r="13" fill="url(#hub)"/><circle r="8.5" fill="#0a0a0c"/><g fill="url(#hub)" id="teethR"></g></g>
+   </g>
+   <rect x="138" y="138" width="364" height="76" rx="38" fill="url(#glass)"/>
+   <rect x="141" y="141" width="358" height="70" rx="35" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="1.5"/>
+   <g stroke="#e6e8ec" stroke-opacity=".55" stroke-width="1.5"><path d="M182 138v6M200 138v4M218 138v6M236 138v4M254 138v6M272 138v4M290 138v6M308 138v4M326 138v6M344 138v4M362 138v6M380 138v4M398 138v6M416 138v4M434 138v6M452 138v4"/></g>
+   <path d="M108 278 L128 236 H512 L532 278 Z" fill="#08080a" stroke="#4a4b50" stroke-width="2"/><g fill="#000" stroke="#6a6c72" stroke-width="1.5"><circle cx="150" cy="270" r="4"/><circle cx="490" cy="270" r="4"/></g><rect x="302" y="238" width="36" height="14" rx="2" fill="url(#mt)" stroke="#333"/><rect x="309" y="252" width="22" height="8" fill="#b9b49a"/><rect x="304" y="266" width="32" height="16" rx="2" fill="url(#mt)" stroke="#333"/><rect x="307" y="265" width="26" height="4" fill="#2b2d33"/><rect x="309" y="265.5" width="22" height="1.6" fill="#d9b24a"/><rect x="240" y="268" width="20" height="14" rx="2" fill="url(#mt)" stroke="#333"/>
+   <g fill="none" stroke-linecap="round" stroke-linejoin="round" clip-path="url(#tclip)">
+    <path id="tL" stroke="#5b3a1e" stroke-width="4"/><path id="tF" stroke="#5b3a1e" stroke-width="4"/><path id="tR" stroke="#5b3a1e" stroke-width="4"/>
+    <path id="sL" stroke="#e6c79a" stroke-opacity=".45" stroke-width="1.4" stroke-dasharray="3 17"/><path id="sF" stroke="#e6c79a" stroke-opacity=".45" stroke-width="1.4" stroke-dasharray="3 17"/><path id="sR" stroke="#e6c79a" stroke-opacity=".45" stroke-width="1.4" stroke-dasharray="3 17"/>
+   </g>
+   <g fill="url(#mt)" stroke="#222" stroke-width="1.5"><circle cx="118" cy="262" r="7"/><circle cx="522" cy="262" r="7"/></g>
+   <circle cx="430" cy="281" r="7" fill="url(#mt)" stroke="#222" stroke-width="1.5"/>
+   <g id="pr" transform="translate(430 249)"><circle r="15" fill="#111" stroke="#333" stroke-width="2"/><circle r="5" fill="#8c8f97"/><rect x="-1" y="-14" width="2" height="6" fill="#444"/></g>
+   <path d="M107 8H340L220 278H107Z" fill="rgba(255,255,255,.07)"/><path d="M200 138H290L254 214H200Z" fill="rgba(255,255,255,.1)"/>
+  </svg>
+  <div class="ttl"><span id="np" class="idle">Alabanzas de avivamiento</span></div>
+ </main>
+ <div class="hint" id="radioHint" role="status" aria-live="polite"></div>
+ <button id="enableRadioAudio" type="button" hidden>▶ TOCA PARA ACTIVAR EL AUDIO</button>
+
+ <section class="chips" aria-label="Actividad del live">
+  <div class="chip" id="chLk"><i>❤</i><b id="sLk">0</b></div>
+  <div class="chip" id="chCm"><i>💬</i><b id="sCm">0</b></div>
+  <div class="chip" id="fan"><i>👑</i><b id="fanN">¿Tú?</b></div>
+ </section>
+
+ <section class="goal" aria-label="Meta para el siguiente tema">
+  <div class="gh"><b>🎁 Siguiente tema</b><span id="gP">0 / 500</span></div>
+  <div class="bar"><i id="gB"></i></div>
+  <div class="gs" id="gS">Cada regalo suma 💎 y la cinta salta a la siguiente alabanza</div>
+ </section>
+
+ <section class="cta in" id="cta" role="status" aria-live="polite"><span class="ic" id="ctaI">❤</span><div class="tx"><b id="ctaT"></b><span id="ctaS"></span></div></section>
+
+ <section class="tick in cm" id="tick"><span class="av2" id="tkA" style="background:#4a3a7a">💬</span><div class="tt"><b id="tkN">Sé el primero</b><span id="tkS">Escribe AMÉN en el chat y sales aquí</span></div></section>
+
+ <nav class="ctl" aria-label="Controles de la radio"><button data-k="rew" aria-label="Tema anterior">⏮</button><button data-k="play" id="btnPlay" aria-label="Reproducir o pausar">▶</button><button data-k="ff" aria-label="Tema siguiente">⏭</button></nav>
+ <a id="backendShortcut" href="/backend" aria-label="Ir al backend de administración">⚙ Admin</a>
 </div>
-<section class="quest" id="goal"><div class="gh"><b id="gN">META 1</b><span id="gP">0 / 0</span></div><div class="vu" id="vu"></div><div class="gr" id="gR"></div></section>
-<div id="al" role="alert" aria-live="assertive" aria-atomic="true"><span class="ai"></span><div class="at"><b></b><span></span></div></div>
-<div class="deck" id="deck">
- <div class="scr">
-  <div class="beams"></div>
-  <div class="stats"><div><b id="sLk">0</b><small>❤ me gusta</small></div><div><b id="sCm">0</b><small>💬 mensajes</small></div><div><b id="sJn">0</b><small>👋 entraron</small></div><div><b id="sGf">0</b><small>🎁 regalos</small></div></div>
-  <div class="mvp" id="mvp"><b>👑 Sé el primero</b><span>Escribe AMÉN y entra al ranking</span></div>
-  <div class="t5h"><b>Top 5 del live</b><small>❤ 1 pt · 💬 5 pts · 💎 10 pts</small></div>
-  <div class="t5" id="t5"></div>
-  <div class="ban" id="ban" role="alert" aria-live="assertive" aria-atomic="true"><div class="av"><b id="avl"></b><img id="avi" alt=""><span class="bi" id="bi">🎁</span></div><div class="bt"><div class="bn" id="bn"></div><div class="bg" id="bg"></div><div class="bd" id="bd"></div></div></div>
-  <canvas id="cv" width="1008" height="912"></canvas>
- </div>
-</div>
-<a id="backendShortcut" href="/backend" aria-label="Ir al backend de administración">⚙ Admin</a>
-</div>
+
 <script>
 (function(){
-const $=s=>document.querySelector(s),NS='http://www.w3.org/2000/svg',q=new URLSearchParams(location.search);
+const $=s=>document.querySelector(s),q=new URLSearchParams(location.search);
 const stg=$('#stage');
-if(q.get('tr')==='1')document.documentElement.classList.add('tr');
 function fit(){const s=Math.min(innerWidth/1080,innerHeight/1920);stg.style.transform='scale('+s+')';stg.style.left=Math.max(0,(innerWidth-1080*s)/2)+'px'}
 addEventListener('resize',fit);fit();
 if(q.get('name'))$('#pn').textContent=q.get('name');
-const TAPE={n:'CINTA',bpm:100,root:60,w:'sawtooth',pr:[[0,0],[9,1],[5,0],[7,0]],ar:[0,2,1,2,3,2,1,0]};
-let TAPE_SEC=Math.max(60,Math.min(3600,+q.get('cinta')||3600));const REW=+q.get('rew')||20,FF=+q.get('ff')||20,ALPHA=+q.get('alfa')||40,V1=140,REWIND_DURATION_MS=9000;
-const TAPE_SIDE_SECONDS=3600;
-let vN=0,wLp=0,wRp=0,alL=0,alR=0;const capf=(x,c)=>c*Math.tanh(x/c);
-let curT='';const lbT=$('#radioTrackTitle'),lbI=$('#lbIdle'),penRects=[0,1,2].map(index=>$('#penr'+index));
-let on=true,vol=.6,st=q.get('play')==='0'?'stop':'play',pos=0,aL=0,aR=0,aP=0,off=0;
-let A,out,musG,hpF,lpF,wowG,whine,whG,hum,hmG,nextT=0,stepI=0,curSong=null;
-const radioPlayer=$('#radioPlayer'),radioHint=$('#radioHint'),enableAudio=$('#enableRadioAudio');
-let currentTrackKey='',currentTrackTitle='',currentDiscName='ALABANZAS',autoRewinding=false,autoRewindStartedAt=0,autoRewindStartPosition=0,rewindNodes=[];
-let tapeSide='A',tapePlayedSeconds=0,lastTapeMediaTime=null,lastTapeClockAt=0,lastTapePersistAt=0;
-['teethL','teethR'].forEach(id=>{const g=$('#'+id);for(let i=0;i<6;i++){const r=document.createElementNS(NS,'rect');r.setAttribute('x',-1.6);r.setAttribute('y',-9);r.setAttribute('width',3.2);r.setAttribute('height',5.5);r.setAttribute('transform','rotate('+i*60+')');g.appendChild(r)}});
-function boot(){if(A)return;A=new (window.AudioContext||window.webkitAudioContext)();
- out=A.createGain();out.gain.value=0;out.connect(A.destination);
- lpF=A.createBiquadFilter();lpF.type='lowpass';hpF=A.createBiquadFilter();hpF.type='highpass';
- musG=A.createGain();musG.gain.value=0;musG.connect(hpF);hpF.connect(lpF);lpF.connect(out);
- wowG=A.createGain();wowG.gain.value=0;const w=A.createOscillator();w.frequency.value=.8;w.connect(wowG);w.start();
- whine=A.createOscillator();whine.type='sawtooth';whine.frequency.value=300;whG=A.createGain();whG.gain.value=0;whine.connect(whG);whG.connect(out);whine.start();
- hum=A.createOscillator();hum.type='triangle';hum.frequency.value=50;hmG=A.createGain();hmG.gain.value=0;hum.connect(hmG);hmG.connect(out);hum.start();nextT=A.currentTime+.1}
-function clk(h){if(!A)return;const t=A.currentTime,n=A.sampleRate*.05,b=A.createBuffer(1,n,A.sampleRate),d=b.getChannelData(0);
- for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/(n*.12));
- const s=A.createBufferSource(),f=A.createBiquadFilter(),g=A.createGain();s.buffer=b;f.type='lowpass';f.frequency.value=h?1800:3200;g.gain.value=h?.9:.5;s.connect(f);f.connect(g);g.connect(A.destination);s.start(t);
- const o=A.createOscillator(),v=A.createGain();o.frequency.setValueAtTime(110,t);o.frequency.exponentialRampToValueAtTime(40,t+.1);v.gain.setValueAtTime(h?.5:.25,t);v.gain.exponentialRampToValueAtTime(.001,t+.12);o.connect(v);v.connect(A.destination);o.start(t);o.stop(t+.15)}
-function note(m,t,d,type,g){const o=A.createOscillator(),v=A.createGain();o.type=type;o.frequency.value=440*Math.pow(2,(m-69)/12);wowG.connect(o.detune);
- v.gain.setValueAtTime(0,t);v.gain.linearRampToValueAtTime(g,t+.012);v.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(v);v.connect(musG);o.start(t);o.stop(t+d+.05)}
-function step(S,i,t){const sd=60/S.bpm/2,bar=Math.floor(i/8)%4,c=S.pr[bar],tr=c[1]?[0,3,7]:[0,4,7],k=S.ar[i%8];
- note(S.root+c[0]+tr[k%3]+12*Math.floor(k/3),t,sd*1.6,S.w,.11);
- if(i%4===0)note(S.root+c[0]-12,t,sd*3.5,'sine',.22);
- if(i%2===0&&Math.random()<.55)note(S.root+c[0]+tr[Math.floor(Math.random()*3)]+24,t+sd*.5,sd*1.2,S.w,.06)}
-function unlock(){try{boot();if(A.state==='suspended')A.resume()}catch(e){}}
-unlock();['pointerdown','keydown','touchstart'].forEach(t=>addEventListener(t,unlock));
-function sched(){}
-function sync(){document.querySelectorAll('.key').forEach(k=>k.classList.toggle('down',k.dataset.k===st))}
-function setSt(s){unlock();clk(1);st=s;sync();updateTapeMode()}
-document.querySelectorAll('.key').forEach(k=>k.addEventListener('click',()=>handleTransport(k.dataset.k)));sync();
-function knob(el,get,set){let lx,ly,dn=0;el.addEventListener('pointerdown',e=>{dn=1;lx=e.clientX;ly=e.clientY;el.setPointerCapture(e.pointerId)});
- el.addEventListener('pointermove',e=>{if(!dn)return;set(get()+((e.clientX-lx)-(e.clientY-ly))*.006);lx=e.clientX;ly=e.clientY});
- el.addEventListener('pointerup',()=>{dn=0})}
-knob($('#knV'),()=>vol,v=>{vol=Math.max(0,Math.min(1,v));radioPlayer.volume=vol});
-addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();handleTransport(st==='play'?'stop':'play')}});
-$('#wsvg').addEventListener('click',()=>handleTransport(st==='play'?'stop':'play'));
+if(q.get('bg')){const c='#'+q.get('bg').replace('#','');document.documentElement.style.background=c;document.body.style.background=c}
 
-/* ----- estado real de conexión con TikTok ----- */
+/* ===== Audio: solo clics y campanita de regalo ===== */
+let A,vol=.6;
+const radioPlayer=$('#radioPlayer'),radioHint=$('#radioHint'),enableAudio=$('#enableRadioAudio'),cass=$('#cass');
+function unlock(){try{if(!A)A=new (window.AudioContext||window.webkitAudioContext)();if(A.state==='suspended')A.resume()}catch(e){}}
+['pointerdown','keydown','touchstart'].forEach(t=>addEventListener(t,unlock));
+function clk(){if(!A)return;const t=A.currentTime,o=A.createOscillator(),g=A.createGain();o.frequency.setValueAtTime(220,t);o.frequency.exponentialRampToValueAtTime(70,t+.1);g.gain.setValueAtTime(.25*vol,t);g.gain.exponentialRampToValueAtTime(.001,t+.12);o.connect(g);g.connect(A.destination);o.start(t);o.stop(t+.15)}
+function chime(big){if(!A)return;const t=A.currentTime,ns=big?[72,76,79,84,88]:[76,79,84];
+ ns.forEach((m,i)=>{const o=A.createOscillator(),g=A.createGain(),s=t+i*.09;o.type='triangle';o.frequency.value=440*Math.pow(2,(m-69)/12);
+  g.gain.setValueAtTime(.0001,s);g.gain.linearRampToValueAtTime(Math.max(.0002,.14*vol),s+.01);g.gain.exponentialRampToValueAtTime(.0001,s+.4);
+  o.connect(g);g.connect(A.destination);o.start(s);o.stop(s+.45)})}
+
+/* ===== Mensajes de ayuda ===== */
+let hintTimer=0;
+function say(text,ms){radioHint.textContent=text||'';clearTimeout(hintTimer);if(text&&ms!==0)hintTimer=setTimeout(()=>{radioHint.textContent=''},ms||7000)}
+
+/* ===== Título del tema: tipografía normal, ajustado al espacio ===== */
+const np=$('#np'),ttl=$('.ttl');
+let curT=null;
+function fitTitle(){let fs=88;np.style.fontSize=fs+'px';while(np.offsetHeight>ttl.clientHeight&&fs>34){fs-=4;np.style.fontSize=fs+'px'}}
+function writeTrackTitle(value){
+ const title=String(value||'').trim();
+ if(title===curT)return;curT=title;
+ np.textContent=title||'Alabanzas de avivamiento';np.classList.toggle('idle',!title);
+ fitTitle();np.classList.remove('tin');void np.offsetWidth;np.classList.add('tin');
+}
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fitTitle);
+let currentDiscName='ALABANZAS';
+function writeDiscName(value){
+ const n=String(value||'').trim()||'ALABANZAS',label=$('#tapeDiscName');
+ if(n===currentDiscName&&label.textContent===n)return;
+ currentDiscName=n;label.textContent=n;label.removeAttribute('textLength');label.removeAttribute('lengthAdjust');
+ const w=label.getComputedTextLength(),max=240;
+ if(w>max){label.setAttribute('textLength',String(max));label.setAttribute('lengthAdjust','spacingAndGlyphs')}
+}
+
+/* ===== Radio (misma API del servidor) ===== */
+let currentTrackKey='',currentTrackTitle='',rewinding=0,rwStart=0,rwFrom=0,pos=0;
+const RW_MS=1800;
+async function requestRadioAction(action,body={}){
+ const response=await fetch('/api/radio/'+action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+ const result=await response.json();
+ if(!response.ok)throw new Error(result.message||'No se pudo actualizar la playlist.');
+ return result;
+}
+function playAudio(){
+ unlock();radioPlayer.volume=vol;
+ radioPlayer.play().then(()=>{enableAudio.hidden=true;say('')})
+  .catch(error=>{say('Toca el botón para activar el audio.',0);enableAudio.hidden=false});
+}
+function setPlayUi(){$('#btnPlay').textContent=radioPlayer.paused?'▶':'⏸'}
+function cancelRewind(){rewinding=0}
+async function handleTransport(action){
+ if(!action)return;cancelRewind();clk();
+ try{
+  if(action==='play'){
+   if(!currentTrackKey){say('Carga un disco desde Administración → Radio para empezar.',9000);return}
+   if(radioPlayer.ended)radioPlayer.currentTime=0;playAudio();return
+  }
+  if(action==='stop'){radioPlayer.pause();return}
+  if(action==='toggle'){return handleTransport(radioPlayer.paused?'play':'stop')}
+  if(action==='rew'){await requestRadioAction('previous');return}
+  if(action==='ff'){await requestRadioAction('next');return}
+ }catch(error){say(error.message||'No se pudo cambiar la reproducción.')}
+}
+function showRadioState(radioState){
+ const track=radioState.currentTrack;
+ if(!track){
+  currentTrackKey='';currentTrackTitle='';writeDiscName('');radioPlayer.pause();radioPlayer.removeAttribute('src');radioPlayer.load();
+  writeTrackTitle('');say('La playlist está vacía. Agrega un disco en Administración.',0);enableAudio.hidden=true;pos=0;setPlayUi();return;
+ }
+ currentTrackTitle=String(track.title||'');writeTrackTitle(currentTrackTitle);writeDiscName(track.discName||track.discId);
+ const trackKey=String(radioState.currentIndex)+':'+String(track.id||track.title||track.url);
+ if(trackKey!==currentTrackKey){
+  currentTrackKey=trackKey;radioPlayer.src=new URL(track.url||'/audio/current',location.href).href;radioPlayer.load();
+ }
+ if(radioState.isPlaying&&radioPlayer.paused&&!rewinding)playAudio();
+ else if(!radioState.isPlaying&&!radioPlayer.paused)radioPlayer.pause();
+ setPlayUi();
+}
+function initRadioPlayer(){
+ radioPlayer.volume=vol;
+ enableAudio.addEventListener('click',playAudio);
+ radioPlayer.addEventListener('play',()=>{
+  setPlayUi();enableAudio.hidden=true;
+  requestRadioAction('playback',{isPlaying:true}).catch(error=>say(error.message))
+ });
+ radioPlayer.addEventListener('pause',()=>{
+  setPlayUi();if(radioPlayer.ended||rewinding)return;
+  requestRadioAction('playback',{isPlaying:false}).catch(error=>say(error.message))
+ });
+ radioPlayer.addEventListener('ended',()=>{rewinding=1;rwStart=performance.now();rwFrom=1;clk()});
+ radioPlayer.addEventListener('timeupdate',()=>{
+  if(!rewinding&&Number.isFinite(radioPlayer.duration)&&radioPlayer.duration>0)pos=radioPlayer.currentTime/radioPlayer.duration;
+ });
+ const stream=new EventSource('/api/radio-state/stream');
+ stream.addEventListener('snapshot',event=>showRadioState(JSON.parse(event.data)));
+ stream.addEventListener('update',event=>showRadioState(JSON.parse(event.data)));
+}
+initRadioPlayer();
+
+/* ===== Controles ===== */
+cass.addEventListener('click',()=>handleTransport('toggle'));
+cass.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();handleTransport('toggle')}});
+document.querySelectorAll('.ctl button').forEach(b=>b.addEventListener('click',()=>handleTransport(b.dataset.k==='play'?'toggle':b.dataset.k)));
+addEventListener('keydown',e=>{
+ if(e.target.closest&&e.target.closest('button,a'))return;
+ if(e.code==='Space'){e.preventDefault();handleTransport('toggle')}
+ else if(e.key==='ArrowRight')handleTransport('ff');
+ else if(e.key==='ArrowLeft')handleTransport('rew');
+ else if(e.key==='ArrowUp'){vol=Math.min(1,vol+.05);radioPlayer.volume=vol}
+ else if(e.key==='ArrowDown'){vol=Math.max(0,vol-.05);radioPlayer.volume=vol}
+});
+addEventListener('wheel',e=>{vol=Math.max(0,Math.min(1,vol-Math.sign(e.deltaY)*.05));radioPlayer.volume=vol},{passive:true});
+
+/* ===== Carretes y cinta (misma geometría del casete original) ===== */
+const NS='http://www.w3.org/2000/svg',el=id=>document.getElementById(id);
+['teethL','teethR'].forEach(id=>{const g=el(id);for(let i=0;i<6;i++){const r=document.createElementNS(NS,'rect');r.setAttribute('x',-1.6);r.setAttribute('y',-9);r.setAttribute('width',3.2);r.setAttribute('height',5.5);r.setAttribute('transform','rotate('+i*60+')');g.appendChild(r)}});
+const V1=140,capf=(x,c)=>c*Math.tanh(x/c);
+let run=0,boost=1,aL=0,aR=0,aP=0,off=0,last=performance.now();
+function frame(now){
+ const dt=Math.min(.05,(now-last)/1000);last=now;
+ const playing=!radioPlayer.paused&&!!currentTrackKey;
+ const target=rewinding?-3:playing?1:0;
+ run+=(target-run)*Math.min(1,dt*4);
+ boost+=(1-boost)*Math.min(1,dt*.7);
+ if(rewinding){
+  const p=Math.min(1,(now-rwStart)/RW_MS),ease=p*p*(3-2*p);pos=rwFrom*(1-ease);
+  if(p>=1){rewinding=0;pos=0;requestRadioAction('next').catch(error=>say(error.message))}
+ }else if(playing&&Number.isFinite(radioPlayer.duration)&&radioPlayer.duration>0)pos=radioPlayer.currentTime/radioPlayer.duration;
+ pos=Math.max(0,Math.min(1,pos));
+ const rL=2*Math.sqrt(169+1275*(1-pos)),rR=2*Math.sqrt(169+1275*pos);
+ const vPx=V1*run*boost,wL=vPx/rL,wR=vPx/rR;
+ aL+=capf(wL,14)*dt*57.3;aR+=capf(wR,14)*dt*57.3;aP+=capf(vPx/2,500)/15*dt*57.3;off-=capf(vPx/2,500)*dt;
+ el('pL').setAttribute('r',rL.toFixed(1));el('pR').setAttribute('r',rR.toFixed(1));
+ el('hL').setAttribute('transform','translate(231 176) rotate('+aL.toFixed(1)+') scale(2)');
+ el('hR').setAttribute('transform','translate(409 176) rotate('+aR.toFixed(1)+') scale(2)');
+ el('pr').setAttribute('transform','translate(430 249) rotate('+aP.toFixed(1)+')');
+ const pL=(231+rL*Math.cos(2.3)).toFixed(1)+' '+(176+rL*Math.sin(2.3)).toFixed(1),pR=(409+rR*Math.cos(.84)).toFixed(1)+' '+(176+rR*Math.sin(.84)).toFixed(1);
+ const dL='M'+pL+' L118 262',dF='M118 262 L292 262 Q320 257 348 262 L424 262 Q430 267 436 262 L522 262',dR='M522 262 L'+pR;
+ [['tL','sL',dL],['tF','sF',dF],['tR','sR',dR]].forEach(a=>{el(a[0]).setAttribute('d',a[2]);el(a[1]).setAttribute('d',a[2]);el(a[1]).setAttribute('stroke-dashoffset',off.toFixed(1))});
+ requestAnimationFrame(frame)}
+requestAnimationFrame(frame);
+
+/* ===== Estado de conexión con TikTok ===== */
 const lnk=$('#lnk'),lnkT=$('#lnkT');
-function setConn(v){lnk.classList.toggle('bad',!v);lnk.dataset.c=v?1:0;lnkT.textContent=v?'EN LÍNEA':'SIN CONEXIÓN'}
-window.liveConnected=setConn;
 function renderTikTokStatus(status={}){
  const connector=status.connector||{};
  const state=String(connector.status||status.status||'').toLowerCase();
@@ -270,432 +332,138 @@ function renderTikTokStatus(status={}){
  lnk.classList.toggle('bad',!connected&&!pending&&state!=='');
  lnk.classList.toggle('pending',pending);
  lnk.classList.toggle('unknown',!connected&&!pending&&state==='');
- lnk.dataset.c=connected?'1':pending?'pending':state||'unknown';
- lnkT.textContent=connected?'EN LÍNEA'
-  :pending?(state==='reconnecting'?'REINTENTANDO...':'CONECTANDO...')
-   :state?'DESCONECTADO':'ESTADO DESCONOCIDO';
- lnk.title=connected?'Conectado a TikTok'
-  :pending?'Conectando con TikTok':state?'TikTok desconectado':'No se pudo consultar el estado de TikTok';
+ lnkT.textContent=connected?'EN LÍNEA':pending?(state==='reconnecting'?'REINTENTANDO…':'CONECTANDO…'):state?'DESCONECTADO':'SIN ESTADO';
+ lnk.title=connected?'Conectado a TikTok':pending?'Conectando con TikTok':state?'TikTok desconectado':'No se pudo consultar el estado de TikTok';
 }
 async function refreshTikTokStatus(){
- try{
-  const response=await fetch('/api/status');
-  if(!response.ok)throw new Error(`Error HTTP ${response.status}`);
-  renderTikTokStatus(await response.json());
- }catch(error){renderTikTokStatus({})}
+ try{const r=await fetch('/api/status');if(!r.ok)throw new Error('HTTP '+r.status);renderTikTokStatus(await r.json())}
+ catch(e){renderTikTokStatus({})}
 }
 function initTikTokEventStream(){
- const eventStream=new EventSource('/api/events');
- eventStream.addEventListener('status',event=>renderTikTokStatus(JSON.parse(event.data)));
- eventStream.addEventListener('runtime-state',event=>syncRuntimeStats(JSON.parse(event.data)));
- eventStream.addEventListener('update',event=>{
-  const {entry}=JSON.parse(event.data);if(!entry||typeof entry!=='object')return;
-  const user=entry.username||'usuario';
-  if(entry.type==='like')window.liveEvent({type:'like',user,count:Number.isFinite(entry.activityCount)?entry.activityCount:1});
-  else if(entry.type==='gift')window.liveEvent({type:'gift',user,gift:(entry.content||'EnviÃ³ un regalo').replace(/^EnviÃ³\s*/i,'').replace(/\s+x\d+$/i,''),diamonds:Number.isFinite(entry.diamondCount)?entry.diamondCount:0,count:Number.isFinite(entry.activityCount)?entry.activityCount:1,avatar:entry.avatar});
-  else if(entry.type==='chat')window.liveEvent({type:'comment',user,text:entry.content||'EnviÃ³ un mensaje',avatar:entry.avatar});
+ const es=new EventSource('/api/events');
+ es.addEventListener('status',e=>renderTikTokStatus(JSON.parse(e.data)));
+ es.addEventListener('runtime-state',e=>syncRuntimeStats(JSON.parse(e.data)));
+ es.addEventListener('update',e=>{
+  const {entry}=JSON.parse(e.data);if(!entry||typeof entry!=='object')return;
+  const user=entry.username||'usuario',n=Number.isFinite(entry.activityCount)?entry.activityCount:1;
+  if(entry.type==='like')window.liveEvent({type:'like',user,count:n,avatar:entry.avatar});
+  else if(entry.type==='gift')window.liveEvent({type:'gift',user,gift:(entry.content||'un regalo').replace(/^Envi(?:ó|\u00c3\u00b3)\s*/i,'').replace(/\s+x\d+$/i,''),diamonds:Number.isFinite(entry.diamondCount)?entry.diamondCount:0,count:n,avatar:entry.avatar});
+  else if(entry.type==='chat')window.liveEvent({type:'comment',user,text:entry.content||'Envió un mensaje',avatar:entry.avatar});
   else if(entry.type==='member')window.liveEvent({type:'join',user,avatar:entry.avatar});
   else if(entry.type==='follow')window.liveEvent({type:'follow',user,avatar:entry.avatar});
-  else if(entry.type==='share')window.liveEvent({type:'share',user,text:entry.content||'CompartiÃ³ el live',avatar:entry.avatar});
-  else window.liveEvent({type:'activity',user,text:entry.content||entry.eventLabel||entry.type,avatar:entry.avatar});
+  else if(entry.type==='share')window.liveEvent({type:'share',user,avatar:entry.avatar});
  });
- eventStream.addEventListener('error',refreshTikTokStatus);
+ es.addEventListener('error',refreshTikTokStatus);
 }
-lnk.onclick=async()=>{unlock();lnkT.textContent='CONECTANDO...';try{const response=await fetch('/api/reconnect',{method:'POST'});const result=await response.json();if(!response.ok)throw new Error(result.message||'No se pudo reconectar con TikTok.')}catch(error){refreshTikTokStatus();radioHint.textContent=error.message}};
+lnk.onclick=async()=>{unlock();lnkT.textContent='CONECTANDO…';lnk.classList.add('pending');try{const r=await fetch('/api/reconnect',{method:'POST'});const res=await r.json();if(!r.ok)throw new Error(res.message||'No se pudo reconectar con TikTok.')}catch(e){refreshTikTokStatus();say(e.message)}};
 renderTikTokStatus({});refreshTikTokStatus();initTikTokEventStream();
 
-function updateTapeMode(){
- const mode=$('#tapeMode');
- mode.textContent=autoRewinding?'REBOBINANDO · LADO '+tapeSide:radioPlayer.paused?'PAUSADA · LADO '+tapeSide:'PLAY · LADO '+tapeSide;
-}
-function setTapeSide(side,playedSeconds){
- if(!['A','B'].includes(side)||!Number.isFinite(playedSeconds)||playedSeconds<0||playedSeconds>=TAPE_SIDE_SECONDS)return;
- tapeSide=side;tapePlayedSeconds=playedSeconds;
- $('#tapeSideLabel').textContent='LADO '+tapeSide+' · 60 MIN';
- $('#tapeSideLetter').textContent=tapeSide;
- updateTapeMode();
-}
-function persistTapeState(force=false){
- const now=performance.now();
- if(!force&&now-lastTapePersistAt<30000)return;
- lastTapePersistAt=now;
- fetch('/api/radio/tape',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({side:tapeSide,playedSeconds:tapePlayedSeconds})})
-  .then(async response=>{if(!response.ok){const result=await response.json();throw new Error(result.message||'No se pudo guardar el estado de la cinta.')}})
-  .catch(error=>{radioHint.textContent=error.message});
-}
-function accountTapePlayback(){
- if(radioPlayer.paused||autoRewinding||!Number.isFinite(radioPlayer.currentTime)){
-  lastTapeMediaTime=null;lastTapeClockAt=0;return;
- }
- const now=performance.now(),current=radioPlayer.currentTime;
- if(lastTapeMediaTime!==null&&current>=lastTapeMediaTime){
-  const mediaDelta=current-lastTapeMediaTime,wallDelta=Math.max(0,(now-lastTapeClockAt)/1000);
-  tapePlayedSeconds+=Math.min(mediaDelta,wallDelta+0.5);
-  let changed=false;
-  while(tapePlayedSeconds>=TAPE_SIDE_SECONDS){
-   tapePlayedSeconds-=TAPE_SIDE_SECONDS;tapeSide=tapeSide==='A'?'B':'A';changed=true;
-  }
-  if(changed){
-   setTapeSide(tapeSide,tapePlayedSeconds);pos=0;vN=0;
-   radioHint.textContent='Cambio silencioso al lado '+tapeSide+'; la reproducción continúa.';
-   persistTapeState(true);
-  }else persistTapeState();
- }
- lastTapeMediaTime=current;lastTapeClockAt=now;
-}
-function writeTrackTitle(value){
- const title=String(value||'').trim();
- if(title===curT)return;
- curT=title;{const n=$('#np');if(n)n.textContent=title||'Sin tema en la cinta'}lbT.replaceChildren();penRects.forEach(rect=>rect.setAttribute('width','0'));
- if(!title){lbT.setAttribute('visibility','hidden');lbI.setAttribute('visibility','visible');return}
- const line=document.createElementNS(NS,'tspan');line.setAttribute('x','152');line.setAttribute('y','92');line.textContent=title;lbT.append(line);
- const measuredWidth=line.getComputedTextLength(),maxWidth=326,width=Math.min(maxWidth,measuredWidth);
- if(measuredWidth>maxWidth){line.setAttribute('textLength',String(maxWidth));line.setAttribute('lengthAdjust','spacingAndGlyphs')}
- penRects.forEach(rect=>rect.setAttribute('width',String(width+12)));
- lbT.setAttribute('visibility','visible');lbI.setAttribute('visibility','hidden');
-}
-function writeDiscName(value){
- const name=String(value||'').trim()||'ALABANZAS';
- if(name===currentDiscName&&$('#tapeDiscName').textContent===name)return;
- currentDiscName=name;
- const label=$('#tapeDiscName');
- label.textContent=name;
- label.removeAttribute('textLength');
- const width=label.getComputedTextLength(),maxWidth=201;
- if(width>maxWidth){
-  label.setAttribute('textLength',String(maxWidth));
-  label.setAttribute('lengthAdjust','spacingAndGlyphs');
- }else label.removeAttribute('lengthAdjust');
-}
-function setRadioPower(isOn){
- const powerButton=$('#pw');
- if(powerButton){powerButton.classList.toggle('on',isOn);powerButton.textContent=isOn?'APAGAR':'ENCENDER'}
- const radioPanel=$('#radio');
- if(radioPanel){radioPanel.classList.toggle('off',!isOn);radioPanel.classList.toggle('playing',isOn)}
- document.querySelector('[data-k="play"]').classList.toggle('down',isOn);
- document.querySelector('[data-k="stop"]').classList.toggle('down',!isOn);
-}
-async function requestRadioAction(action,body={}){
- const response=await fetch('/api/radio/'+action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
- const result=await response.json();
- if(!response.ok)throw new Error(result.message||'No se pudo actualizar la playlist.');
- return result;
-}
-function playAudio(){
- unlock();radioPlayer.volume=vol;
- radioPlayer.play().then(()=>{radioHint.textContent='En reproducción';enableAudio.hidden=true})
-  .catch(error=>{radioHint.textContent='Activa el audio para reproducir: '+error.message;enableAudio.hidden=false});
-}
-function cancelAutoRewind(){
- if(!autoRewinding)return;
- autoRewinding=false;rewindNodes.forEach(node=>{try{node.stop()}catch{}node.disconnect()});rewindNodes=[];
- st=radioPlayer.paused?'stop':'play';sync();updateTapeMode();
-}
-function startRewindSound(){
- unlock();if(!A)return;
- const start=()=>{if(A.state!=='running')return;
-  const duration=REWIND_DURATION_MS/1000,time=A.currentTime,size=Math.ceil(A.sampleRate*duration);
-  const buffer=A.createBuffer(1,size,A.sampleRate),samples=buffer.getChannelData(0);
-  for(let i=0;i<size;i++)samples[i]=(Math.random()*2-1)*(.35+Math.random()*.65);
-  const source=A.createBufferSource(),filter=A.createBiquadFilter(),gain=A.createGain();
-  source.buffer=buffer;filter.type='bandpass';filter.Q.value=.7;
-  filter.frequency.setValueAtTime(2600,time);filter.frequency.exponentialRampToValueAtTime(420,time+duration);
-  gain.gain.setValueAtTime(.0001,time);gain.gain.linearRampToValueAtTime(.16,time+.12);gain.gain.linearRampToValueAtTime(.0001,time+duration);
-  source.connect(filter);filter.connect(gain);gain.connect(A.destination);source.start(time);source.stop(time+duration);
-  const motor=A.createOscillator(),motorGain=A.createGain();motor.type='sawtooth';
-  motor.frequency.setValueAtTime(480,time);motor.frequency.exponentialRampToValueAtTime(90,time+duration);
-  motorGain.gain.setValueAtTime(.0001,time);motorGain.gain.linearRampToValueAtTime(.035,time+.1);motorGain.gain.linearRampToValueAtTime(.0001,time+duration);
-  motor.connect(motorGain);motorGain.connect(A.destination);motor.start(time);motor.stop(time+duration);
-  rewindNodes=[source,motor];
- };
- if(A.state==='running')start();else A.resume().then(start);
-}
-function beginAutoRewind(){
- if(autoRewinding)return;
- pos=1;autoRewindStartPosition=pos;autoRewinding=true;autoRewindStartedAt=performance.now();setSt('rew');clk(1);startRewindSound();
- radioHint.textContent='La canción terminó; rebobinando la cinta…';
-}
-async function handleTransport(action){
- if(!action)return;
- cancelAutoRewind();clk(1);
- try{
- if(action==='play'){
-  if(!currentTrackKey){radioHint.textContent='Carga un disco desde Administración → Radio antes de reproducir.';return}
-  if(radioPlayer.ended)radioPlayer.currentTime=0;playAudio();return
- }
-  if(action==='stop'){radioPlayer.pause();setSt('stop');return}
-  if(action==='rew'){await requestRadioAction('previous');return}
-  if(action==='ff'){await requestRadioAction('next');return}
- }catch(error){radioHint.textContent=error.message||'No se pudo cambiar la reproducción.'}
-}
-function showRadioState(radioState){
- const track=radioState.currentTrack;
- if(!track){
-  currentTrackKey='';currentTrackTitle='';writeDiscName('');radioPlayer.pause();radioPlayer.removeAttribute('src');radioPlayer.load();
-  setRadioPower(false);setSt('stop');writeTrackTitle('');radioHint.textContent='La playlist está vacía.';
-  enableAudio.hidden=true;pos=0;return;
- }
- currentTrackTitle=String(track.title||'');writeTrackTitle(currentTrackTitle);writeDiscName(track.discName||track.discId);
- const trackKey=String(radioState.currentIndex)+':'+String(track.id||track.title||track.url);
- if(trackKey!==currentTrackKey){
-  currentTrackKey=trackKey;radioPlayer.src=new URL(track.url||'/audio/current',location.href).href;radioPlayer.load();
- }
- if(radioState.isPlaying&&radioPlayer.paused&&!autoRewinding)playAudio();
- else if(!radioState.isPlaying&&!radioPlayer.paused)radioPlayer.pause();
- if(!radioState.isPlaying)radioHint.textContent='Lista para reproducir';
- setRadioPower(Boolean(radioState.isPlaying&&!radioPlayer.paused));
- if(!radioState.isPlaying&&!autoRewinding)setSt('stop');
-}
-function initRadioPlayer(){
- radioPlayer.volume=vol;
- const powerButton=$('#pw');
- if(powerButton)powerButton.addEventListener('click',()=>handleTransport(radioPlayer.paused?'play':'stop'));
- enableAudio.addEventListener('click',playAudio);
- radioPlayer.addEventListener('play',()=>{
-  lastTapeMediaTime=radioPlayer.currentTime;lastTapeClockAt=performance.now();
-  setRadioPower(true);if(!autoRewinding)setSt('play');enableAudio.hidden=true;
-  requestRadioAction('playback',{isPlaying:true}).catch(error=>{radioHint.textContent=error.message});
- });
- radioPlayer.addEventListener('pause',()=>{
-  lastTapeMediaTime=null;lastTapeClockAt=0;
-  persistTapeState(true);
-  setRadioPower(false);if(radioPlayer.ended||autoRewinding)return;
-  setSt('stop');requestRadioAction('playback',{isPlaying:false}).catch(error=>{radioHint.textContent=error.message});
- });
- radioPlayer.addEventListener('ended',beginAutoRewind);
- radioPlayer.addEventListener('timeupdate',()=>{
-  accountTapePlayback();
-  if(!autoRewinding&&Number.isFinite(radioPlayer.duration)&&radioPlayer.duration>0)pos=radioPlayer.currentTime/radioPlayer.duration;
- });
- const stream=new EventSource('/api/radio-state/stream');
- stream.addEventListener('snapshot',event=>showRadioState(JSON.parse(event.data)));
- stream.addEventListener('tape',event=>{const tape=JSON.parse(event.data);setTapeSide(tape.side,tape.playedSeconds)});
- stream.addEventListener('update',event=>showRadioState(JSON.parse(event.data)));
-}
-initRadioPlayer();
-const el=id=>document.getElementById(id),cnt=document.querySelectorAll('#cnt b');
-let last=performance.now();const dbg=q.get('debug')==='1'?document.body.appendChild(Object.assign(document.createElement('div'),{style:'position:absolute;left:20px;top:20px;font:20px monospace;color:#4dff7a;z-index:9'})):null;
-function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;
- const flut=1+.012*Math.sin(now/230)+.008*Math.sin(now/57),tgt=st==='play'?1:st==='ff'?FF:st==='rew'?-REW:0;
- // radios de los rollos (unidades del dibujo): la cinta se conserva, area izq + area der = constante
- const rL=2*Math.sqrt(169+1275*(1-pos)),rR=2*Math.sqrt(169+1275*pos);
- // motor que arrastra: el derecho en PLAY/AVANCE, el izquierdo en REBOBINAR. Aceleracion lineal maxima = ALPHA(rad/s2) x radio; el freno es 3 veces mas fuerte
- let spd;
- if(autoRewinding){
-  const progress=Math.min(1,(now-autoRewindStartedAt)/REWIND_DURATION_MS),ease=progress*progress*(3-2*progress);
-  pos=autoRewindStartPosition*(1-ease);
-  spd=-autoRewindStartPosition*6*progress*(1-progress)*TAPE_SEC/(REWIND_DURATION_MS/1000);vN=spd;
-  if(progress>=1){
-   autoRewinding=false;pos=0;spd=0;vN=0;st='play';sync();updateTapeMode();clk(1);
-   requestRadioAction('next').catch(error=>{radioHint.textContent=error.message});
-  }
- }else{
-  const rd=tgt<0?rL:rR,brk=(Math.abs(tgt)<Math.abs(vN)||tgt*vN<0)?3:1,lim=ALPHA*rd/V1*brk*dt;
-  vN+=Math.max(-lim,Math.min(lim,tgt-vN));spd=vN;
-  if(st==='play'&&!radioPlayer.paused&&Number.isFinite(radioPlayer.duration)&&radioPlayer.duration>0)pos=radioPlayer.currentTime/radioPlayer.duration;
-  else pos+=spd*(tgt===1?flut:1)*dt/TAPE_SEC;
- }
- pos=Math.max(0,Math.min(1,pos));
- // velocidad angular de cada rollo = velocidad de la cinta / radio; aceleracion angular = cambio de esa velocidad
- const vPx=V1*spd*(tgt===1?flut:1),wL=vPx/rL,wR=vPx/rR;
- alL=(wL-wLp)/Math.max(dt,.001);alR=(wR-wRp)/Math.max(dt,.001);wLp=wL;wRp=wR;
- aL+=capf(wL,28)*dt*57.3;aR+=capf(wR,28)*dt*57.3;aP+=capf(vPx/2,500)/15*dt*57.3;off-=capf(vPx/2,500)*dt;
- window.cinta={wL,wR,alL,alR,v:spd,pos};
- if(dbg)dbg.textContent='ωIzq '+wL.toFixed(1)+'  ωDer '+wR.toFixed(1)+' rad/s   αIzq '+alL.toFixed(1)+'  αDer '+alR.toFixed(1)+' rad/s²   cinta '+(pos*60).toFixed(1)+' / 60 min';
- el('pL').setAttribute('r',rL);el('pR').setAttribute('r',rR);
- el('hL').setAttribute('transform','translate(231 176) rotate('+aL+') scale(2)');el('hR').setAttribute('transform','translate(409 176) rotate('+aR+') scale(2)');
- el('pr').setAttribute('transform','translate(430 249) rotate('+aP+')');
- const j=(tgt===1&&Math.abs(spd-1)<.05)?(Math.random()-.5)*.8:0;
- const pL=(231+rL*Math.cos(2.3)).toFixed(1)+' '+(176+rL*Math.sin(2.3)).toFixed(1),pR=(409+rR*Math.cos(.84)).toFixed(1)+' '+(176+rR*Math.sin(.84)).toFixed(1);
- const dL='M'+pL+' L118 262',dF='M118 262 L292 262 Q320 '+(257+j)+' 348 262 L424 262 Q430 '+(267+j)+' 436 262 L522 262',dR='M522 262 L'+pR;
- [['tL','sL',dL],['tF','sF',dF],['tR','sR',dR]].forEach(a=>{el(a[0]).setAttribute('d',a[2]);el(a[1]).setAttribute('d',a[2]);el(a[1]).setAttribute('stroke-dashoffset',off)});
- const n=String(Math.floor(pos*999)).padStart(3,'0');cnt.forEach((b,i)=>b.textContent=n[i]);
- $('#knV').style.transform='rotate('+(vol*270-135)+'deg)';
- writeTrackTitle(currentTrackTitle);
- if(A){const set=(p,x,k)=>p.setTargetAtTime(x,A.currentTime,k||.06);
-  set(out.gain,vol,.25);set(musG.gain,st==='play'?1:0);
-  set(hpF.frequency,60);set(lpF.frequency,7000);
-  set(wowG.gain,st==='play'?14+Math.random()*4:3);
-  set(whG.gain,(st==='ff'||st==='rew')?.012:0);set(whine.frequency,180+Math.abs(spd)*(9/Math.max(FF,REW))*28*(1+pos*.6));
-  set(hmG.gain,st!=='stop'?.01:0)}
- requestAnimationFrame(frame)}
-requestAnimationFrame(frame);
-
-/* ===== EVENTOS DEL LIVE (pantalla de abajo) ===== */
-const deck=$('#deck'),feed=$('#feed'),t5=$('#t5'),ban=$('#ban'),cv=$('#cv'),cx=cv.getContext('2d');
-const tot={like:0,comment:0,join:0,gift:0,dia:0},users=new Map(),shown=new Set();
-let dirty=1,lastLike=null,lastEv=performance.now();
-const PITCH=128,RC=['#ffd447','#d7dae0','#d9884a','#c9a45c','#c9a45c'],MED=['🥇','🥈','🥉','4','5'];
-const sLk=$('#sLk'),sCm=$('#sCm'),sJn=$('#sJn'),sGf=$('#sGf');
-function mkAv(name,url){const d=document.createElement('span');d.className='av2';d.textContent=name.charAt(0).toUpperCase();d.style.background='hsl('+([...name].reduce((a,c)=>a+c.charCodeAt(0),0)*47%360)+' 55% 42%)';
- if(url){const im=new Image();im.referrerPolicy='no-referrer';im.onload=()=>{d.textContent='';d.appendChild(im)};im.src=url}return d}
-function row(ic,name,txt,cls,av){const r=document.createElement('div');r.className='ev '+cls;
- const t=document.createElement('div'),b=document.createElement('b'),s=document.createElement('span');t.className='tx';b.textContent=ic+' '+name;s.textContent=txt;t.append(b,s);r.append(mkAv(name,av),t);
- feed.prepend(r);while(feed.children.length>5)feed.lastChild.remove();return r}
+/* ===== Interacción del live ===== */
+const tot={like:0,comment:0,join:0,gift:0},users=new Map();
 const first=s=>String(s||'Alguien').replace(/^@/,'').trim().split(/\s+/)[0].slice(0,14)||'Alguien';
-let songGoalCoinGoal=500,songGoalCoinProgress=0;
-try{
- const savedProgress=JSON.parse(localStorage.getItem('radio-song-goal-progress-v1')||'0');
- if(Number.isSafeInteger(savedProgress)&&savedProgress>=0)songGoalCoinProgress=savedProgress;
-}catch(error){console.warn('No se pudo recuperar el progreso de la meta musical:',error)}
-function setSongGoalCoinGoal(value){
- if(!Number.isSafeInteger(value)||value<1)return;
- songGoalCoinGoal=value;songGoalCoinProgress%=songGoalCoinGoal;
+const colorOf=n=>'hsl('+([...n].reduce((a,c)=>a+c.charCodeAt(0),0)*47%360)+' 55% 38%)';
+function setAv(node,name,url){node.replaceChildren();node.textContent=name.charAt(0).toUpperCase();node.style.background=colorOf(name);
+ if(url){const im=new Image();im.referrerPolicy='no-referrer';im.onload=()=>{node.textContent='';node.appendChild(im)};im.src=url}}
+function retrig(node,cls){node.classList.remove(cls);void node.offsetWidth;node.classList.add(cls)}
+
+/* Meta de monedas -> siguiente tema */
+let goalMax=500,goalNow=0;
+try{const v=JSON.parse(localStorage.getItem('radio-song-goal-progress-v1')||'0');if(Number.isSafeInteger(v)&&v>=0)goalNow=v}catch(e){}
+function renderGoal(){$('#gP').textContent=goalNow+' / '+goalMax;$('#gB').style.width=Math.min(100,goalNow/goalMax*100)+'%'}
+function setGoalMax(v){if(!Number.isSafeInteger(v)||v<1)return;goalMax=v;goalNow%=goalMax;renderGoal()}
+async function advanceTracks(n){for(let i=0;i<n;i++)await requestRadioAction('next')}
+function addCoins(v){
+ if(!Number.isFinite(v)||v<=0)return;
+ const total=goalNow+Math.floor(v),done=Math.floor(total/goalMax);
+ goalNow=total%goalMax;
+ try{localStorage.setItem('radio-song-goal-progress-v1',String(goalNow))}catch(e){}
+ renderGoal();
+ if(done>0){showBanner('goalok','🎶','¡Meta cumplida!','Pasamos a la siguiente alabanza',4200);chime(true);advanceTracks(done).catch(e=>say(e.message))}
 }
-async function advanceSongGoalTracks(count){
- for(let i=0;i<count;i++)await requestRadioAction('next');
-}
-function addSongGoalCoins(value){
- if(!Number.isFinite(value)||value<=0)return;
- const total=songGoalCoinProgress+Math.floor(value);
- const completedGoals=Math.floor(total/songGoalCoinGoal);
- songGoalCoinProgress=total%songGoalCoinGoal;
- try{localStorage.setItem('radio-song-goal-progress-v1',String(songGoalCoinProgress))}
- catch(error){console.warn('No se pudo guardar el progreso de la meta musical:',error)}
- if(completedGoals>0){
-  radioHint.textContent='¡Meta musical alcanzada! Pasando al siguiente tema…';
-  advanceSongGoalTracks(completedGoals).catch(error=>{radioHint.textContent=error.message||'No se pudo avanzar al siguiente tema.'});
+fetch('/api/overlay/settings').then(async r=>{if(!r.ok)throw new Error('No se pudo cargar la meta de monedas.');setGoalMax((await r.json()).coinGoal)}).catch(e=>console.warn(e.message));
+const gs=new EventSource('/api/overlay/stream');
+gs.addEventListener('settings',e=>setGoalMax(JSON.parse(e.data).coinGoal));
+renderGoal();
+
+/* Llamado a la acción: un mensaje a la vez */
+const cta=$('#cta'),ctaI=$('#ctaI'),ctaT=$('#ctaT'),ctaS=$('#ctaS');
+let ctaIdx=0,bannerUntil=0,bannerTimer=0;
+const CTA=[
+ ()=>['❤','Toca la pantalla','Cada ❤ acelera la cinta'],
+ ()=>['🙏','Escribe AMÉN','Tu nombre aparece aquí abajo'],
+ ()=>['🎶','Pide tu alabanza','Déjala en los comentarios'],
+ ()=>['🎁','Regala y cambia de tema','Faltan '+Math.max(0,goalMax-goalNow)+' 💎 para la siguiente'],
+ ()=>['👑','¿Quién será el fan top?','Más ❤ y 💬 = el 👑 es tuyo'],
+ ()=>['↗','Comparte el live','Invita a alguien a escuchar']
+];
+function paintCta(cls,ic,t,s){cta.className='cta '+(cls||'');ctaI.textContent=ic;ctaT.textContent=t;ctaS.textContent=s;retrig(cta,'in')}
+function showBanner(cls,ic,t,s,ms){bannerUntil=performance.now()+ms;paintCta(cls,ic,t,s);clearTimeout(bannerTimer);bannerTimer=setTimeout(nextCta,ms)}
+function nextCta(){if(performance.now()<bannerUntil)return;const c=CTA[ctaIdx++%CTA.length]();paintCta('',c[0],c[1],c[2])}
+nextCta();setInterval(nextCta,7000);
+
+/* Último evento */
+const tick=$('#tick'),tkA=$('#tkA'),tkN=$('#tkN'),tkS=$('#tkS');
+let lastLike=null;
+function showTick(cls,ic,name,txt,av){tick.className='tick '+cls;tkN.textContent=ic+' '+name;tkS.textContent=txt;setAv(tkA,name,av);retrig(tick,'in')}
+
+function boostReels(v){boost=Math.min(2.5,boost+v)}
+function ev(e){
+ if(!e||!e.type)return;
+ const key=e.id||e.user||'Alguien',name=first(e.user);
+ let u=users.get(key);if(!u){u={name,l:0,c:0,d:0,pts:0};users.set(key,u)}
+ u.name=name;if(e.avatar||e.profilePictureUrl)u.av=e.avatar||e.profilePictureUrl;
+ if(e.type==='like'){
+  const n=(e.count|0)||1;tot.like+=n;u.l+=n;u.pts+=n;boostReels(Math.min(n,12)*.12);retrig($('#chLk'),'pop');
+  const now=performance.now();
+  if(lastLike&&lastLike.key===key&&now-lastLike.t<4000){lastLike.n+=n;lastLike.t=now;tkS.textContent='dio '+lastLike.n+' me gusta'}
+  else{lastLike={key,t:now,n};showTick('lk','❤',name,'dio '+n+' me gusta',u.av)}
+ }else if(e.type==='comment'){
+  tot.comment++;u.c++;u.pts+=5;boostReels(.5);retrig($('#chCm'),'pop');
+  showTick('cm','💬',name,String(e.text||'').slice(0,70),u.av);lastLike=null;
+ }else if(e.type==='join'){showTick('jn','👋',name,'se unió al live',u.av);lastLike=null}
+ else if(e.type==='follow'){showTick('jn','➕',name,'empezó a seguirte',u.av);lastLike=null}
+ else if(e.type==='share'){showTick('jn','↗',name,'compartió el live',u.av);lastLike=null}
+ else if(e.type==='gift'){
+  const n=(e.count|0)||1,dia=Math.max(1,(+e.diamonds||1)*n),g=e.gift||'un regalo',ic=e.icon||'🎁';
+  addCoins(Math.max(0,Math.floor(+e.diamonds||0))*n);
+  tot.gift+=n;u.d+=dia;u.pts+=dia*10;boost=2.5;
+  showTick('gf',ic,name,'envió '+(n>1?n+'× ':'')+g+'  💎'+dia,u.av);lastLike=null;
+  if(performance.now()>=bannerUntil){showBanner('gift',ic,name+' envió '+g,'¡Gracias! 💎'+dia+(n>1?' ('+n+'×)':''),3200+Math.min(2600,dia*20))}
+  chime(dia>=20);retrig(cass,'bump');
  }
+ renderStats();
 }
-function ev(e){if(!e||!e.type)return;lastEv=performance.now();const key=e.id||e.user||'Alguien',name=first(e.user);
- let u=users.get(key);if(!u){u={name,l:0,c:0,d:0,pts:0,sp:0};users.set(key,u)}u.name=name;if(e.avatar||e.profilePictureUrl)u.av=e.avatar||e.profilePictureUrl;
- if(e.type==='like'){const n=(e.count|0)||1;tot.like+=n;u.l+=n;u.pts+=n*M();const now=performance.now();
-  if(lastLike&&lastLike.key===key&&now-lastLike.t<4000&&lastLike.el.parentNode){lastLike.n+=n;lastLike.t=now;lastLike.el.querySelector('.tx span').textContent='dio '+lastLike.n+' me gusta'}
-  else lastLike={key,t:now,n,el:row('❤',name,'dio '+n+' me gusta','lk',u.av)}}
- else if(e.type==='comment'){tot.comment++;u.c++;u.pts+=5*M();row('💬',name,String(e.text||'').slice(0,70),'cm',u.av)}
- else if(e.type==='join'){tot.join++;row('👋',name,'se unió al live','jn',u.av)}
- else if(e.type==='gift'){const n=(e.count|0)||1,dia=Math.max(1,(+e.diamonds||1)*n),g=e.gift||'regalo',ic=e.icon||'🎁';
-  addSongGoalCoins(Math.max(0,Math.floor(+e.diamonds||0))*n);
-  tot.gift+=n;tot.dia+=dia;u.d+=dia;u.pts+=dia*10*M();row(ic,name,'envió '+(n>1?n+'× ':'')+g+'  💎'+dia,'gf',u.av);party(name,g,ic,n,dia,u.av);toast(ic,name+' envió '+g,'¡Gracias! 💎'+dia+(n>1?' ('+n+'×)':''),'gf',3000+Math.min(2500,dia*20))}
- dirty=1}
-let runtimeStatsLoaded=false;
-let runtimeHadEvents=false;
-fetch('/api/overlay/settings').then(async response=>{
- if(!response.ok)throw new Error('No se pudo cargar la meta de monedas.');
- const settings=await response.json();setSongGoalCoinGoal(settings.coinGoal);
-}).catch(error=>console.warn(error.message));
-const songGoalSettingsStream=new EventSource('/api/overlay/stream');
-songGoalSettingsStream.addEventListener('settings',event=>{
- const settings=JSON.parse(event.data);setSongGoalCoinGoal(settings.coinGoal);
-});
+function renderStats(){
+ $('#sLk').textContent=tot.like;$('#sCm').textContent=tot.comment;
+ let top=null;users.forEach(u=>{if(u.pts>0&&(!top||u.pts>top.pts))top=u});
+ $('#fanN').textContent=top?top.name:'¿Tú?';
+}
 function syncRuntimeStats(stats){
  if(!stats||!stats.users||typeof stats.users!=='object')return;
- tot.like=Number(stats.likes)||0;tot.gift=Number(stats.gifts)||0;tot.dia=Number(stats.giftDiamonds)||0;
- tot.comment=Number(stats.comments)||0;tot.join=Number(stats.members)||0;
+ tot.like=Number(stats.likes)||0;tot.gift=Number(stats.gifts)||0;tot.comment=Number(stats.comments)||0;tot.join=Number(stats.members)||0;
  const seen=new Set();
  for(const [key,value] of Object.entries(stats.users)){
-  if(!value||typeof value!=='object')continue;
-  seen.add(key);
-  const user=users.get(key)||{name:first(key),l:0,c:0,d:0,pts:0,sp:0};
-  user.name=first(key);user.l=Number(value.likes)||0;user.c=Number(value.comments)||0;user.d=Number(value.diamonds)||0;
-  user.pts=user.l+user.c*5+user.d*10;users.set(key,user);
+  if(!value||typeof value!=='object')continue;seen.add(key);
+  const u=users.get(key)||{name:first(key),l:0,c:0,d:0,pts:0};
+  u.name=first(key);u.l=Number(value.likes)||0;u.c=Number(value.comments)||0;u.d=Number(value.diamonds)||0;u.pts=u.l+u.c*5+u.d*10;users.set(key,u);
  }
- for(const [key,user] of users){
-  if(!seen.has(key)){if(user.el){shown.delete(user);user.el.remove()}users.delete(key)}
- }
- if(!runtimeStatsLoaded){
-  let score=0;users.forEach(user=>{score+=user.pts});
-  lvl=0;while(score>=gOf(lvl)[0])lvl++;
-  lead=[...users.values()].sort((firstUser,secondUser)=>secondUser.pts-firstUser.pts)[0]||null;
-  runtimeStatsLoaded=true;
- }
- const hasEvents=Object.values(stats.events||{}).some(count=>Number(count)>0),reset=!hasEvents&&runtimeHadEvents;
- if(reset){feed.replaceChildren();t5.replaceChildren();shown.clear();lastLike=null;ban.classList.remove('show');deck.classList.remove('party');parts.length=0}
- runtimeHadEvents=hasEvents;dirty=1;
+ for(const key of [...users.keys()])if(!seen.has(key))users.delete(key);
+ const has=Object.values(stats.events||{}).some(c=>Number(c)>0);
+ if(!has&&syncRuntimeStats.had){lastLike=null;showTick('cm','💬','Sé el primero','Escribe AMÉN en el chat y sales aquí')}
+ syncRuntimeStats.had=has;renderStats();
 }
 window.liveEvent=e=>ev(e);
 
-function render(){if(!dirty)return;dirty=0;
- sLk.textContent=tot.like;sCm.textContent=tot.comment;sJn.textContent=tot.join;sGf.textContent=tot.gift;
- const top=[...users.values()].filter(u=>u.pts>0).sort((a,b)=>b.pts-a.pts).slice(0,5),keep=new Set(top),mx=top.length?top[0].pts:1;
- shown.forEach(u=>{if(!keep.has(u)){const e=u.el;u.el=null;shown.delete(u);e.classList.remove('in');setTimeout(()=>e.remove(),600)}});
- top.forEach((u,i)=>{let e=u.el;
-  if(!e){e=u.el=document.createElement('div');e.className='rw';
-   e.innerHTML='<span class="rk"></span><span class="nm"></span><span class="sb"></span><span class="pt"></span><i class="bar"></i>';e.appendChild(mkAv(u.name,u.av));e._av=u.av;
-   e.style.transform='translateY('+(i*PITCH)+'px)';t5.appendChild(e);shown.add(u);void e.offsetWidth;e.classList.add('in')}
-  e.style.setProperty('--rc',RC[i]);if(e._av!==u.av){e._av=u.av;e.replaceChild(mkAv(u.name,u.av),e.lastChild)}e.style.transform='translateY('+(i*PITCH)+'px)';
-  e.children[0].textContent=MED[i];e.children[1].textContent=u.name;
-  e.children[2].textContent='❤'+u.l+'  💬'+u.c+(u.d?'  💎'+u.d:'');e.children[3].textContent=u.pts;
-  e.children[4].style.width=(u.pts/mx*100)+'%';
-  if(u.pts!==u.sp){if(u.sp){e.classList.remove('up');void e.offsetWidth;e.classList.add('up')}u.sp=u.pts}})}
-setInterval(()=>{render();goals()},250);
-
-/* ----- fiesta de regalos ----- */
-let pEnd=0,pTimer=0,pRaf=0,pl=0,parts=[];
-const CO=['#ffd447','#ff3b30','#4dff7a','#4aa8ff','#ff5fb0','#fff4dc'],CW=cv.width,CH=cv.height;
-function mk(x,y,vx,vy,ic){return{x,y,vx,vy,r:Math.random()*6.3,vr:(Math.random()-.5)*14,ph:Math.random()*6.3,w:10+Math.random()*12,h:6+Math.random()*7,c:CO[Math.floor(Math.random()*CO.length)],k:Math.random()<.12?'e':Math.random()<.3?'o':'r',ic}}
-function burst(n,ic){for(let i=0;i<n;i++){const left=i%2===0,a=(55+Math.random()*30)*Math.PI/180,sp=900+Math.random()*900;
- parts.push(mk(left?20:CW-20,CH-20,(left?1:-1)*Math.cos(a)*sp,-Math.sin(a)*sp,ic))}}
-function pf(t){const dt=Math.min(.04,(t-pl)/1000);pl=t;cx.clearRect(0,0,CW,CH);
- if(t<pEnd)for(let k=0;k<3;k++)parts.push(mk(Math.random()*CW,-20,(Math.random()-.5)*120,80+Math.random()*200,curIc));
- for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.vy=Math.min(p.vy+1300*dt,540);p.vx*=Math.pow(.35,dt);p.ph+=dt*7;p.x+=p.vx*dt+Math.sin(p.ph)*.8;p.y+=p.vy*dt;p.r+=p.vr*dt;
-  if(p.y>CH+40){parts.splice(i,1);continue}
-  cx.save();cx.translate(p.x,p.y);cx.rotate(p.r);cx.fillStyle=p.c;
-  if(p.k==='e'){cx.font='40px sans-serif';cx.textAlign='center';cx.textBaseline='middle';cx.fillText(p.ic,0,0)}
-  else{cx.scale(1,Math.cos(p.ph*1.3));if(p.k==='o'){cx.beginPath();cx.arc(0,0,p.h*.8,0,6.3);cx.fill()}else cx.fillRect(-p.w/2,-p.h/2,p.w,p.h)}
-  cx.restore()}
- if(parts.length||t<pEnd)pRaf=requestAnimationFrame(pf);else pRaf=0}
-let curIc='🎁';
-function fanfare(d){if(!A||!on)return;const t=A.currentTime,ns=d>=99?[72,76,79,84,88,91]:d>=20?[72,76,79,84]:[76,79,84];
- ns.forEach((m,i)=>{const o=A.createOscillator(),g=A.createGain(),s=t+i*.09;o.type='square';o.frequency.value=440*Math.pow(2,(m-69)/12);
-  g.gain.setValueAtTime(.0001,s);g.gain.linearRampToValueAtTime(Math.max(.0002,.12*vol),s+.01);g.gain.exponentialRampToValueAtTime(.0001,s+.35);
-  o.connect(g);g.connect(A.destination);o.start(s);o.stop(s+.4)})}
-function party(name,gift,ic,n,dia,av){curIc=ic;
- const dur=Math.min(12,5+Math.log10(dia+1)*2.2)*1000;pEnd=Math.max(pEnd,performance.now()+dur);
- deck.classList.add('party');
- $('#bi').textContent=ic;$('#bn').textContent=name;
- const img=$('#avi'),lt=$('#avl');lt.textContent=name.charAt(0).toUpperCase();lt.style.background='hsl('+([...name].reduce((a,c)=>a+c.charCodeAt(0),0)*47%360)+' 55% 42%)';
- img.style.display='none';img.removeAttribute('src');if(av){img.referrerPolicy='no-referrer';img.onload=()=>{img.style.display='block'};img.onerror=()=>{img.style.display='none'};img.src=av}
- $('#bg').textContent='envió '+(n>1?n+'× ':'')+gift;$('#bd').textContent='💎 '+dia;
- ban.classList.remove('show');void ban.offsetWidth;ban.classList.add('show');
- burst(Math.min(420,120+dia*4),ic);fanfare(dia);
- if(!pRaf){pl=performance.now();pRaf=requestAnimationFrame(pf)}
- clearTimeout(pTimer);pTimer=setTimeout(()=>{deck.classList.remove('party');ban.classList.remove('show')},pEnd-performance.now())}
-
-/* ===== GAMIFICACIÓN: meta comunitaria, líder, doble puntos, avisos ===== */
-// ?metas=150:Leo peticiones|400:Oración por todos|900:Alabanza especial   (puntos acumulados : premio que tú cumples en vivo)
-const G=q.get('metas')?q.get('metas').split('|').map(x=>{const[a,...b]=x.split(':');return[+a,b.join(':')]}):[[150,'Leo tus peticiones de oración'],[400,'Oración por todos los que escriben AMÉN'],[900,'Alabanza especial dedicada al live'],[1800,'Lectura bíblica y bendición'],[3500,'Mensaje final de avivamiento']];
-const gOf=i=>i<G.length?G[i]:[Math.round(G[G.length-1][0]*(1+.6*(i-G.length+1))),'Bendición extra para todos'];
-const vu=$('#vu'),gN=$('#gN'),gP=$('#gP'),gR=$('#gR'),mvp=$('#mvp'),al=$('#al'),wmEl=$('#wm');
-for(let i=0;i<20;i++){const x=document.createElement('i');x.style.setProperty('--sc',i<12?'#4dff7a':i<17?'#ffb13b':'#ff4a3a');vu.appendChild(x)}
-let lvl=0,lead=null,x2End=0,nextX2=performance.now()+90000,tq=[],tBusy=0,ci=0;
-const M=()=>performance.now()<x2End?2:1;
-const CTA=[['🙌','¡Saluda en el chat!','Escribe AMÉN y aparece en el live'],['❤','¡Toca la pantalla!','Cada toque suma para la meta comunitaria'],['🙏','¿Por quién oramos hoy?','Deja tu petición en los comentarios'],['↗','¡Invita a alguien!','Comparte este live con tu comunidad']];
-function toast(ic,t,s,c,ms){tq.push([ic,t,s,c,ms||3400]);if(!tBusy)nextTo()}
-function nextTo(){const x=tq.shift();if(!x){tBusy=0;return}tBusy=1;
- al.className='';void al.offsetWidth;al.className='show '+x[3];al.children[0].textContent=x[0];al.children[1].children[0].textContent=x[1];al.children[1].children[1].textContent=x[2];
- setTimeout(()=>{al.className='';setTimeout(nextTo,350)},x[4])}
-function cheer(){curIc='🎉';pEnd=Math.max(pEnd,performance.now()+3500);deck.classList.add('party');burst(220,'🎉');fanfare(99);
- if(!pRaf){pl=performance.now();pRaf=requestAnimationFrame(pf)}clearTimeout(pTimer);pTimer=setTimeout(()=>deck.classList.remove('party'),pEnd-performance.now());
- wmEl.classList.add('flash');setTimeout(()=>wmEl.classList.remove('flash'),2600)}
-function goals(){const now=performance.now();let E=0;const arr=[];users.forEach(u=>{E+=u.pts;if(u.pts>0)arr.push(u)});arr.sort((a,b)=>b.pts-a.pts);
- while(E>=gOf(lvl)[0]){const g=gOf(lvl);lvl++;cheer();toast('🏆','¡Meta '+lvl+' cumplida!',g[1],'goal',5200)}
- const g=gOf(lvl),p0=lvl?gOf(lvl-1)[0]:0,f=Math.min(1,(E-p0)/(g[0]-p0)),n=Math.floor(f*20),left=Math.max(0,x2End-now);
- [...vu.children].forEach((x,i)=>x.classList.toggle('on',i<n||(i===n&&f>0&&Math.floor(now/450)%2===0)));
- gN.textContent=left?'⚡ DOBLE PUNTOS '+Math.ceil(left/1000)+'s':'META '+(lvl+1);gN.classList.toggle('x2',!!left);
- gP.textContent=E+' / '+g[0];gR.textContent='🎁 '+g[1];
- if(arr[0]){const a=arr[0],b=arr[1];mvp.children[0].textContent='👑 '+a.name+' · '+a.pts;
-  mvp.children[1].textContent=b?'2.º '+b.name+' va a '+(a.pts-b.pts)+' pts: ¡alcánzalo!':'Sé el siguiente: escribe AMÉN';
-  if(lead&&lead!==a&&a.pts>lead.pts)toast('👑',a.name+' toma el primer lugar','Superó a '+lead.name+' con '+a.pts+' pts','lead');
-  if(!lead||a.pts>lead.pts)lead=a}
- else{mvp.children[0].textContent='👑 SÉ EL PRIMERO';mvp.children[1].textContent='Escribe AMÉN y entra al ranking'}
- if(q.get('x2')!=='0'&&!left&&now>nextX2){x2End=now+45000;nextX2=x2End+240000;toast('⚡','¡Doble puntos por 45 segundos!','Toca ❤ y escribe AMÉN ahora','x2',4200)}
- if(!tBusy&&now-lastEv>14000){const c=CTA[ci++%CTA.length];toast(c[0],c[1],c[2],'cta',3600);lastEv=now}}
-
-/* ----- bots (activos desde el inicio; ?bots=0 los apaga) ----- */
-const NM=['María','Carlos','Lucía','Juan','Sofía','Pedro','Ana','Luis','Camila','Diego','Rosa','Miguel','Elena','José','Noemí','Abel','Ruth','Esteban','Dorcas','Samuel','Priscila','Isaac','Débora','Mateo','Lidia','Gabriel','Raquel','Nahuel','Marta','Tomás'];
-const CM=['Amén 🙏','Gloria a Dios','Dios te bendiga hermano','Bendiciones desde Paraguay 🇵🇾','Pido oración por mi familia','Aleluya 🙌','Saludos desde Argentina 🇦🇷','Qué hermosa alabanza','Cristo vive','Fuego del Espíritu Santo 🔥','Sigan bendiciendo','Amén, amén','Me encanta esta radio 📻','Dios es fiel','Compartiendo el live','Gloria al Rey 👑','Escuchando desde Brasil 🇧🇷','Feliz domingo hermanos'];
-const GF=[['Rosa','🌹',1,50],['Corazón','💖',5,25],['Panda','🐼',5,14],['Perfume','🌸',20,7],['Corona','👑',99,3],['León','🦁',500,1]];
-const rnd=(a,b)=>a+Math.random()*(b-a),pick=a=>a[Math.floor(Math.random()*a.length)],fan=()=>NM[Math.floor(Math.pow(Math.random(),1.8)*NM.length)];
-function rgift(){let r=Math.random()*100,g=GF[0];for(const x of GF){if(r<x[3]){g=x;break}r-=x[3]}
- ev({type:'gift',user:fan(),gift:g[0],icon:g[1],diamonds:g[2],count:Math.random()<.2?1+Math.floor(Math.random()*4):1})}
-const rcom=()=>ev({type:'comment',user:fan(),text:pick(CM)}),rjoin=()=>ev({type:'join',user:pick(NM)}),rlike=()=>ev({type:'like',user:fan(),count:1+Math.floor(Math.random()*14)});
+/* ----- pruebas: ?bots=1 y teclas G regalo, C comentario, J entrada, L me gusta ----- */
+const NM=['María','Carlos','Lucía','Juan','Sofía','Pedro','Ana','Luis','Camila','Diego','Rosa','Miguel','Elena','José','Noemí','Abel','Ruth','Samuel'];
+const CM=['Amén 🙏','Gloria a Dios','Dios te bendiga','Bendiciones desde Paraguay 🇵🇾','Aleluya 🙌','Saludos desde Argentina 🇦🇷','Cristo vive','Dios es fiel','Me encanta esta radio 📻'];
+const GF=[['Rosa','🌹',1],['Corazón','💖',5],['Panda','🐼',14],['Corona','👑',99],['León','🦁',500]];
+const rnd=(a,b)=>a+Math.random()*(b-a),pick=a=>a[Math.floor(Math.random()*a.length)];
+const rgift=()=>{const g=pick(GF);ev({type:'gift',user:pick(NM),gift:g[0],icon:g[1],diamonds:g[2],count:1})},
+ rcom=()=>ev({type:'comment',user:pick(NM),text:pick(CM)}),rjoin=()=>ev({type:'join',user:pick(NM)}),
+ rlike=()=>ev({type:'like',user:pick(NM),count:1+Math.floor(Math.random()*14)});
 function loop(fn,a,b){const go=()=>{fn();setTimeout(go,rnd(a,b)*1000)};setTimeout(go,rnd(a,b)*1000)}
-if(q.get('bots')==='1'){
- for(let i=0;i<9;i++)setTimeout([rjoin,rcom,rlike][i%3],300+i*380);
- setTimeout(rgift,7000);
- loop(rcom,2,5);loop(rjoin,3,7);loop(rlike,1.5,4);loop(rgift,25,55)}
-// pruebas con el teclado: G regalo, C comentario, J entrada, L me gusta
+if(q.get('bots')==='1'){loop(rcom,2,5);loop(rjoin,3,7);loop(rlike,1.5,4);loop(rgift,25,55)}
 addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(k==='g')rgift();else if(k==='c')rcom();else if(k==='j')rjoin();else if(k==='l')rlike()});
 })();
 </script>
