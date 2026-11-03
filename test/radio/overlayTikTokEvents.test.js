@@ -162,8 +162,8 @@ test('radio advances one track per completed coin goal and keeps leftover coins'
 test('overlay engagement alerts appear centered in a TikTok-style panel', () => {
   const overlay = fs.readFileSync(path.join(__dirname, '../../Radio_Cristiana_Pentecostal_BUBSDT_TikTok_Live_v10.html'), 'utf8');
   assert.match(overlay, /#al\{position:absolute;left:50%;top:50%/);
-  assert.match(overlay, /background:rgba\(15,16,24,\.97\)/);
-  assert.match(overlay, /EN VIVO\s+·\s+TU PARTICIPACIÓN CUENTA/);
+  assert.match(overlay, /background:rgba\(14,9,32,\.96\)/);
+  assert.match(overlay, /border-left:12px solid var\(--oro\)/);
   assert.match(overlay, /¡Saluda en el chat!/);
   assert.match(overlay, /Cada toque suma para la meta comunitaria/);
   assert.match(overlay, /¡Invita a alguien!/);
@@ -172,7 +172,7 @@ test('overlay engagement alerts appear centered in a TikTok-style panel', () => 
 test('radio overlay removes the scrolling ticker and enlarges the Walkman case', () => {
   const overlay = fs.readFileSync(path.join(__dirname, '../../Radio_Cristiana_Pentecostal_BUBSDT_TikTok_Live_v10.html'), 'utf8');
   assert.doesNotMatch(overlay, /class="tick"|id="tk"|@keyframes mq/);
-  assert.match(overlay, /\.wm\{position:absolute;left:0;top:122px;width:1080px;height:900px/);
-  assert.match(overlay, /\.wm>div\{position:absolute;transform:scale\(1\.06\);transform-origin:top left\}/);
-  assert.match(overlay, /\.deck\{position:absolute;left:20px;top:1044px;width:1040px;height:850px/);
+  assert.match(overlay, /\.wm\{position:absolute;left:20px;top:122px;width:1040px;height:650px/);
+  assert.match(overlay, /\.wm>\*\{position:absolute\}/);
+  assert.match(overlay, /\.deck\{position:absolute;left:20px;top:958px;width:1040px;height:944px/);
 });
