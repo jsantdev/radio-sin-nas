@@ -202,7 +202,7 @@
             <button type="button" class="secondary" data-overlay-action="test-gift">Probar regalo</button>
             <button type="button" class="secondary" data-overlay-action="test-epic-gift">Probar regalo especial</button>
             <button type="button" class="secondary" data-overlay-action="test-song-goal">Probar meta de canción</button>
-            <button type="button" class="secondary" data-overlay-action="reset">Reiniciar contadores</button>
+            <button id="resetOverlayCounters" type="button" class="danger">Reiniciar contadores de actividad</button>
           </div>
         </div>
       </details>
@@ -501,18 +501,24 @@
       document.querySelectorAll('[data-overlay-action]').forEach((button) => {
         button.addEventListener('click', async () => {
           const action = button.dataset.overlayAction;
-          if (action === 'reset' && !window.confirm('¿Reiniciar los contadores de taps y monedas?')) return;
           try {
             await requestJson('/api/overlay/operator', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ action }),
             });
-            showNotice(action === 'reset' ? 'Contadores reiniciados en el overlay.' : 'Prueba enviada al overlay.', 'success');
+            showNotice('Prueba enviada al overlay.', 'success');
           } catch (error) {
             showNotice(error.message, 'error');
           }
         });
+      });
+
+      document.querySelector('#resetOverlayCounters').addEventListener('click', async () => {
+        if (!window.confirm('¿Reiniciar los contadores de me gusta, comentarios y personas unidas?')) return;
+        await runAction(async () => {
+          await requestJson('/api/overlay/counters/reset', { method: 'POST' });
+        }, 'Contadores de actividad reiniciados.');
       });
 
       const channelStream = new EventSource('/api/events');

@@ -203,11 +203,10 @@ test('radio cassette shows only the first two words of the playing track', () =>
   assert.equal(node.textContent, 'Cristo es');
 });
 
-test('radio overlay shows the join count and provides an explicit reset control', () => {
+test('radio overlay shows the join count without exposing the counter reset control', () => {
   const overlay = fs.readFileSync(path.join(__dirname, '../../Radio_Cristiana_Pentecostal_BUBSDT_TikTok_Live_v10.html'), 'utf8');
   assert.match(overlay, /<div class="chip" id="joinCount"><i>👋<\/i><b id="joinN">0<\/b><\/div>/);
-  assert.match(overlay, /id="resetCounters"/);
-  assert.match(overlay, /fetch\('\/api\/overlay\/counters\/reset',\{method:'POST'\}\)/);
+  assert.doesNotMatch(overlay, /resetCounters|overlay\/counters\/reset/);
   assert.match(overlay, /tot\.join=Number\(stats\.members\)\|\|0/);
 });
 

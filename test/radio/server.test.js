@@ -104,6 +104,7 @@ test('radio server keeps TikTok configuration, event monitoring, and radio state
     assert.match(overlayHtml, /id="cta" role="status"/);
     assert.match(overlayHtml, /id="tick"/);
     assert.doesNotMatch(overlayHtml, /@keyframes mq|<div class="tick"><span id="tk"/);
+    assert.doesNotMatch(overlayHtml, /resetCounters|overlay\/counters\/reset/);
     assert.match(overlayHtml, /id="backendShortcut" href="\/backend"/);
     assert.match(overlayHtml, /rel="manifest" href="\/manifest\.webmanifest"/);
 
@@ -138,6 +139,9 @@ test('radio server keeps TikTok configuration, event monitoring, and radio state
     assert.match(overlayAdminHtml, /data-domain="overlay"/);
     assert.match(overlayAdminHtml, /id="overlaySettingsForm"/);
     assert.match(overlayAdminHtml, /data-overlay-action="test-like"/);
+    assert.match(overlayAdminHtml, /id="resetOverlayCounters"/);
+    assert.match(overlayAdminHtml, /\/api\/overlay\/counters\/reset/);
+    assert.doesNotMatch(overlayAdminHtml, /data-overlay-action="reset"/);
     assert.match(overlayAdminHtml, /rel="stylesheet" href="\/dashboard\.css"/);
     assert.match(overlayAdminHtml, /body\[data-domain="overlay"\] #tiktokSettingsSection/);
     assert.equal((await fetch(`${baseUrl}/playlist`)).status, 404);

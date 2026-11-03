@@ -92,7 +92,6 @@ button:focus-visible,a:focus-visible,.cass:focus-visible{outline:6px solid var(-
 .ctl{left:60px;top:1826px;width:960px;height:70px;display:flex;gap:16px;justify-content:center;opacity:0;transition:opacity .2s}
 .ctl:hover,.ctl:focus-within{opacity:1}
 .ctl button{width:140px;border:0;border-radius:20px;background:var(--panel2);font:900 34px var(--f);cursor:pointer}
-.ctl #resetCounters{width:260px;background:var(--pink);color:#fff}
 #backendShortcut{left:50%;bottom:6px;transform:translateX(-50%);z-index:9;padding:6px 14px;border-radius:999px;background:var(--panel);color:var(--txt);font:700 20px var(--f);text-decoration:none;opacity:0}
 #backendShortcut:hover,#backendShortcut:focus-visible{opacity:1}
 @media(prefers-reduced-motion:reduce){.cass.bump,#np.tin,.cta.in .ic,.cta.in .tx,.tick.in,.chip.pop,.cta.gift .ic{animation:none}}
@@ -165,7 +164,7 @@ button:focus-visible,a:focus-visible,.cass:focus-visible{outline:6px solid var(-
 
  <section class="tick in cm" id="tick"><span class="av2" id="tkA" style="background:#4a3a7a">💬</span><div class="tt"><b id="tkN">Sé el primero</b><span id="tkS">Escribe AMÉN en el chat y sales aquí</span></div></section>
 
- <nav class="ctl" aria-label="Controles de la radio"><button data-k="rew" aria-label="Tema anterior">⏮</button><button data-k="play" id="btnPlay" aria-label="Reproducir o pausar">▶</button><button data-k="ff" aria-label="Tema siguiente">⏭</button><button type="button" id="resetCounters">↺ Reiniciar contadores</button></nav>
+ <nav class="ctl" aria-label="Controles de la radio"><button data-k="rew" aria-label="Tema anterior">⏮</button><button data-k="play" id="btnPlay" aria-label="Reproducir o pausar">▶</button><button data-k="ff" aria-label="Tema siguiente">⏭</button></nav>
  <a id="backendShortcut" href="/backend" aria-label="Ir al backend de administración">⚙ Admin</a>
 </div>
 
@@ -357,16 +356,6 @@ function initTikTokEventStream(){
  es.addEventListener('error',refreshTikTokStatus);
 }
 lnk.onclick=async()=>{unlock();lnkT.textContent='CONECTANDO…';lnk.classList.add('pending');try{const r=await fetch('/api/reconnect',{method:'POST'});const res=await r.json();if(!r.ok)throw new Error(res.message||'No se pudo reconectar con TikTok.')}catch(e){refreshTikTokStatus();say(e.message)}};
-$('#resetCounters').addEventListener('click',async()=>{
- const button=$('#resetCounters');button.disabled=true;
- try{
-  const response=await fetch('/api/overlay/counters/reset',{method:'POST'});
-  const result=await response.json();
-  if(!response.ok)throw new Error(result.message||'No se pudieron reiniciar los contadores.');
-  syncRuntimeStats(result.stats);
- }catch(error){say(error.message||'No se pudieron reiniciar los contadores.')}
- finally{button.disabled=false}
-});
 renderTikTokStatus({});refreshTikTokStatus();initTikTokEventStream();
 
 /* ===== Interacción del live ===== */
