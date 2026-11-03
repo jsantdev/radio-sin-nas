@@ -54,6 +54,49 @@ async function close(server) {
   await closed;
 }
 
+test('integrated radio restores the saved external library and falls back to its local library', () => {
+  const storage = fs.mkdtempSync(path.join(os.tmpdir(), `external-radio-${randomUUID()}-`));
+  const settingsPath = path.join(storage, 'external-library-config.json');
+  const externalUrl = 'https://nas.example.com';
+  fs.writeFileSync(settingsPath, JSON.stringify({ serverUrl: externalUrl }));
+
+  try {
+    const client = createExternalLibraryClient({
+      configurationPath: settingsPath,
+      defaultServerUrl: 'http://127.0.0.1:3101',
+    });
+    assert.equal(client.getServerUrl(), externalUrl);
+    assert.equal(client.isLocalServer(), false);
+
+    const configuration = client.setServerUrl('');
+    assert.equal(configuration.serverUrl, 'http://127.0.0.1:3101');
+    assert.equal(client.getServerUrl(), 'http://127.0.0.1:3101');
+    assert.equal(client.isLocalServer(), true);
+    assert.deepEqual(JSON.parse(fs.readFileSync(settingsPath, 'utf8')), { serverUrl: '' });
+  } finally {
+    fs.rmSync(storage, { recursive: true, force: true });
+  }
+});
+
+test('external library client can use the configured NAS URL as its default', () => {
+  const storage = fs.mkdtempSync(path.join(os.tmpdir(), `external-radio-${randomUUID()}-`));
+  const settingsPath = path.join(storage, 'external-library-config.json');
+  fs.writeFileSync(settingsPath, JSON.stringify({ serverUrl: 'http://127.0.0.1:3101' }));
+
+  try {
+    const client = createExternalLibraryClient({
+      configurationPath: settingsPath,
+      defaultServerUrl: 'http://127.0.0.1:3101',
+      initialServerUrl: 'https://nas.example.com',
+    });
+    assert.equal(client.getServerUrl(), 'https://nas.example.com');
+    assert.equal(client.isLocalServer(), false);
+    assert.equal(client.setServerUrl('').serverUrl, 'https://nas.example.com');
+  } finally {
+    fs.rmSync(storage, { recursive: true, force: true });
+  }
+});
+
 test('radio saves an unreachable manually configured library URL and exposes its error', async () => {
   const storage = fs.mkdtempSync(path.join(os.tmpdir(), `external-radio-${randomUUID()}-`));
   const settingsPath = path.join(storage, 'external-library-config.json');
@@ -184,6 +227,12 @@ test('library manages tracks directly and radio plays them after restart', async
     const audioResponse = await fetch(`${radioUrl}/audio/current`);
     assert.equal(audioResponse.status, 200);
     assert.deepEqual(Buffer.from(await audioResponse.arrayBuffer()), audio);
+    const partialAudioResponse = await fetch(`${radioUrl}/audio/current`, {
+      headers: { Range: 'bytes=0-7' },
+    });
+    assert.equal(partialAudioResponse.status, 206);
+    assert.equal(partialAudioResponse.headers.get('content-range'), `bytes 0-7/${audio.length}`);
+    assert.deepEqual(Buffer.from(await partialAudioResponse.arrayBuffer()), audio.subarray(0, 8));
 
     await close(appServer);
     appServer = createWebserver(appOptions).server;

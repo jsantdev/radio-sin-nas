@@ -24,7 +24,7 @@ function createRadioModule({
   let externalConnected = false;
   let externalDiscs = [];
   let externalTracks = [];
-  let refreshing = false;
+  let refreshPromise = null;
 
   function getStorageConfiguration() {
     const serverUrl = externalLibrary.getServerUrl();
@@ -43,37 +43,45 @@ function createRadioModule({
     };
   }
 
-  async function refreshState() {
-    if (refreshing) return snapshot;
+  async function refreshState({ force = false } = {}) {
+    if (refreshPromise) {
+      if (!force) return refreshPromise;
+      await refreshPromise.catch(() => {});
+    }
     if (!externalLibrary.getServerUrl()) {
       externalConnected = false;
       externalError = 'Configura la URL de la biblioteca musical en /backend.';
       return snapshot;
     }
-    refreshing = true;
+    const operation = (async () => {
+      try {
+        const [nextSnapshot, discs] = await Promise.all([
+          externalLibrary.fetchPlaybackState(),
+          externalLibrary.fetchDiscs(),
+        ]);
+        nextSnapshot.currentTrack = nextSnapshot.currentTrack
+          ? { ...nextSnapshot.currentTrack, url: '/audio/current' }
+          : null;
+        nextSnapshot.queue = nextSnapshot.queue.map((track) => ({ ...track, url: '/audio/current' }));
+        const changed = JSON.stringify(snapshot) !== JSON.stringify(nextSnapshot);
+        snapshot = nextSnapshot;
+        externalDiscs = discs;
+        externalTracks = discs.flatMap((disc) => disc.tracks);
+        externalError = '';
+        externalConnected = true;
+        if (changed) stream.broadcast('update', snapshot);
+        return snapshot;
+      } catch (error) {
+        externalError = error.message;
+        externalConnected = false;
+        throw error;
+      }
+    })();
+    refreshPromise = operation;
     try {
-      const [nextSnapshot, discs] = await Promise.all([
-        externalLibrary.fetchPlaybackState(),
-        externalLibrary.fetchDiscs(),
-      ]);
-      nextSnapshot.currentTrack = nextSnapshot.currentTrack
-        ? { ...nextSnapshot.currentTrack, url: '/audio/current' }
-        : null;
-      nextSnapshot.queue = nextSnapshot.queue.map((track) => ({ ...track, url: '/audio/current' }));
-      const changed = JSON.stringify(snapshot) !== JSON.stringify(nextSnapshot);
-      snapshot = nextSnapshot;
-      externalDiscs = discs;
-      externalTracks = discs.flatMap((disc) => disc.tracks);
-      externalError = '';
-      externalConnected = true;
-      if (changed) stream.broadcast('update', snapshot);
-      return snapshot;
-    } catch (error) {
-      externalError = error.message;
-      externalConnected = false;
-      throw error;
+      return await operation;
     } finally {
-      refreshing = false;
+      if (refreshPromise === operation) refreshPromise = null;
     }
   }
 
@@ -94,7 +102,7 @@ function createRadioModule({
       return { ok: true, configuration: getStorageConfiguration() };
     }
     try {
-      await refreshState();
+      await refreshState({ force: true });
       return { ok: true, configuration: getStorageConfiguration() };
     } catch (error) {
       return {

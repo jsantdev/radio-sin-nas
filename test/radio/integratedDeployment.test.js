@@ -6,6 +6,7 @@ const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
 const { createWebserver } = require('../../server');
+const { createLibraryServer } = require('../../modules/biblioteca/server');
 
 const adminToken = 'integrated-library-admin-token-0123456789';
 
@@ -31,13 +32,14 @@ async function close(server) {
   await closed;
 }
 
-function createIntegratedServer(storageDirectory, libraryPort, token = adminToken) {
+function createIntegratedServer(storageDirectory, libraryPort, token = adminToken, radioToken = token) {
   return createWebserver({
     integratedLibrary: true,
     libraryPort,
     dataDirectory: storageDirectory,
     libraryDataDirectory: path.join(storageDirectory, 'biblioteca', 'discs'),
     libraryAdminToken: token,
+    radioLibraryAdminToken: radioToken,
     externalLibraryConfigurationPath: path.join(storageDirectory, 'radio', 'library-config.json'),
     monitorService: {
       state: { username: '', status: 'idle', isConnected: false, error: '' },
@@ -51,6 +53,127 @@ function createIntegratedServer(storageDirectory, libraryPort, token = adminToke
     },
   });
 }
+
+test('integrated radio can select, persist, and open an external NAS library', async () => {
+  const storageDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'radio-external-nas-'));
+  const localToken = 'integrated-library-admin-token-0123456789';
+  const remoteToken = 'external-library-admin-token-0123456789';
+  const remoteServer = createLibraryServer({
+    dataDirectory: path.join(storageDirectory, 'remote', 'discs'),
+    adminToken: remoteToken,
+  });
+  let appServer;
+
+  try {
+    const remoteUrl = await listen(remoteServer);
+    const remoteHeaders = { Authorization: 'Bearer ' + remoteToken };
+    const createdDisc = await fetch(`${remoteUrl}/api/discs`, {
+      method: 'POST',
+      headers: { ...remoteHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Biblioteca NAS' }),
+    });
+    assert.equal(createdDisc.status, 201);
+    const audio = Buffer.from('audio desde NAS');
+    const uploaded = await fetch(`${remoteUrl}/api/tracks?disc=Biblioteca%20NAS`, {
+      method: 'POST',
+      headers: {
+        ...remoteHeaders,
+        'Content-Type': 'audio/mpeg',
+        'X-File-Name': 'tema.mp3',
+      },
+      body: audio,
+    });
+    assert.equal(uploaded.status, 201);
+
+    let instance = createIntegratedServer(
+      storageDirectory,
+      await findFreePort(),
+      localToken,
+      remoteToken,
+    );
+    appServer = instance.server;
+    let baseUrl = await listen(appServer);
+    const connection = await fetch(`${baseUrl}/api/radio/storage`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ serverUrl: remoteUrl }),
+    });
+    assert.equal(connection.status, 200);
+    const configuration = await connection.json();
+    assert.equal(configuration.local, false);
+    assert.equal(configuration.connected, true);
+    assert.equal(configuration.trackCount, 1);
+
+    const libraryPageResponse = await fetch(`${baseUrl}/biblioteca`);
+    assert.equal(libraryPageResponse.status, 200);
+    const libraryPage = await libraryPageResponse.text();
+    assert.match(libraryPage, /\/biblioteca\/api\/admin\/config/);
+    assert.doesNotMatch(libraryPage, new RegExp(remoteToken));
+    const adminConfiguration = await fetch(`${baseUrl}/biblioteca/api/admin/config`).then((response) => response.json());
+    assert.equal(adminConfiguration.proxyAuthenticated, true);
+    const adminSession = await fetch(`${baseUrl}/biblioteca/api/admin/session`).then((response) => response.json());
+    assert.equal(adminSession.authenticated, true);
+    const proxiedDisc = await fetch(`${baseUrl}/biblioteca/api/discs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Disco desde Radio' }),
+    });
+    assert.equal(proxiedDisc.status, 201);
+    const proxiedUpload = await fetch(
+      `${baseUrl}/biblioteca/api/tracks?disc=${encodeURIComponent('Disco desde Radio')}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'audio/mpeg', 'X-File-Name': 'carga.mp3' },
+        body: Buffer.from('audio subido desde la interfaz proxy'),
+      },
+    );
+    assert.equal(proxiedUpload.status, 201);
+
+    const audioResponse = await fetch(`${baseUrl}/audio/current`);
+    assert.equal(audioResponse.status, 200);
+    assert.deepEqual(Buffer.from(await audioResponse.arrayBuffer()), audio);
+    const playback = await fetch(`${baseUrl}/api/radio/playback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isPlaying: true }),
+    });
+    assert.equal(playback.status, 200);
+    assert.equal((await fetch(`${remoteUrl}/api/player/state`).then((response) => response.json())).isPlaying, true);
+
+    const radioPage = await fetch(`${baseUrl}/backend/radio`).then((response) => response.text());
+    assert.match(radioPage, /libraryPageLink\.href = '\/biblioteca'/);
+    assert.doesNotMatch(radioPage, /libraryStorageForm\.hidden/);
+
+    await close(appServer);
+    instance = createIntegratedServer(
+      storageDirectory,
+      await findFreePort(),
+      localToken,
+      remoteToken,
+    );
+    appServer = instance.server;
+    baseUrl = await listen(appServer);
+    await fetch(`${baseUrl}/api/radio-state`);
+    const restoredConfiguration = await fetch(`${baseUrl}/api/radio/storage`).then((response) => response.json());
+    assert.equal(restoredConfiguration.serverUrl, remoteUrl);
+    assert.equal(restoredConfiguration.local, false);
+    assert.equal(restoredConfiguration.connected, true);
+
+    const restoreLocal = await fetch(`${baseUrl}/api/radio/storage`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ serverUrl: '' }),
+    });
+    assert.equal(restoreLocal.status, 200);
+    const localConfiguration = await restoreLocal.json();
+    assert.equal(localConfiguration.local, true);
+    assert.equal(localConfiguration.connected, true);
+  } finally {
+    if (appServer) await close(appServer);
+    await close(remoteServer);
+    fs.rmSync(storageDirectory, { recursive: true, force: true });
+  }
+});
 
 test('integrated upload adds audio to the radio playlist and makes it playable', async () => {
   const storageDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'radio-integrated-'));

@@ -34,13 +34,13 @@
     <header>
       <p class="muted">FE Y ESPERANZA · RADIO</p>
       <h1>Radio</h1>
-      <p class="muted">Consulta y controla la reproducción de la biblioteca integrada.</p>
+      <p class="muted">Consulta y controla la reproducción de la biblioteca seleccionada.</p>
       <nav aria-label="Dominios de la aplicación">
         <a href="/backend">Inicio</a>
         <a href="/backend/radio" aria-current="page">Radio</a>
         <a href="/backend/tiktok">TikTok</a>
         <a href="/backend/overlay">Overlay</a>
-        <a href="/biblioteca">Biblioteca</a>
+        <a id="libraryPageLink" href="/biblioteca">Biblioteca</a>
       </nav>
     </header>
     <main>
@@ -60,6 +60,7 @@
         <label for="libraryUrl">URL de Biblioteca externa
           <input id="libraryUrl" type="url" autocomplete="url" placeholder="https://biblioteca.ejemplo.com">
         </label>
+        <p class="muted">Para usar una Biblioteca en el NAS, pega la URL HTTPS de su servidor web. No uses una ruta SMB; el servidor de Biblioteca debe tener el NAS montado como almacenamiento.</p>
         <button type="submit">Conectar y guardar</button>
       </form>
     </main>
@@ -97,8 +98,10 @@
 
       async function refreshLibraryConfiguration() {
         const configuration = await requestJson('/api/radio/storage');
-        document.querySelector('#libraryUrl').value = configuration.serverUrl;
-        libraryStorageForm.hidden = Boolean(configuration.local);
+        document.querySelector('#libraryUrl').value = configuration.local ? '' : configuration.serverUrl;
+        const libraryPageLink = document.querySelector('#libraryPageLink');
+        libraryPageLink.href = '/biblioteca';
+        libraryPageLink.textContent = configuration.local ? 'Biblioteca' : 'Biblioteca externa';
         libraryStatus.textContent = configuration.local
           ? `Biblioteca integrada · ${configuration.discCount} discos · ${configuration.trackCount} temas`
           : configuration.connected

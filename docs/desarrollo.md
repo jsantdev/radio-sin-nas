@@ -61,6 +61,7 @@ proporcionarlas.
 | `WEBSERVER_CONFIG_PATH` | Archivo de configuración TikTok; por defecto `<APP_DATA_DIR>/radio/monitor-config.json`. |
 | `RADIO_OVERLAY_SETTINGS_PATH` | Archivo de ajustes del overlay; por defecto `<APP_DATA_DIR>/radio/overlay-settings.json`. |
 | `RADIO_LIBRARY_CONFIG_PATH` | Archivo de URL de Biblioteca; por defecto `<APP_DATA_DIR>/radio/external-library-config.json`. |
+| `NAS_BASE_URL` | URL base HTTPS de una Biblioteca externa; no incluyas `/api`. Se usa como destino inicial si no hay otra URL guardada. |
 | `BIBLIOTECA_INTERNAL_PORT` | Puerto local de Biblioteca integrada; `3101`. No publicarlo en Internet. |
 | `BIBLIOTECA_DATA_DIR` | Directorio de discos/audio; por defecto `<APP_DATA_DIR>/biblioteca/discs`. El estado del reproductor y las migraciones queda en su directorio padre. |
 | `BIBLIOTECA_ADMIN_TOKEN` | Token secreto para las operaciones administrativas de Biblioteca; vacío deshabilita las operaciones protegidas. Debe tener al menos 32 bytes. |
@@ -71,6 +72,9 @@ proporcionarlas.
 
 En un despliegue integrado, monta un volumen persistente para todo
 `APP_DATA_DIR`. No guardes secretos ni datos reales en el repositorio.
+Para una Biblioteca externa, define `NAS_BASE_URL` y el token correspondiente
+en el entorno del servidor Radio. `/biblioteca` usa ese token en el servidor;
+protege el acceso administrativo de Radio con controles de red o del proxy web.
 
 ## Pruebas y cobertura
 

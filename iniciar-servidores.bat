@@ -2,14 +2,20 @@
 setlocal
 
 for %%I in ("%~dp0.") do set "PROJECT_ROOT=%%~fI"
-set "WEBSERVER_PORT=80"
+if not defined WEBSERVER_PORT (
+  if defined PORT (
+    set "WEBSERVER_PORT=%PORT%"
+  ) else (
+    set "WEBSERVER_PORT=80"
+  )
+)
 if not defined STARTUP_TIMEOUT_SECONDS set "STARTUP_TIMEOUT_SECONDS=120"
 echo Tiempo maximo de inicio por servicio: %STARTUP_TIMEOUT_SECONDS% segundos.
 
 echo Comprobando requisitos generales...
 where node >nul 2>&1
 if errorlevel 1 goto :missing_runtime
-node -e "process.exit(Number(process.versions.node.split('.')[0]) >= 18 ? 0 : 1)" >nul 2>&1
+node -e "process.exit(Number(process.versions.node.split('.')[0]) >= 22 ? 0 : 1)" >nul 2>&1
 if errorlevel 1 goto :missing_runtime
 where npm >nul 2>&1
 if errorlevel 1 goto :missing_runtime
@@ -24,8 +30,8 @@ if not exist "%PROJECT_ROOT%\server.js" (
   echo Error: no se encontro el servidor web.
   goto :failure
 )
-if not exist "%PROJECT_ROOT%\public\index.html" (
-  echo Error: no se encontro la pagina del panel.
+if not exist "%PROJECT_ROOT%\Radio_Cristiana_Pentecostal_BUBSDT_TikTok_Live_v10.html" (
+  echo Error: no se encontro la pagina publica de la radio.
   goto :failure
 )
 
@@ -38,12 +44,12 @@ if errorlevel 1 (
 )
 popd
 
-echo Liberando el puerto del servidor...
-call :free_port "%WEBSERVER_PORT%"
+echo Comprobando el puerto del servidor...
+call :check_port "%WEBSERVER_PORT%"
 if errorlevel 1 goto :failure
 
 echo Iniciando servidor de radio...
-start "Radio TikTok Live" /D "%PROJECT_ROOT%" cmd /k "echo [%date% %time%] [Radio TikTok Live] Directorio: %PROJECT_ROOT%&&echo [Radio TikTok Live] Puerto: %WEBSERVER_PORT%&&echo [Radio TikTok Live] Radio: / - Playlist: /playlist&&echo [Radio TikTok Live] Conector TikTok integrado&&echo [Radio TikTok Live] Ejecutando npm start...&&set PORT=%WEBSERVER_PORT%&&npm start"
+start "Radio TikTok Live" /D "%PROJECT_ROOT%" cmd /k "echo [%date% %time%] [Radio TikTok Live] Directorio: %PROJECT_ROOT%&&echo [Radio TikTok Live] Puerto: %WEBSERVER_PORT%&&echo [Radio TikTok Live] Radio: / - Administracion: /backend&&echo [Radio TikTok Live] Conector TikTok integrado&&echo [Radio TikTok Live] Ejecutando npm start...&&set PORT=%WEBSERVER_PORT%&&npm start"
 call :wait_for_endpoint "Servidor integrado" "http://127.0.0.1:%WEBSERVER_PORT%/api/status"
 if errorlevel 1 (
   echo Error: el servidor integrado no respondio despues de %STARTUP_TIMEOUT_SECONDS% segundos.
@@ -53,9 +59,8 @@ if errorlevel 1 (
 echo.
 echo La radio esta lista:
 echo Radio: http://localhost:%WEBSERVER_PORT%/
-echo Playlist: http://localhost:%WEBSERVER_PORT%/playlist
 echo Administracion: http://localhost:%WEBSERVER_PORT%/backend
-call :open_chrome "http://localhost:%WEBSERVER_PORT%/" "http://localhost:%WEBSERVER_PORT%/playlist"
+call :open_chrome "http://localhost:%WEBSERVER_PORT%/" "http://localhost:%WEBSERVER_PORT%/backend"
 exit /b 0
 
 :check_dependencies
@@ -78,9 +83,9 @@ if errorlevel 1 (
 )
 exit /b 0
 
-:free_port
+:check_port
 set "PORT_TO_CHECK=%~1"
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$p = 0; if (-not [int]::TryParse($env:PORT_TO_CHECK, [ref]$p) -or $p -lt 1 -or $p -gt 65535) { Write-Error 'El puerto debe ser un numero entre 1 y 65535.'; exit 1 }; $connections = @(Get-NetTCPConnection -LocalPort $p -State Listen -ErrorAction SilentlyContinue); $owners = @($connections | Select-Object -ExpandProperty OwningProcess -Unique); foreach ($owner in $owners) { if ($owner -in @(0, 4)) { Write-Error ('No se puede liberar el puerto {0}: pertenece al sistema (PID {1}).' -f $p, $owner); exit 1 }; Write-Host ('Cerrando PID {0} que ocupa el puerto {1}...' -f $owner, $p); Stop-Process -Id $owner -Force -ErrorAction Stop }; $deadline = (Get-Date).AddSeconds(10); while (@(Get-NetTCPConnection -LocalPort $p -State Listen -ErrorAction SilentlyContinue).Count -gt 0) { if ((Get-Date) -ge $deadline) { Write-Error ('El puerto {0} sigue ocupado.' -f $p); exit 1 }; Start-Sleep -Milliseconds 250 }; exit 0"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$p = 0; if (-not [int]::TryParse($env:PORT_TO_CHECK, [ref]$p) -or $p -lt 1 -or $p -gt 65535) { Write-Error 'El puerto debe ser un numero entre 1 y 65535.'; exit 1 }; $connections = @(Get-NetTCPConnection -LocalPort $p -State Listen -ErrorAction SilentlyContinue); if ($connections.Count -gt 0) { $owners = ($connections | Select-Object -ExpandProperty OwningProcess -Unique) -join ', '; Write-Error ('El puerto {0} ya esta ocupado (PID {1}). Configura WEBSERVER_PORT o PORT para elegir otro.' -f $p, $owners); exit 1 }; exit 0"
 exit /b %errorlevel%
 
 :wait_for_endpoint
@@ -114,7 +119,7 @@ echo %~3
 exit /b 0
 
 :missing_runtime
-echo Error: se requieren Node.js 18 o posterior y npm.
+echo Error: se requieren Node.js 22 o posterior y npm.
 goto :failure
 
 :failure

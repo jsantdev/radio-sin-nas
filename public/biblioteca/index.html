@@ -690,22 +690,30 @@
         updateAdminControls();
         try {
           const configuration = await requestJson('/api/admin/config');
-          adminAuthRequired = configuration.authRequired !== false;
-          document.querySelector('#adminAuthForm').hidden = !adminAuthRequired;
-          if (!adminAuthRequired) {
+          if (configuration.proxyAuthenticated === true) {
+            adminAuthRequired = false;
             adminAccess = true;
+            document.querySelector('#adminAuthForm').hidden = true;
             document.querySelector('#adminAuthStatus').textContent =
-              'Acceso sin contraseña habilitado solo para desarrollo local.';
-          } else if (!configuration.configured) {
-            document.querySelector('#adminAuthStatus').textContent =
-              'El servidor no acepta cambios hasta configurar BIBLIOTECA_ADMIN_TOKEN.';
+              'Acceso administrativo con credenciales seguras del servidor.';
           } else {
-            if (getAdminToken()) {
-              const session = await requestJson('/api/admin/session');
-              adminAccess = session.authenticated;
+            adminAuthRequired = configuration.authRequired !== false;
+            document.querySelector('#adminAuthForm').hidden = !adminAuthRequired;
+            if (!adminAuthRequired) {
+              adminAccess = true;
+              document.querySelector('#adminAuthStatus').textContent =
+                'Acceso sin contraseña habilitado solo para desarrollo local.';
+            } else if (!configuration.configured) {
+              document.querySelector('#adminAuthStatus').textContent =
+                'El servidor no acepta cambios hasta configurar BIBLIOTECA_ADMIN_TOKEN.';
+            } else {
+              if (getAdminToken()) {
+                const session = await requestJson('/api/admin/session');
+                adminAccess = session.authenticated;
+              }
+              document.querySelector('#adminAuthStatus').textContent = adminAccess
+                ? 'Token válido en esta pestaña.' : 'Ingresa el token para habilitar la carga.';
             }
-            document.querySelector('#adminAuthStatus').textContent = adminAccess
-              ? 'Token válido en esta pestaña.' : 'Ingresa el token para habilitar la carga.';
           }
           await refresh();
           updateAdminControls();

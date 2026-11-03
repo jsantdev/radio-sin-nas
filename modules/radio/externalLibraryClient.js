@@ -8,10 +8,13 @@ function createExternalLibraryClient({
   adminToken: configuredAdminToken = process.env.RADIO_LIBRARY_ADMIN_TOKEN
     || process.env.BIBLIOTECA_ADMIN_TOKEN || '',
   defaultServerUrl = '',
+  initialServerUrl = '',
   fetchImpl = globalThis.fetch,
 } = {}) {
   let serverUrl = defaultServerUrl ? validateServerUrl(defaultServerUrl) : '';
   const localServerUrl = serverUrl;
+  const configuredServerUrl = initialServerUrl ? validateServerUrl(initialServerUrl) : '';
+  if (configuredServerUrl) serverUrl = configuredServerUrl;
   const adminToken = configuredAdminToken ? validateAdminToken(configuredAdminToken) : '';
   let sessionCookie = '';
   if (fs.existsSync(configurationPath)) {
@@ -19,7 +22,10 @@ function createExternalLibraryClient({
     if (!savedConfiguration || typeof savedConfiguration.serverUrl !== 'string') {
       throw new Error('La configuración del servidor de biblioteca externo no es válida.');
     }
-    serverUrl = localServerUrl || validateServerUrl(savedConfiguration.serverUrl);
+    const savedServerUrl = validateServerUrl(savedConfiguration.serverUrl);
+    serverUrl = savedServerUrl && savedServerUrl !== localServerUrl
+      ? savedServerUrl
+      : configuredServerUrl || savedServerUrl || localServerUrl;
   }
 
   function validateAdminToken(value) {
@@ -53,7 +59,7 @@ function createExternalLibraryClient({
     const nextServerUrl = validateServerUrl(value);
     fs.mkdirSync(path.dirname(configurationPath), { recursive: true });
     fs.writeFileSync(configurationPath, JSON.stringify({ serverUrl: nextServerUrl }, null, 2), { mode: 0o600 });
-    serverUrl = nextServerUrl;
+    serverUrl = nextServerUrl || configuredServerUrl || localServerUrl;
     return { serverUrl, adminTokenConfigured: Boolean(adminToken) };
   }
 
@@ -221,6 +227,15 @@ function createExternalLibraryClient({
     return response;
   }
 
+  async function proxyRequest(pathname, options = {}) {
+    if (!serverUrl) {
+      const error = new Error('Configura primero la URL de la biblioteca musical.');
+      error.status = 409;
+      throw error;
+    }
+    return request(`${serverUrl}${pathname}`, options, 0);
+  }
+
   return {
     fetchDiscs,
     fetchCurrentTrack,
@@ -229,6 +244,7 @@ function createExternalLibraryClient({
     isLocalServer: () => Boolean(localServerUrl) && serverUrl === localServerUrl,
     isAdminTokenConfigured: () => Boolean(adminToken),
     playerAction,
+    proxyRequest,
     setServerUrl,
   };
 }

@@ -20,10 +20,18 @@ Selecciona **Nixpacks** como proveedor y deja la raíz del proyecto en el reposi
 | `APP_DATA_DIR` | `/app/data` |
 | `BIBLIOTECA_DATA_DIR` | `/app/data/biblioteca/discs` |
 | `BIBLIOTECA_ADMIN_TOKEN` | Token administrativo secreto de al menos 32 bytes |
+| `NAS_BASE_URL` | URL HTTPS de la API externa de Biblioteca (opcional) |
+| `RADIO_LIBRARY_ADMIN_TOKEN` | El mismo token configurado en la Biblioteca externa |
 | `PORT` | `3000` |
 | `HOST` | `0.0.0.0` |
 
 `BIBLIOTECA_INTERNAL_PORT` usa `3101` por defecto y solo escucha dentro del contenedor: no lo publiques en Easypanel. El volumen `/app/data` conserva tanto los archivos, la playlist y la programación de Biblioteca como la configuración de Radio. Configura `TIKTOK_USERNAME` o la cuenta desde `/backend`; si no hay usuario, Radio no se conecta. Las operaciones administrativas necesitan `BIBLIOTECA_ADMIN_TOKEN`; Radio reutiliza ese token para controlar el reproductor. No hace falta configurar una URL de Biblioteca externa en este modo.
+
+Si la Biblioteca está en otro servicio, configura `NAS_BASE_URL` y
+`RADIO_LIBRARY_ADMIN_TOKEN` en **el entorno de Radio**. El token debe coincidir
+con `BIBLIOTECA_ADMIN_TOKEN` del NAS y no se envía al navegador. En ese modo,
+`/biblioteca` pasa por Radio para autorizar las operaciones; restringe el acceso
+administrativo de Radio en Easypanel/red para que solo lo use personal autorizado.
 
 ### Biblioteca externa y migración
 

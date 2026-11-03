@@ -434,23 +434,31 @@
       async function initialize() {
         try {
           const configuration = await requestJson('/api/admin/config');
-          adminAuthRequired = configuration.authRequired !== false;
-          document.querySelector('#adminAuthForm').hidden = !adminAuthRequired;
-          if (!adminAuthRequired) {
-            document.querySelector('#adminAuthStatus').textContent = 'Acceso de administración disponible.';
-          } else if (!configuration.configured) {
+          if (configuration.proxyAuthenticated === true) {
+            adminAuthRequired = false;
+            adminAuthenticated = true;
+            document.querySelector('#adminAuthForm').hidden = true;
             document.querySelector('#adminAuthStatus').textContent =
-              'El servidor no acepta operaciones hasta configurar BIBLIOTECA_ADMIN_TOKEN.';
+              'Acceso administrativo con credenciales seguras del servidor.';
           } else {
-            document.querySelector('#adminAuthStatus').textContent = 'Ingresa el token para habilitar las operaciones.';
-            if (getAdminToken()) {
-              const session = await requestJson('/api/admin/session');
-              adminAuthenticated = session.authenticated;
-              if (adminAuthenticated) {
-                document.querySelector('#adminAuthStatus').textContent = 'Token válido en esta pestaña.';
-                await loadHistory();
-              } else {
-                sessionStorage.removeItem(adminTokenStorageKey);
+            adminAuthRequired = configuration.authRequired !== false;
+            document.querySelector('#adminAuthForm').hidden = !adminAuthRequired;
+            if (!adminAuthRequired) {
+              document.querySelector('#adminAuthStatus').textContent = 'Acceso de administración disponible.';
+            } else if (!configuration.configured) {
+              document.querySelector('#adminAuthStatus').textContent =
+                'El servidor no acepta operaciones hasta configurar BIBLIOTECA_ADMIN_TOKEN.';
+            } else {
+              document.querySelector('#adminAuthStatus').textContent = 'Ingresa el token para habilitar las operaciones.';
+              if (getAdminToken()) {
+                const session = await requestJson('/api/admin/session');
+                adminAuthenticated = session.authenticated;
+                if (adminAuthenticated) {
+                  document.querySelector('#adminAuthStatus').textContent = 'Token válido en esta pestaña.';
+                  await loadHistory();
+                } else {
+                  sessionStorage.removeItem(adminTokenStorageKey);
+                }
               }
             }
           }
