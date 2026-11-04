@@ -81,6 +81,7 @@ button:focus-visible,a:focus-visible,.cass:focus-visible{outline:6px solid var(-
 /* ===== Último evento ===== */
 .tick{left:60px;top:1660px;width:960px;height:130px;border-radius:32px;background:var(--panel);border-left:14px solid var(--gold);display:flex;align-items:center;gap:24px;padding:0 30px 0 26px;overflow:hidden}
 .tick.cm{border-left-color:var(--gold)}.tick.lk{border-left-color:var(--pink)}.tick.jn{border-left-color:#4dff7a}.tick.gf{border-left-color:var(--pink)}
+.tick.amen{border-left-color:#4dff7a;background:#183326}.tick.amen .tt b{color:#4dff7a}
 .tick.in{animation:cin .35s ease-out}
 .av2{display:flex;align-items:center;justify-content:center;border-radius:50%;flex:none;overflow:hidden;color:#fff;font:900 52px var(--f);width:88px;height:88px;line-height:1}
 .av2 img{width:100%;height:100%;object-fit:cover;display:block}
@@ -155,14 +156,14 @@ button:focus-visible,a:focus-visible,.cass:focus-visible{outline:6px solid var(-
  </section>
 
  <section class="goal" aria-label="Meta para el siguiente tema">
-  <div class="gh"><b>🎁 Siguiente tema</b><span id="gP">0 / 500</span></div>
+  <div class="gh"><b>🎁 Meta para el siguiente tema</b><span id="gP">0 / 500</span></div>
   <div class="bar"><i id="gB"></i></div>
   <div class="gs" id="gS">Cada regalo suma 💎 y la cinta salta a la siguiente alabanza</div>
  </section>
 
  <section class="cta in" id="cta" role="status" aria-live="polite"><span class="ic" id="ctaI">❤</span><div class="tx"><b id="ctaT"></b><span id="ctaS"></span></div></section>
 
- <section class="tick in cm" id="tick"><span class="av2" id="tkA" style="background:#4a3a7a">💬</span><div class="tt"><b id="tkN">Sé el primero</b><span id="tkS">Escribe AMÉN en el chat y sales aquí</span></div></section>
+ <section class="tick in cm" id="tick" aria-live="polite"><span class="av2" id="tkA" style="background:#4a3a7a">💬</span><div class="tt"><b id="tkN">Sé el primero</b><span id="tkS">Escribe AMÉN en el chat y sales aquí</span></div></section>
 
  <nav class="ctl" aria-label="Controles de la radio"><button data-k="rew" aria-label="Tema anterior">⏮</button><button data-k="play" id="btnPlay" aria-label="Reproducir o pausar">▶</button><button data-k="ff" aria-label="Tema siguiente">⏭</button></nav>
  <a id="backendShortcut" href="/backend" aria-label="Ir al backend de administración">⚙ Admin</a>
@@ -295,13 +296,13 @@ addEventListener('wheel',e=>{vol=Math.max(0,Math.min(1,vol-Math.sign(e.deltaY)*.
 const NS='http://www.w3.org/2000/svg',el=id=>document.getElementById(id);
 ['teethL','teethR'].forEach(id=>{const g=el(id);for(let i=0;i<6;i++){const r=document.createElementNS(NS,'rect');r.setAttribute('x',-1.6);r.setAttribute('y',-9);r.setAttribute('width',3.2);r.setAttribute('height',5.5);r.setAttribute('transform','rotate('+i*60+')');g.appendChild(r)}});
 const V1=140,capf=(x,c)=>c*Math.tanh(x/c);
-let run=0,boost=1,aL=0,aR=0,aP=0,off=0,last=performance.now();
+let run=0,boost=1,boostUntil=0,aL=0,aR=0,aP=0,off=0,last=performance.now();
 function frame(now){
  const dt=Math.min(.05,(now-last)/1000);last=now;
  const playing=!radioPlayer.paused&&!!currentTrackKey;
  const target=rewinding?-3:playing?1:0;
  run+=(target-run)*Math.min(1,dt*4);
- boost+=(1-boost)*Math.min(1,dt*.7);
+ boost+=((now<boostUntil?2.5:1)-boost)*Math.min(1,dt*3);
  if(rewinding){
   const p=Math.min(1,(now-rwStart)/RW_MS),ease=p*p*(3-2*p);pos=rwFrom*(1-ease);
   if(p>=1){rewinding=0;pos=0;requestRadioAction('next').catch(error=>say(error.message))}
@@ -365,11 +366,12 @@ const colorOf=n=>'hsl('+([...n].reduce((a,c)=>a+c.charCodeAt(0),0)*47%360)+' 55%
 function setAv(node,name,url){node.replaceChildren();node.textContent=name.charAt(0).toUpperCase();node.style.background=colorOf(name);
  if(url){const im=new Image();im.referrerPolicy='no-referrer';im.onload=()=>{node.textContent='';node.appendChild(im)};im.src=url}}
 function retrig(node,cls){node.classList.remove(cls);void node.offsetWidth;node.classList.add(cls)}
+function activateTurbo(duration=10000){boost=2.5;boostUntil=Math.max(boostUntil,performance.now()+duration)}
 
 /* Meta de monedas -> siguiente tema */
 let goalMax=500,goalNow=0;
 try{const v=JSON.parse(localStorage.getItem('radio-song-goal-progress-v1')||'0');if(Number.isSafeInteger(v)&&v>=0)goalNow=v}catch(e){}
-function renderGoal(){$('#gP').textContent=goalNow+' / '+goalMax;$('#gB').style.width=Math.min(100,goalNow/goalMax*100)+'%'}
+function renderGoal(){$('#gP').textContent=goalNow+' / '+goalMax;$('#gB').style.width=Math.min(100,goalNow/goalMax*100)+'%';$('#gS').textContent=goalMax-goalNow<=50?'Un regalo de 10–50 💎 puede completar esta meta':'Cada regalo acerca la próxima alabanza · 100+ 💎, celebración comunitaria'}
 function setGoalMax(v){if(!Number.isSafeInteger(v)||v<1)return;goalMax=v;goalNow%=goalMax;renderGoal()}
 async function advanceTracks(n){for(let i=0;i<n;i++)await requestRadioAction('next')}
 function addCoins(v){
@@ -389,7 +391,7 @@ renderGoal();
 const cta=$('#cta'),ctaI=$('#ctaI'),ctaT=$('#ctaT'),ctaS=$('#ctaS');
 let ctaIdx=0,bannerUntil=0,bannerTimer=0;
 const CTA=[
- ()=>['❤','Toca la pantalla','Cada ❤ acelera la cinta'],
+ ()=>['❤','Toca la pantalla','Cada 1.000 likes activa turbo por 10 segundos'],
  ()=>['🙏','Escribe AMÉN','Tu nombre aparece aquí abajo'],
  ()=>['🎶','Pide tu alabanza','Déjala en los comentarios'],
  ()=>['🎁','Regala y cambia de tema','Faltan '+Math.max(0,goalMax-goalNow)+' 💎 para la siguiente'],
@@ -407,28 +409,48 @@ let lastLike=null;
 function showTick(cls,ic,name,txt,av){tick.className='tick '+cls;tkN.textContent=ic+' '+name;tkS.textContent=txt;setAv(tkA,name,av);retrig(tick,'in')}
 
 function boostReels(v){boost=Math.min(2.5,boost+v)}
+let likesToTurbo=0;
+try{const saved=Number(localStorage.getItem('radio-like-turbo-progress-v1'));if(Number.isSafeInteger(saved)&&saved>=0)likesToTurbo=saved%1000}catch(e){}
+function addLikesToTurbo(count){
+ likesToTurbo+=count;
+ const rewards=Math.floor(likesToTurbo/1000);
+ likesToTurbo%=1000;
+ try{localStorage.setItem('radio-like-turbo-progress-v1',String(likesToTurbo))}catch(e){}
+ if(rewards>0){activateTurbo(10000);showBanner('goalok','⚡','¡1.000 likes!','Modo turbo en las bobinas por 10 segundos',3500)}
+}
+function showComment(name,message,av){
+ if(/\bam[ée]n\b/i.test(message)){showTick('cm','🙏',name,'dijo AMÉN',av);tick.classList.add('amen')}
+ else showTick('cm','💬',name,message.slice(0,70),av);
+}
 function ev(e){
  if(!e||!e.type)return;
  const key=e.id||e.user||'Alguien',name=first(e.user);
  let u=users.get(key);if(!u){u={name,l:0,c:0,d:0,pts:0};users.set(key,u)}
  u.name=name;if(e.avatar||e.profilePictureUrl)u.av=e.avatar||e.profilePictureUrl;
  if(e.type==='like'){
-  const n=(e.count|0)||1;tot.like+=n;u.l+=n;u.pts+=n;boostReels(Math.min(n,12)*.12);retrig($('#chLk'),'pop');
+  const n=(e.count|0)||1;tot.like+=n;u.l+=n;u.pts+=n;boostReels(Math.min(n,12)*.12);addLikesToTurbo(n);retrig($('#chLk'),'pop');
   const now=performance.now();
   if(lastLike&&lastLike.key===key&&now-lastLike.t<4000){lastLike.n+=n;lastLike.t=now;tkS.textContent='dio '+lastLike.n+' me gusta'}
   else{lastLike={key,t:now,n};showTick('lk','❤',name,'dio '+n+' me gusta',u.av)}
  }else if(e.type==='comment'){
   tot.comment++;u.c++;u.pts+=5;boostReels(.5);retrig($('#chCm'),'pop');
-  showTick('cm','💬',name,String(e.text||'').slice(0,70),u.av);lastLike=null;
+  const message=String(e.text||'');
+  showComment(name,message,u.av);
+  lastLike=null;
  }else if(e.type==='join'){tot.join++;showTick('jn','👋',name,'se unió al live',u.av);lastLike=null}
  else if(e.type==='follow'){showTick('jn','➕',name,'empezó a seguirte',u.av);lastLike=null}
  else if(e.type==='share'){showTick('jn','↗',name,'compartió el live',u.av);lastLike=null}
  else if(e.type==='gift'){
   const n=(e.count|0)||1,dia=Math.max(1,(+e.diamonds||1)*n),g=e.gift||'un regalo',ic=e.icon||'🎁';
   addCoins(Math.max(0,Math.floor(+e.diamonds||0))*n);
-  tot.gift+=n;u.d+=dia;u.pts+=dia*10;boost=2.5;
+  tot.gift+=n;u.d+=dia;u.pts+=dia*10;
+  if(dia>=100)activateTurbo(5000);
+  else if(dia>=10)boostReels(.8);
   showTick('gf',ic,name,'envió '+(n>1?n+'× ':'')+g+'  💎'+dia,u.av);lastLike=null;
-  if(performance.now()>=bannerUntil){showBanner('gift',ic,name+' envió '+g,'¡Gracias! 💎'+dia+(n>1?' ('+n+'×)':''),3200+Math.min(2600,dia*20))}
+  if(performance.now()>=bannerUntil){
+   const reward=dia>=100?'¡Celebración especial para toda la comunidad!':dia>=10?'¡Gracias por impulsar la próxima alabanza!':'¡Gracias por acompañar la radio!';
+   showBanner('gift',ic,name+' envió '+g,reward+' · 💎'+dia+(n>1?' ('+n+'×)':''),3200+Math.min(2600,dia*20))
+  }
   chime(dia>=20);retrig(cass,'bump');
  }
  renderStats();

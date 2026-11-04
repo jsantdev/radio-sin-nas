@@ -138,6 +138,7 @@ test('radio advances one track per completed coin goal and keeps leftover coins'
   const elements = new Map([
     ['#gP', { textContent: '' }],
     ['#gB', { style: {} }],
+    ['#gS', { textContent: '' }],
   ]);
   const banners = [];
   const context = {
@@ -164,6 +165,58 @@ test('radio advances one track per completed coin goal and keeps leftover coins'
   assert.equal(vm.runInContext('goalNow', context), 50);
   assert.deepEqual(actions, ['next', 'next', 'next']);
   assert.equal(banners.length, 2);
+});
+
+test('one thousand likes trigger a ten-second cassette turbo and preserve leftover progress', () => {
+  const overlay = fs.readFileSync(path.join(__dirname, '../../Radio_Cristiana_Pentecostal_BUBSDT_TikTok_Live_v10.html'), 'utf8');
+  const start = overlay.indexOf('let likesToTurbo=0;');
+  const end = overlay.indexOf('\nfunction showComment', start);
+  assert.notEqual(start, -1);
+  assert.notEqual(end, -1);
+
+  const saved = new Map();
+  const turboDurations = [];
+  const banners = [];
+  const context = {
+    localStorage: {
+      getItem: (key) => saved.get(key) || null,
+      setItem: (key, value) => saved.set(key, value),
+    },
+    activateTurbo: (duration) => turboDurations.push(duration),
+    showBanner: (...args) => banners.push(args),
+    performance: { now: () => 1 },
+  };
+  vm.runInNewContext(overlay.slice(start, end), context);
+  vm.runInContext('addLikesToTurbo(995); addLikesToTurbo(10);', context);
+
+  assert.equal(vm.runInContext('likesToTurbo', context), 5);
+  assert.equal(saved.get('radio-like-turbo-progress-v1'), '5');
+  assert.deepEqual(turboDurations, [10000]);
+  assert.equal(banners.length, 1);
+  assert.equal(banners[0][3], 'Modo turbo en las bobinas por 10 segundos');
+});
+
+test('AMÉN comments receive the highlighted name-and-avatar treatment', () => {
+  const overlay = fs.readFileSync(path.join(__dirname, '../../Radio_Cristiana_Pentecostal_BUBSDT_TikTok_Live_v10.html'), 'utf8');
+  const start = overlay.indexOf('function showComment(name,message,av){');
+  const end = overlay.indexOf('\nfunction ev(e){', start);
+  assert.notEqual(start, -1);
+  assert.notEqual(end, -1);
+
+  const shown = [];
+  const classes = [];
+  const context = {
+    showTick: (...args) => shown.push(args),
+    tick: { classList: { add: (name) => classes.push(name) } },
+  };
+  vm.runInNewContext(overlay.slice(start, end), context);
+  vm.runInContext('showComment("Carlos", "¡AMÉN! 🙏", "avatar"); showComment("Ana", "Gloria", "photo");', context);
+
+  assert.deepEqual(shown, [
+    ['cm', '🙏', 'Carlos', 'dijo AMÉN', 'avatar'],
+    ['cm', '💬', 'Ana', 'Gloria', 'photo'],
+  ]);
+  assert.deepEqual(classes, ['amen']);
 });
 
 test('overlay engagement alerts appear centered in a TikTok-style panel', () => {
