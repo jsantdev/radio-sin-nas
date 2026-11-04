@@ -87,6 +87,7 @@ test('radio server keeps TikTok configuration, event monitoring, and radio state
     const overlayPage = await fetch(`${baseUrl}/`);
     assert.equal(overlayPage.status, 200);
     const overlayHtml = await overlayPage.text();
+    assert.match(overlayHtml, /<title>Eco del Cielo · Radio cristiana pentecostal · TikTok Live<\/title>/);
     assert.match(overlayHtml, /Radio cristiana pentecostal/);
     assert.match(overlayHtml, /<audio id="radioPlayer" preload="metadata" hidden><\/audio>/);
     assert.doesNotMatch(overlayHtml, /id="radioPlayer" controls/);

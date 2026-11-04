@@ -4,6 +4,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const test = require('node:test');
 const { eventNames } = require('../../modules/tiktok/eventConfig');
+const overlayPath = '../../Radio_Cristiana_Pentecostal_Eco_del_Cielo_TikTok_Live_v21.html';
 
 test('overlay dispatches every TikTok event to its matching live handler', () => {
   const overlay = fs.readFileSync(path.join(__dirname, '../../modules/overlay/index.html'), 'utf8');
@@ -90,7 +91,7 @@ test('overlay dispatches every TikTok event to its matching live handler', () =>
 });
 
 test('radio overlay renders the actual TikTok connection state', () => {
-  const overlay = fs.readFileSync(path.join(__dirname, '../../Radio_Cristiana_Pentecostal_BUBSDT_TikTok_Live_v10.html'), 'utf8');
+  const overlay = fs.readFileSync(path.join(__dirname, overlayPath), 'utf8');
   const start = overlay.indexOf('function renderTikTokStatus(status={}){');
   const end = overlay.indexOf('\nasync function refreshTikTokStatus()', start);
   assert.notEqual(start, -1, 'connection-status renderer exists in the radio overlay');
@@ -127,7 +128,7 @@ test('radio overlay renders the actual TikTok connection state', () => {
 });
 
 test('radio advances one track per completed coin goal and keeps leftover coins', async () => {
-  const overlay = fs.readFileSync(path.join(__dirname, '../../Radio_Cristiana_Pentecostal_BUBSDT_TikTok_Live_v10.html'), 'utf8');
+  const overlay = fs.readFileSync(path.join(__dirname, overlayPath), 'utf8');
   const start = overlay.indexOf('let goalMax=500,goalNow=0;');
   const end = overlay.indexOf("\nfetch('/api/overlay/settings')", start);
   assert.notEqual(start, -1, 'song-goal progress handler exists in the active overlay');
@@ -142,6 +143,7 @@ test('radio advances one track per completed coin goal and keeps leftover coins'
   ]);
   const banners = [];
   const context = {
+    testEv: false,
     localStorage: {
       getItem: (key) => saved.get(key) || null,
       setItem: (key, value) => saved.set(key, value),
@@ -168,7 +170,7 @@ test('radio advances one track per completed coin goal and keeps leftover coins'
 });
 
 test('one thousand likes trigger a ten-second cassette turbo and preserve leftover progress', () => {
-  const overlay = fs.readFileSync(path.join(__dirname, '../../Radio_Cristiana_Pentecostal_BUBSDT_TikTok_Live_v10.html'), 'utf8');
+  const overlay = fs.readFileSync(path.join(__dirname, overlayPath), 'utf8');
   const start = overlay.indexOf('let likesToTurbo=0;');
   const end = overlay.indexOf('\nfunction showComment', start);
   assert.notEqual(start, -1);
@@ -177,7 +179,13 @@ test('one thousand likes trigger a ten-second cassette turbo and preserve leftov
   const saved = new Map();
   const turboDurations = [];
   const banners = [];
+  const elements = new Map([
+    ['#ctaB', { style: {} }],
+    ['#ctaP', { textContent: '' }],
+  ]);
   const context = {
+    testEv: false,
+    $: (selector) => elements.get(selector),
     localStorage: {
       getItem: (key) => saved.get(key) || null,
       setItem: (key, value) => saved.set(key, value),
@@ -197,7 +205,7 @@ test('one thousand likes trigger a ten-second cassette turbo and preserve leftov
 });
 
 test('AMÉN comments receive the highlighted name-and-avatar treatment', () => {
-  const overlay = fs.readFileSync(path.join(__dirname, '../../Radio_Cristiana_Pentecostal_BUBSDT_TikTok_Live_v10.html'), 'utf8');
+  const overlay = fs.readFileSync(path.join(__dirname, overlayPath), 'utf8');
   const start = overlay.indexOf('function showComment(name,message,av){');
   const end = overlay.indexOf('\nfunction ev(e){', start);
   assert.notEqual(start, -1);
@@ -220,24 +228,24 @@ test('AMÉN comments receive the highlighted name-and-avatar treatment', () => {
 });
 
 test('overlay engagement alerts appear centered in a TikTok-style panel', () => {
-  const overlay = fs.readFileSync(path.join(__dirname, '../../Radio_Cristiana_Pentecostal_BUBSDT_TikTok_Live_v10.html'), 'utf8');
+  const overlay = fs.readFileSync(path.join(__dirname, overlayPath), 'utf8');
   assert.match(overlay, /\.cta\{left:60px;top:1340px;width:960px;height:290px/);
   assert.match(overlay, /background:var\(--gold\);color:var\(--ink\)/);
-  assert.match(overlay, /Toca la pantalla/);
-  assert.match(overlay, /Escribe AMÉN/);
+  assert.match(overlay, /Tac, tac en la pantalla/);
+  assert.match(overlay, /Comenta AMÉN/);
   assert.match(overlay, /Comparte el live/);
 });
 
 test('radio overlay removes the scrolling ticker and enlarges the Walkman case', () => {
-  const overlay = fs.readFileSync(path.join(__dirname, '../../Radio_Cristiana_Pentecostal_BUBSDT_TikTok_Live_v10.html'), 'utf8');
+  const overlay = fs.readFileSync(path.join(__dirname, overlayPath), 'utf8');
   assert.doesNotMatch(overlay, /@keyframes mq|<div class="tick"><span id="tk"/);
   assert.match(overlay, /\.cass\{left:40px;top:235px;width:1000px;height:659px/);
   assert.match(overlay, /viewBox="100 2 440 290"/);
   assert.match(overlay, /\.chips\{left:60px;top:950px/);
 });
 
-test('radio cassette shows only the first two words of the playing track', () => {
-  const overlay = fs.readFileSync(path.join(__dirname, '../../Radio_Cristiana_Pentecostal_BUBSDT_TikTok_Live_v10.html'), 'utf8');
+test('radio cassette shows the full playing track title', () => {
+  const overlay = fs.readFileSync(path.join(__dirname, overlayPath), 'utf8');
   const start = overlay.indexOf('const np=$(\'#np\'),ttl=$(\'.ttl\');');
   const end = overlay.indexOf('\nif(document.fonts&&document.fonts.ready)', start);
   assert.notEqual(start, -1);
@@ -250,21 +258,21 @@ test('radio cassette shows only the first two words of the playing track', () =>
     offsetWidth: 10,
     textContent: '',
   };
-  vm.runInNewContext(`${overlay.slice(start, end)}\nwriteTrackTitle("  Cristo   es mi salvador  ");`, {
+  vm.runInNewContext(`${overlay.slice(start, end)}\nwriteTrackTitle("  Cristo es mi salvador  ");`, {
     $: (selector) => selector === '#np' ? node : { clientHeight: 150 },
   });
-  assert.equal(node.textContent, 'Cristo es');
+  assert.equal(node.textContent, 'Cristo es mi salvador');
 });
 
 test('radio overlay shows the join count without exposing the counter reset control', () => {
-  const overlay = fs.readFileSync(path.join(__dirname, '../../Radio_Cristiana_Pentecostal_BUBSDT_TikTok_Live_v10.html'), 'utf8');
+  const overlay = fs.readFileSync(path.join(__dirname, overlayPath), 'utf8');
   assert.match(overlay, /<div class="chip" id="joinCount"><i>👋<\/i><b id="joinN">0<\/b><\/div>/);
   assert.doesNotMatch(overlay, /resetCounters|overlay\/counters\/reset/);
   assert.match(overlay, /tot\.join=Number\(stats\.members\)\|\|0/);
 });
 
 test('radio playback does not mix a generated white-noise track', () => {
-  const overlay = fs.readFileSync(path.join(__dirname, '../../Radio_Cristiana_Pentecostal_BUBSDT_TikTok_Live_v10.html'), 'utf8');
+  const overlay = fs.readFileSync(path.join(__dirname, overlayPath), 'utf8');
   const audioSection = overlay.slice(overlay.indexOf('/* ===== Audio:'), overlay.indexOf('/* ===== Mensajes de ayuda */'));
   assert.doesNotMatch(audioSection, /createBufferSource|Math\.random\(\)\*2-1|nzF|nzG/);
   assert.match(audioSection, /radioPlayer\.play\(\)/);
