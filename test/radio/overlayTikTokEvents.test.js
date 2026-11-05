@@ -4,7 +4,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const test = require('node:test');
 const { eventNames } = require('../../modules/tiktok/eventConfig');
-const overlayPath = '../../Radio_Cristiana_Pentecostal_Eco_del_Cielo_TikTok_Live_v21.html';
+const overlayPath = '../../Radio_Cristiana_Pentecostal_Eco_del_Cielo_TikTok_Live_v22.html';
 
 test('overlay dispatches every TikTok event to its matching live handler', () => {
   const overlay = fs.readFileSync(path.join(__dirname, '../../modules/overlay/index.html'), 'utf8');
@@ -113,17 +113,20 @@ test('radio overlay renders the actual TikTok connection state', () => {
   assert.equal(lnkT.textContent, 'EN LÍNEA');
   assert.doesNotMatch(lnk.title, /canal/);
   assert.equal(classes.has('bad'), false);
+  assert.equal(classes.has('online'), true);
 
   renderTikTokStatus({ connector: { isConnected: false, status: 'reconnecting' } });
-  assert.equal(lnkT.textContent, 'REINTENTANDO…');
-  assert.equal(classes.has('pending'), true);
+  assert.equal(lnkT.textContent, 'OFFLINE');
+  assert.match(lnk.title, /intentando conectar/);
+  assert.equal(classes.has('bad'), true);
+  assert.equal(classes.has('online'), false);
 
   renderTikTokStatus({ connected: false, status: 'disconnected' });
-  assert.equal(lnkT.textContent, 'DESCONECTADO');
+  assert.equal(lnkT.textContent, 'OFFLINE');
   assert.equal(classes.has('bad'), true);
 
   renderTikTokStatus({});
-  assert.equal(lnkT.textContent, 'SIN ESTADO');
+  assert.equal(lnkT.textContent, 'OFFLINE');
   assert.equal(classes.has('unknown'), true);
 });
 
@@ -143,7 +146,6 @@ test('radio advances one track per completed coin goal and keeps leftover coins'
   ]);
   const banners = [];
   const context = {
-    testEv: false,
     localStorage: {
       getItem: (key) => saved.get(key) || null,
       setItem: (key, value) => saved.set(key, value),
@@ -184,7 +186,6 @@ test('one thousand likes trigger a ten-second cassette turbo and preserve leftov
     ['#ctaP', { textContent: '' }],
   ]);
   const context = {
-    testEv: false,
     $: (selector) => elements.get(selector),
     localStorage: {
       getItem: (key) => saved.get(key) || null,
@@ -229,17 +230,20 @@ test('AMÉN comments receive the highlighted name-and-avatar treatment', () => {
 
 test('overlay engagement alerts appear centered in a TikTok-style panel', () => {
   const overlay = fs.readFileSync(path.join(__dirname, overlayPath), 'utf8');
-  assert.match(overlay, /\.cta\{left:60px;top:1340px;width:960px;height:290px/);
+  assert.match(overlay, /\.cta\{left:60px;top:700px;width:960px;height:150px/);
   assert.match(overlay, /background:var\(--gold\);color:var\(--ink\)/);
   assert.match(overlay, /Tac, tac en la pantalla/);
-  assert.match(overlay, /Comenta AMÉN/);
+  assert.match(overlay, /Escribe AMÉN/);
   assert.match(overlay, /Comparte el live/);
+  assert.doesNotMatch(overlay, /id="testBtn"|\\?bots=|function testStep/);
+  assert.doesNotMatch(overlay, /<div class="pill live"/);
 });
 
-test('radio overlay removes the scrolling ticker and enlarges the Walkman case', () => {
+test('radio overlay fits the upper half of the vertical canvas', () => {
   const overlay = fs.readFileSync(path.join(__dirname, overlayPath), 'utf8');
   assert.doesNotMatch(overlay, /@keyframes mq|<div class="tick"><span id="tk"/);
-  assert.match(overlay, /\.cass\{left:40px;top:235px;width:1000px;height:659px/);
+  assert.match(overlay, /#stage\{position:absolute;left:0;top:0;width:1080px;height:960px/);
+  assert.match(overlay, /\.cass\{left:160px;top:145px;width:760px;height:500px/);
   assert.match(overlay, /viewBox="100 2 440 290"/);
   assert.match(overlay, /\.chips\{left:60px;top:950px/);
 });

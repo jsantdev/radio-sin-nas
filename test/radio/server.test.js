@@ -93,7 +93,7 @@ test('radio server keeps TikTok configuration, event monitoring, and radio state
     assert.doesNotMatch(overlayHtml, /id="radioPlayer" controls/);
     assert.match(overlayHtml, /new EventSource\('\/api\/events'\)/);
     assert.match(overlayHtml, /new EventSource\('\/api\/radio-state\/stream'\)/);
-    assert.match(overlayHtml, /#stage\{position:absolute;left:0;top:0;width:1080px;height:1920px/);
+    assert.match(overlayHtml, /#stage\{position:absolute;left:0;top:0;width:1080px;height:960px/);
     assert.match(overlayHtml, /background:transparent/);
     assert.match(overlayHtml, /class="cass" id="cass" role="button"/);
     assert.match(overlayHtml, /function renderTikTokStatus\(status=\{\}\)/);

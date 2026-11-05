@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<!--
+ ============================================================================
+  REGISTRO DE CAMBIOS (v10 original -> v18). Cada cambio está marcado en el
+  código con la etiqueta [vNN] para encontrarlo con Ctrl+F.
+
+  [v11] Overlay minimalista: solo se ven el casete y el llamado a la acción.
+        Se ocultan (sin borrar, para no romper la lógica): marca (antes BUBSDT, ahora Eco del Cielo, ver v20),
+        mensajes de ayuda, contadores, barra de meta y último evento.
+  [v12] Ingeniería del casete (según la anatomía de un casete Philips real):
+        rodillos guía con pestañas que giran, pines guía fijos, resorte de
+        bronce con pines junto al cabezal, capstan, rodillo de presión que
+        pinza la cinta, freno/seguro de carrete (se pone naranja al detener),
+        muescas de protección y huecos del capstan/rodillo.
+  [v13] Se quita el texto "91.5 FM" de la etiqueta. Se agrega el botón TEST.
+  [v14] TEST hace girar la cinta y lanza eventos simulados cada 3 s, sin
+        tocar la meta real de monedas ni el progreso de likes.
+  [v15] TEST visible. Parámetro ?clean=1 lo oculta para la transmisión.
+        Tocar el casete sin audio cargado también activa el giro de prueba.
+  [v16] Mejoras de UX: último evento de vuelta (más compacto), título
+        completo del tema, etiqueta de estado (la
+        banda se pone gris en pausa), barra de progreso dentro del llamado a
+        la acción, indicador de conexión reducido a un punto.
+  [v17] Sin pedir regalos: el llamado a la acción rota solo cuatro mensajes
+        (tac tac, comentar, compartir, seguir) y la barra pasa de diamantes
+        a likes hacia el turbo (0/1000).
+  [v18] Solo se agregaron comentarios, la lógica no cambió.
+  [v21] El nombre grande sobre el casete se quita; Eco del Cielo pasa a la
+        etiqueta roja del casete (sustituye al nombre del disco).
+  [v20] La radio se llama Eco del Cielo: reemplaza a BUBSDT en el nombre visible
+        (centrado sobre el casete) y en el título de la pestaña.
+  [v19] Lado A / Lado B y física de la cinta: cada lado dura 1 hora (C120),
+        la etiqueta dice LADO A o LADO B, al terminar el lado la cinta se
+        rebobina y pasa al otro lado. Velocidad de cinta a escala real
+        (4,76 cm/s), carretes, rodillos y capstan coherentes con esa
+        velocidad, y turbo reducido a un efecto leve.
+  [v22] Enganche en los primeros 3 segundos:
+        - Pastilla roja "EN VIVO · RADIO CRISTIANA" sobre el casete + contador "N entraron" (solo aparece con N>=1).
+        - Ecualizador de barras planas bajo el casete: se mueve desde el primer frame (simulado, NO lee el audio;
+          en reposo late suave y al sonar sube a tope).
+        - El primer mensaje del llamado a la accion ahora es "Escribe AMEN" (pago inmediato: tu nombre sale en pantalla).
+        - Al entrar alguien, el llamado a la accion lo saluda por su nombre 2,6 s (maximo 1 saludo cada 5 s y nunca
+          pisa un banner de regalo o meta).
+        - ?tickY=1200 en la URL sube o baja el bloque de "ultimo evento" para esquivar el chat de TikTok sin tocar el codigo.
+  [v23] El overlay ocupa la mitad superior del formato vertical. El estado muestra EN LÍNEA solo con conexión confirmada;
+        sin conexión queda gris y dice OFFLINE. Al abrir el overlay solicita conexión y escucha únicamente los eventos
+        reales del servidor TikTok. Se retiraron los generadores de eventos de prueba.
+ ============================================================================
+-->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Eco del Cielo · Radio cristiana pentecostal · TikTok Live</title>
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#1f1838">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700;800;900&display=swap" rel="stylesheet">
+<style>
+/* Diseño pensado para la compresión de TikTok Live:
+   colores planos, formas grandes, sin degradados, sin sombras difusas, sin líneas finas, texto grande. */
+:root{--ink:#14101f;--panel:#1f1838;--panel2:#3a2d63;--cream:#f1e7d0;--cream2:#cfc3a8;--gold:#ffc83d;--flame:#ff5b22;--pink:#ff3b6b;--txt:#fff1d6;--mut:#b9aedb;--f:'Inter','Segoe UI',Arial,sans-serif;color-scheme:dark}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;overflow:hidden;background:transparent}
+#stage{position:absolute;left:0;top:0;width:1080px;height:960px;transform-origin:0 0;font:700 32px var(--f);color:var(--txt);user-select:none;-webkit-user-select:none}
+#stage>*{position:absolute}
+button{font-family:var(--f);color:inherit}
+button:focus-visible,a:focus-visible,.cass:focus-visible{outline:6px solid var(--gold);outline-offset:6px}
+
+/* ===== Cabecera ===== */
+.top{left:60px;top:70px;width:960px;height:130px}
+.brand{position:absolute;left:0;top:0}
+.brand b{display:block;font:900 96px/1 var(--f);letter-spacing:-1px;color:var(--gold)}
+.brand small{display:block;margin-top:8px;font:700 34px/1 var(--f);color:var(--txt)}
+.lnk{position:absolute;right:0;top:6px;height:56px;padding:0 20px;display:flex;align-items:center;gap:12px;border-radius:28px;background:#292633;border:0;font:800 26px var(--f);color:#c2bdca;cursor:pointer}
+.lnk span{display:inline}
+.lnk.bad span,.lnk.pending span,.lnk.unknown span{display:inline}
+.led{width:22px;height:22px;border-radius:50%;background:#85818e}
+.lnk.online{background:#183326;color:#a6f0bb}
+.lnk.online .led{background:#34e06b}
+
+/* ===== Casete realista ===== */
+.cass{left:160px;top:145px;width:760px;height:500px;cursor:pointer;transition:transform .2s}
+.cass:active{transform:translateY(6px)}
+.cass.bump{animation:bump .35s ease-out}
+@keyframes bump{40%{transform:scale(1.025)}}
+.cass svg{position:absolute;left:0;top:0;width:100%;height:100%;display:block}
+.ttl{position:absolute;left:83px;top:96px;width:556px;height:114px;display:flex;align-items:center;pointer-events:none}
+#np{display:block;width:100%;font:800 64px/1.05 var(--f);color:#14161c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.5px}
+#np.idle{color:#6c6a70;font-weight:700}
+#np.tin{animation:tin .45s ease-out}
+@keyframes tin{from{opacity:0;transform:translateY(16px)}}
+
+.hint{left:60px;top:898px;width:960px;height:44px;text-align:center;font:700 32px/44px var(--f);color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#enableRadioAudio{left:280px;top:550px;width:520px;height:76px;border-radius:38px;border:0;background:var(--gold);color:var(--ink);font:900 28px var(--f);cursor:pointer;z-index:5;box-shadow:0 6px 0 var(--ink)}
+#enableRadioAudio[hidden]{display:none}
+
+/* ===== Contadores ===== */
+.chips{left:60px;top:950px;width:960px;height:120px;display:grid;grid-template-columns:1fr 1fr 1.5fr;gap:20px}
+.chip{border-radius:28px;background:var(--panel);display:flex;align-items:center;justify-content:center;gap:16px;padding:0 20px;min-width:0;font:900 56px/1 var(--f)}
+.chip i{font-style:normal;font-size:48px}
+.chip b{font:inherit;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip.pop{animation:pop .3s ease-out}
+@keyframes pop{40%{transform:scale(1.07)}}
+#joinCount b{font-size:44px}
+
+/* ===== Meta: siguiente tema ===== */
+.goal{left:60px;top:1100px;width:960px;height:210px;border-radius:32px;background:var(--panel);padding:28px 36px}
+.gh{display:flex;justify-content:space-between;align-items:baseline;line-height:1}
+.gh b{font:900 44px var(--f);color:var(--gold)}
+.gh span{font:900 48px var(--f)}
+.bar{margin-top:20px;height:52px;border-radius:26px;background:var(--panel2);overflow:hidden}
+.bar i{display:block;height:100%;width:0;border-radius:26px;background:var(--gold);transition:width .6s ease-out}
+.gs{margin-top:18px;font:700 32px/1 var(--f);color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ===== Llamado a la acción (un solo mensaje a la vez) ===== */
+.cta{left:60px;top:700px;width:960px;height:150px;border-radius:28px;background:var(--gold);color:var(--ink);display:flex;align-items:center;gap:24px;padding:0 30px 28px;overflow:hidden}
+.cta .ic{flex:none;width:90px;height:90px;border-radius:50%;background:var(--ink);display:grid;place-items:center;font-size:50px;line-height:1}
+.cta .tx{min-width:0;flex:1}
+.cta .tx b{display:block;font:900 44px/1.05 var(--f);overflow-wrap:anywhere}
+.cta .tx span{display:block;margin-top:8px;font:700 27px/1.15 var(--f)}
+.cta.in .ic,.cta.in .tx{animation:cin .45s ease-out}
+@keyframes cin{from{opacity:0;transform:translateY(24px)}}
+.cta.gift{background:var(--pink);color:#fff}
+.cta.goalok{background:#34e06b}
+.cta.gift .ic{animation:hop .5s ease-in-out infinite alternate}
+@keyframes hop{to{transform:translateY(-12px)}}
+
+/* ===== Último evento ===== */
+.tick{left:90px;top:865px;width:900px;height:80px;border-radius:24px;background:var(--panel);border-left:10px solid var(--gold);display:flex;align-items:center;gap:18px;padding:0 24px 0 20px;overflow:hidden}
+.tick.cm{border-left-color:var(--gold)}.tick.lk{border-left-color:var(--pink)}.tick.jn{border-left-color:#4dff7a}.tick.gf{border-left-color:var(--pink)}
+.tick.amen{border-left-color:#4dff7a;background:#183326}.tick.amen .tt b{color:#4dff7a}
+.tick.in{animation:cin .35s ease-out}
+.av2{display:flex;align-items:center;justify-content:center;border-radius:50%;flex:none;overflow:hidden;color:#fff;font:900 36px var(--f);width:58px;height:58px;line-height:1}
+.av2 img{width:100%;height:100%;object-fit:cover;display:block}
+.tick .tt{min-width:0;flex:1}
+.tick .tt b{display:block;font:900 30px/1.1 var(--f);color:var(--gold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tick .tt span{display:block;margin-top:3px;font:700 24px/1.1 var(--f);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ===== Controles del operador (aparecen al pasar el ratón) ===== */
+.ctl{left:60px;top:1826px;width:960px;height:70px;display:flex;gap:16px;justify-content:center;opacity:0;transition:opacity .2s}
+.ctl:hover,.ctl:focus-within{opacity:1}
+.ctl button{width:140px;border:0;border-radius:20px;background:var(--panel2);font:900 34px var(--f);cursor:pointer}
+#backendShortcut{left:50%;bottom:6px;transform:translateX(-50%);z-index:9;padding:6px 14px;border-radius:999px;background:var(--panel);color:var(--txt);font:700 20px var(--f);text-decoration:none;opacity:0}
+#backendShortcut:hover,#backendShortcut:focus-visible{opacity:1}
+
+/* ===== [v11] Overlay minimalista: solo casete + llamado a la acción =====
+   Los bloques ocultos siguen en el HTML porque el JS los usa (p. ej. la meta de monedas
+   sigue contando por detrás). [v16] .tick (último evento) se quitó de esta lista: volvió a verse. */
+/* [v21] El nombre grande sobre el casete se quitó (demasiada tipografía): Eco del Cielo va en la etiqueta roja del casete.
+   .brand queda oculto, pero #pn se mantiene en el HTML porque ?name= lo usa. */
+.brand,.hint,.chips,.goal{display:none}
+/* [v15] ?clean=1 oculta elementos de administración, pero conserva el estado de conexión. */
+/* Composición compacta: una sola mitad de la pantalla vertical. */
+.brand{display:none}
+.top{height:56px;top:20px}
+.liverow{left:60px;top:90px;width:960px;height:52px;display:flex;justify-content:center;gap:16px}
+.pill{height:52px;padding:0 24px;border-radius:26px;display:flex;align-items:center;gap:12px;font:900 28px/1 var(--f);white-space:nowrap;color:#fff}
+.pill.joins{background:var(--panel);color:var(--gold)}
+.pill[hidden]{display:none}
+.cass{top:145px}
+#enableRadioAudio{top:550px}
+.cta{top:700px;height:150px;padding-bottom:28px}
+.cta .gb{position:absolute;left:30px;right:30px;bottom:14px;height:18px;display:flex;align-items:center;gap:12px}
+.cta .gb u{flex:1;height:12px;border-radius:6px;background:rgba(0,0,0,.2);overflow:hidden;text-decoration:none}
+.cta .gb u i{display:block;height:100%;width:0;border-radius:9px;background:currentColor;transition:width .6s ease-out}
+.cta .gb s{text-decoration:none;font:900 20px/1 var(--f)}
+.tick{top:865px;height:80px}
+.ctl{display:none}
+.eq{left:90px;top:660px;width:900px;height:24px;display:flex;align-items:flex-end;gap:8px;pointer-events:none}
+.eq i{flex:1;height:100%;border-radius:6px;background:var(--gold);transform-origin:50% 100%;transform:scaleY(.12)}
+@media(prefers-reduced-motion:reduce){.cass.bump,#np.tin,.cta.in .ic,.cta.in .tx,.tick.in,.chip.pop,.cta.gift .ic{animation:none}}
+</style></head><body>
+<audio id="radioPlayer" preload="metadata" hidden></audio>
+<div id="stage">
+
+ <header class="top">
+  <!-- [v20][v21] Nombre de la radio: Eco del Cielo (antes BUBSDT). [v21] Este bloque está oculto por CSS; el nombre visible va en la etiqueta roja del casete (SVG). ?name=Otro en la URL lo cambia -->
+  <div class="brand"><b id="pn">Eco del Cielo</b><small>Radio cristiana pentecostal</small></div>
+  <button class="lnk bad" id="lnk" title="Conexión con TikTok · clic para reconectar"><i class="led"></i><span id="lnkT">OFFLINE</span></button>
+ </header>
+
+ <!-- El estado de TikTok se muestra como EN LÍNEA solo cuando el conector confirma la conexión. -->
+ <div class="liverow"><div class="pill joins" id="joinsPill" hidden>👋 <span id="joinsN">0</span> <span id="joinsW">entraron</span></div></div>
+
+ <main class="cass" id="cass" role="button" tabindex="0" aria-label="Reproducir o pausar la radio">
+  <svg viewBox="100 2 440 290" aria-hidden="true">
+   <defs>
+    <linearGradient id="hub" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#b9bcc2"/></linearGradient>
+    <linearGradient id="mt" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#6c7078"/><stop offset=".5" stop-color="#d7dae0"/><stop offset="1" stop-color="#5b5f67"/></linearGradient>
+    <linearGradient id="pk" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6b4526"/><stop offset=".5" stop-color="#2a180c"/><stop offset="1" stop-color="#4a2e18"/></linearGradient>
+    <linearGradient id="sh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#29292e"/><stop offset=".5" stop-color="#141417"/><stop offset="1" stop-color="#080809"/></linearGradient>
+    <linearGradient id="pp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4ead0"/><stop offset="1" stop-color="#e2d4aa"/></linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".16"/><stop offset=".45" stop-color="#fff" stop-opacity=".02"/><stop offset="1" stop-color="#000" stop-opacity=".25"/></linearGradient>
+    <g id="sc"><circle r="7" fill="url(#hub)" stroke="#555" stroke-width="1.5"/><path d="M-4 0H4M0 -4V4" stroke="#444" stroke-width="1.6"/></g>
+    <clipPath id="wclip"><rect x="138" y="138" width="364" height="76" rx="38"/></clipPath>
+    <clipPath id="tclip"><rect x="138" y="138" width="364" height="76" rx="38"/><rect x="100" y="233" width="440" height="60"/></clipPath>
+   </defs>
+   <rect x="107" y="8" width="426" height="270" rx="12" fill="url(#sh)" stroke="#5a5d66" stroke-width="3"/><rect x="113" y="14" width="414" height="258" rx="9" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="2"/>
+   <use href="#sc" x="124" y="26"/><use href="#sc" x="516" y="26"/><use href="#sc" x="126" y="226"/><use href="#sc" x="514" y="226"/><use href="#sc" x="320" y="229"/>
+   <rect x="137" y="20" width="366" height="108" rx="4" fill="url(#pp)" stroke="rgba(0,0,0,.35)" stroke-width="1"/>
+   <!-- [v16] bandA/bandB tienen id para cambiar de color: naranja al sonar, gris en pausa (ver updateNow). [v13] Se quitó de aquí el texto "91.5 FM". -->
+<rect id="bandA" x="137" y="20" width="366" height="34" rx="4" fill="#d04a1d"/><rect id="bandB" x="137" y="46" width="366" height="8" fill="#b23a14"/>
+   <!-- [v21] Etiqueta roja: ahora lleva el nombre de la radio (ECO DEL CIELO) en lugar del nombre del disco. Se puede cambiar con ?name= -->
+   <text id="tapeDiscName" x="152" y="45" font-family="Inter,Segoe UI,Arial,sans-serif" font-weight="800" font-size="21" fill="#fff">ECO DEL CIELO</text>
+   <!-- [v16][v19] Estado de la radio: LADO A / LADO B (agrega . PAUSA si esta detenida) o SIN DISCO. Ocupa el lugar donde estaba 91.5 FM -->
+<text id="nowLbl" x="488" y="45" text-anchor="end" font-family="Inter,Segoe UI,Arial,sans-serif" font-weight="800" font-size="19" fill="#fff4dc">SIN DISCO</text>
+      <rect x="130" y="130" width="380" height="92" rx="46" fill="#16171b" stroke="#aeb2ba" stroke-width="3"/>
+   <rect x="138" y="138" width="364" height="76" rx="38" fill="#050507"/>
+   <g clip-path="url(#wclip)">
+    <circle id="pL" cx="231" cy="176" r="76" fill="url(#pk)"/><circle id="pR" cx="409" cy="176" r="26" fill="url(#pk)"/>
+    <g id="hL" transform="translate(231 176) scale(2)"><circle r="13" fill="url(#hub)"/><circle r="8.5" fill="#0a0a0c"/><g fill="url(#hub)" id="teethL"></g></g>
+    <g id="hR" transform="translate(409 176) scale(2)"><circle r="13" fill="url(#hub)"/><circle r="8.5" fill="#0a0a0c"/><g fill="url(#hub)" id="teethR"></g></g>
+    <!-- [v12] Freno / seguro de carrete (hub lock): cuña que encaja en el carrete al detenerse (naranja) y se retira al girar (gris). Animada en frame() -->
+<g id="lkL" transform="translate(231 200)"><path id="lkLp" d="M-3.4 0L3.4 0L0 -14Z" fill="#ff5b22" stroke="#14161c" stroke-width="1"/></g><g id="lkR" transform="translate(409 200)"><path id="lkRp" d="M-3.4 0L3.4 0L0 -14Z" fill="#ff5b22" stroke="#14161c" stroke-width="1"/></g>
+   </g>
+   <rect x="138" y="138" width="364" height="76" rx="38" fill="url(#glass)"/>
+   <rect x="141" y="141" width="358" height="70" rx="35" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="1.5"/>
+   <g stroke="#e6e8ec" stroke-opacity=".55" stroke-width="1.5"><path d="M182 138v6M200 138v4M218 138v6M236 138v4M254 138v6M272 138v4M290 138v6M308 138v4M326 138v6M344 138v4M362 138v6M380 138v4M398 138v6M416 138v4M434 138v6M452 138v4"/></g>
+   <path d="M108 278 L128 236 H512 L532 278 Z" fill="#08080a" stroke="#4a4b50" stroke-width="2"/><g fill="#000" stroke="#6a6c72" stroke-width="1.5"><circle cx="150" cy="270" r="4"/><circle cx="490" cy="270" r="4"/></g><rect x="302" y="238" width="36" height="14" rx="2" fill="url(#mt)" stroke="#333"/><rect x="309" y="252" width="22" height="8" fill="#b9b49a"/><rect x="304" y="266" width="32" height="16" rx="2" fill="url(#mt)" stroke="#333"/><rect x="307" y="265" width="26" height="4" fill="#2b2d33"/><rect x="309" y="265.5" width="22" height="1.6" fill="#d9b24a"/><rect x="240" y="268" width="20" height="14" rx="2" fill="url(#mt)" stroke="#333"/>
+   <!-- [v12] Piezas DETRAS de la cinta: hueco del rodillo de presion y del capstan, resorte de bronce de la almohadilla, pines del cabezal y muescas de proteccion contra grabacion (borde superior) -->
+<rect x="411" y="236" width="38" height="32" rx="12" fill="#050507" stroke="#4a4b50" stroke-width="1.5"/><circle cx="430" cy="276" r="13" fill="#050507" stroke="#4a4b50" stroke-width="1.5"/>
+   <path d="M285 253L309 250H331L355 253" fill="none" stroke="#b98a3e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+   <g fill="#aeb2ba" stroke="#222" stroke-width="1.2"><circle cx="284" cy="255" r="3.4"/><circle cx="356" cy="255" r="3.4"/></g>
+   <g fill="#050507"><rect x="150" y="9" width="14" height="5" rx="1"/><rect x="476" y="9" width="14" height="5" rx="1"/></g>
+   <g fill="none" stroke-linecap="round" stroke-linejoin="round" clip-path="url(#tclip)">
+    <path id="tL" stroke="#5b3a1e" stroke-width="4"/><path id="tF" stroke="#5b3a1e" stroke-width="4"/><path id="tR" stroke="#5b3a1e" stroke-width="4"/>
+    <path id="sL" stroke="#e6c79a" stroke-opacity=".45" stroke-width="1.4" stroke-dasharray="3 17"/><path id="sF" stroke="#e6c79a" stroke-opacity=".45" stroke-width="1.4" stroke-dasharray="3 17"/><path id="sR" stroke="#e6c79a" stroke-opacity=".45" stroke-width="1.4" stroke-dasharray="3 17"/>
+   </g>
+   <!-- [v12] Piezas DELANTE de la cinta: rodillos guia con pestanas (grL/grR), pines guia fijos, capstan (cap) y rodillo de presion (pr). Todos giran en frame() -->
+<g id="grL" transform="translate(118 262)"><circle r="10" fill="#2b2d33" stroke="#111" stroke-width="1.2"/><circle r="7" fill="url(#mt)" stroke="#222" stroke-width="1.2"/><circle r="2" fill="#14161c"/><circle cx="4.4" r="1.4" fill="#2b2d33"/></g>
+   <g id="grR" transform="translate(522 262)"><circle r="10" fill="#2b2d33" stroke="#111" stroke-width="1.2"/><circle r="7" fill="url(#mt)" stroke="#222" stroke-width="1.2"/><circle r="2" fill="#14161c"/><circle cx="4.4" r="1.4" fill="#2b2d33"/></g>
+   <g fill="#aeb2ba" stroke="#222" stroke-width="1.2"><circle cx="156" cy="241" r="3.4"/><circle cx="484" cy="241" r="3.4"/></g>
+   <g id="cap" transform="translate(430 276)"><circle r="10" fill="url(#mt)" stroke="#222" stroke-width="1.5"/><circle r="3.4" fill="#14161c"/><circle cx="6.2" r="1.5" fill="#2b2d33"/></g>
+   <g id="pr" transform="translate(430 251)"><circle r="15" fill="#111" stroke="#333" stroke-width="2"/><circle r="5" fill="#8c8f97"/><rect x="-1" y="-14" width="2" height="6" fill="#444"/></g>
+   <path d="M107 8H340L220 278H107Z" fill="rgba(255,255,255,.07)"/><path d="M200 138H290L254 214H200Z" fill="rgba(255,255,255,.1)"/>
+  </svg>
+  <div class="ttl"><span id="np" class="idle">Alabanzas de avivamiento</span></div>
+ </main>
+ <div class="hint" id="radioHint" role="status" aria-live="polite"></div>
+ <!-- [v22] Ecualizador simulado (28 barras planas); lo mueve eqTick() en frame() -->
+ <div class="eq" id="eq" aria-hidden="true"></div>
+ <button id="enableRadioAudio" type="button" hidden>▶ TOCA PARA ACTIVAR EL AUDIO</button>
+
+ <section class="chips" aria-label="Actividad del live">
+  <div class="chip" id="chLk"><i>❤</i><b id="sLk">0</b></div>
+  <div class="chip" id="chCm"><i>💬</i><b id="sCm">0</b></div>
+  <div class="chip" id="joinCount"><i>👋</i><b id="joinN">0</b></div>
+ </section>
+
+ <section class="goal" aria-label="Meta para el siguiente tema">
+  <div class="gh"><b>🎁 Meta para el siguiente tema</b><span id="gP">0 / 500</span></div>
+  <div class="bar"><i id="gB"></i></div>
+  <div class="gs" id="gS">Cada regalo suma 💎 y la cinta salta a la siguiente alabanza</div>
+ </section>
+
+ <!-- [v16] Llamado a la accion + barra de progreso (.gb). [v17] La barra cuenta likes hacia el turbo (ctaB/ctaP), ya no diamantes -->
+<section class="cta in" id="cta" role="status" aria-live="polite"><span class="ic" id="ctaI">❤</span><div class="tx"><b id="ctaT"></b><span id="ctaS"></span></div><div class="gb"><u><i id="ctaB"></i></u><s id="ctaP">❤ 0/1000</s></div></section>
+
+ <!-- [v16] Ultimo evento: vuelve a mostrarse (comentarios, AMEN, likes, entradas, seguidores) -->
+<section class="tick in cm" id="tick" aria-live="polite"><span class="av2" id="tkA" style="background:#4a3a7a">💬</span><div class="tt"><b id="tkN">Sé el primero</b><span id="tkS">Escribe AMÉN en el chat y sales aquí</span></div></section>
+
+ <!-- [v13] Boton TEST. [v14] Gira la cinta y lanza eventos simulados cada 3 s. [v15] Se oculta con ?clean=1 -->
+ <nav class="ctl" aria-label="Controles de la radio"><button data-k="rew" aria-label="Tema anterior">⏮</button><button data-k="play" id="btnPlay" aria-label="Reproducir o pausar">▶</button><button data-k="ff" aria-label="Tema siguiente">⏭</button></nav>
+ <a id="backendShortcut" href="/backend" aria-label="Ir al backend de administración">⚙ Admin</a>
+</div>
+
+<script>
+(function(){
+const $=s=>document.querySelector(s),q=new URLSearchParams(location.search);
+const stg=$('#stage');
+function fit(){const s=Math.min(innerWidth/1080,innerHeight/960);stg.style.transform='scale('+s+')';stg.style.left=Math.max(0,(innerWidth-1080*s)/2)+'px'}
+addEventListener('resize',fit);fit();
+/* [v15] ?clean=1 en la URL oculta TEST y el punto de conexion (uso en transmision) */
+if(q.get('clean')==='1')document.body.classList.add('clean');
+if(q.get('name'))$('#pn').textContent=q.get('name');
+/* [v22] ?tickY=1200 mueve el bloque de ultimo evento (para que el chat de TikTok no lo tape) */
+if(+q.get('tickY')>0)$('#tick').style.top=(+q.get('tickY'))+'px';
+if(q.get('bg')){const c='#'+q.get('bg').replace('#','');document.documentElement.style.background=c;document.body.style.background=c}
+
+/* ===== Audio: solo clics y campanita de regalo ===== */
+let A,vol=.6;
+const radioPlayer=$('#radioPlayer'),radioHint=$('#radioHint'),enableAudio=$('#enableRadioAudio'),cass=$('#cass');
+function unlock(){try{if(!A)A=new (window.AudioContext||window.webkitAudioContext)();if(A.state==='suspended')A.resume()}catch(e){}}
+['pointerdown','keydown','touchstart'].forEach(t=>addEventListener(t,unlock));
+function clk(){if(!A)return;const t=A.currentTime,o=A.createOscillator(),g=A.createGain();o.frequency.setValueAtTime(220,t);o.frequency.exponentialRampToValueAtTime(70,t+.1);g.gain.setValueAtTime(.25*vol,t);g.gain.exponentialRampToValueAtTime(.001,t+.12);o.connect(g);g.connect(A.destination);o.start(t);o.stop(t+.15)}
+function chime(big){if(!A)return;const t=A.currentTime,ns=big?[72,76,79,84,88]:[76,79,84];
+ ns.forEach((m,i)=>{const o=A.createOscillator(),g=A.createGain(),s=t+i*.09;o.type='triangle';o.frequency.value=440*Math.pow(2,(m-69)/12);
+  g.gain.setValueAtTime(.0001,s);g.gain.linearRampToValueAtTime(Math.max(.0002,.14*vol),s+.01);g.gain.exponentialRampToValueAtTime(.0001,s+.4);
+  o.connect(g);g.connect(A.destination);o.start(s);o.stop(s+.45)})}
+
+/* ===== Mensajes de ayuda ===== */
+let hintTimer=0;
+function say(text,ms){radioHint.textContent=text||'';clearTimeout(hintTimer);if(text&&ms!==0)hintTimer=setTimeout(()=>{radioHint.textContent=''},ms||7000)}
+
+/* ===== Título del tema: tipografía normal, ajustado al espacio ===== */
+const np=$('#np'),ttl=$('.ttl');
+let curT=null;
+function fitTitle(){let fs=64;np.style.fontSize=fs+'px';while(np.scrollWidth>np.clientWidth&&fs>34){fs-=2;np.style.fontSize=fs+'px'}}
+function writeTrackTitle(value){
+ const title=String(value||'').trim();
+ if(title===curT)return;curT=title;
+/* [v16] Antes se cortaba a las dos primeras palabras; ahora se muestra el titulo completo (fitTitle reduce la letra si es largo) */
+ np.textContent=title||'Alabanzas de avivamiento';np.classList.toggle('idle',!title);
+ fitTitle();np.classList.remove('tin');void np.offsetWidth;np.classList.add('tin');
+}
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fitTitle);
+/* [v21] La etiqueta roja muestra el nombre de la radio y ya no el nombre del disco. ?name=Otro lo cambia; por defecto ECO DEL CIELO */
+const RADIO_NAME=(q.get('name')||'Eco del Cielo').trim().toUpperCase();
+let currentDiscName='';
+/* [v21] Primer dibujo del nombre al cargar (si se usa ?name=, reemplaza el texto por defecto del SVG) */
+setTimeout(()=>writeDiscName(),0);
+function writeDiscName(value){
+ const n=RADIO_NAME,label=$('#tapeDiscName'); /* [v21] se ignora el valor recibido (nombre del disco) */
+ if(n===currentDiscName&&label.textContent===n)return;
+ currentDiscName=n;label.textContent=n;label.removeAttribute('textLength');label.removeAttribute('lengthAdjust');
+/* [v13][v16][v19][v21] Ancho maximo del nombre en la etiqueta roja: 180 para no chocar con la etiqueta LADO A/B de la derecha */
+ const w=label.getComputedTextLength(),max=180;
+ if(w>max){label.setAttribute('textLength',String(max));label.setAttribute('lengthAdjust','spacingAndGlyphs')}
+}
+
+/* ===== Radio (misma API del servidor) ===== */
+let currentTrackKey='',currentTrackTitle='',rewinding=0,rwStart=0,rwFrom=0,pos=0;
+const RW_MS=1800;
+async function requestRadioAction(action,body={}){
+ const response=await fetch('/api/radio/'+action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+ const result=await response.json();
+ if(!response.ok)throw new Error(result.message||'No se pudo actualizar la playlist.');
+ return result;
+}
+function playAudio(){
+ unlock();radioPlayer.volume=vol;
+ radioPlayer.play().then(()=>{enableAudio.hidden=true;say('')})
+  .catch(error=>{say('Toca el botón para activar el audio.',0);enableAudio.hidden=false});
+}
+/* [v16][v19] Actualiza la etiqueta (LADO A/B, PAUSA, SIN DISCO) y el color de la banda del casete (naranja = suena, gris = pausa o sin disco). [v14] TEST cuenta como 'sonando' */
+function updateNow(){const on=!radioPlayer.paused&&!!currentTrackKey,none=!currentTrackKey;
+ $('#nowLbl').textContent=none?'SIN DISCO':on?'LADO '+side:'LADO '+side+' · PAUSA'; /* [v19] antes: AHORA SUENA / EN PAUSA */
+ $('#bandA').setAttribute('fill',on?'#d04a1d':'#6f6a78');$('#bandB').setAttribute('fill',on?'#b23a14':'#58535f')}
+function setPlayUi(){$('#btnPlay').textContent=radioPlayer.paused?'▶':'⏸';updateNow()}
+function cancelRewind(){rewinding=0}
+async function handleTransport(action){
+ if(!action)return;cancelRewind();clk();
+ try{
+  if(action==='play'){
+   if(!currentTrackKey){say('No hay canciones disponibles en la playlist.');return}
+   if(radioPlayer.ended)radioPlayer.currentTime=0;playAudio();return
+  }
+  if(action==='stop'){radioPlayer.pause();return}
+  if(action==='toggle'){return handleTransport(radioPlayer.paused?'play':'stop')}
+  if(action==='rew'){await requestRadioAction('previous');return}
+  if(action==='ff'){await requestRadioAction('next');return}
+ }catch(error){say(error.message||'No se pudo cambiar la reproducción.')}
+}
+function showRadioState(radioState){
+ const track=radioState.currentTrack;
+ if(!track){
+  currentTrackKey='';currentTrackTitle='';writeDiscName('');radioPlayer.pause();radioPlayer.removeAttribute('src');radioPlayer.load();
+  writeTrackTitle('');say('La playlist está vacía. Agrega un disco en Administración.',0);enableAudio.hidden=true;pos=0;setPlayUi();return;
+ }
+ currentTrackTitle=String(track.title||'');writeTrackTitle(currentTrackTitle);writeDiscName(track.discName||track.discId);
+ const trackKey=String(radioState.currentIndex)+':'+String(track.id||track.title||track.url);
+ if(trackKey!==currentTrackKey){
+  currentTrackKey=trackKey;radioPlayer.src=new URL(track.url||'/audio/current',location.href).href;radioPlayer.load();
+ }
+ if(radioState.isPlaying&&radioPlayer.paused&&!rewinding)playAudio();
+ else if(!radioState.isPlaying&&!radioPlayer.paused)radioPlayer.pause();
+ setPlayUi();
+}
+function initRadioPlayer(){
+ radioPlayer.volume=vol;
+ enableAudio.addEventListener('click',playAudio);
+ radioPlayer.addEventListener('play',()=>{
+  setPlayUi();enableAudio.hidden=true;
+  requestRadioAction('playback',{isPlaying:true}).catch(error=>say(error.message))
+ });
+ radioPlayer.addEventListener('pause',()=>{
+  setPlayUi();if(radioPlayer.ended||rewinding)return;
+  requestRadioAction('playback',{isPlaying:false}).catch(error=>say(error.message))
+ });
+ /* [v19] Al terminar un tema se pasa directo al siguiente. Ya no se rebobina: la cinta solo rebobina al acabar el lado (1 h) */
+ radioPlayer.addEventListener('ended',()=>{clk();requestRadioAction('next').catch(error=>say(error.message))});
+ radioPlayer.addEventListener('timeupdate',()=>{
+  /* [v19] pos ya no sale del tema que suena: se calcula en frame() a partir de sideT */
+ });
+ const stream=new EventSource('/api/radio-state/stream');
+ stream.addEventListener('snapshot',event=>showRadioState(JSON.parse(event.data)));
+ stream.addEventListener('update',event=>showRadioState(JSON.parse(event.data)));
+}
+initRadioPlayer();
+
+/* ===== Controles ===== */
+cass.addEventListener('click',()=>handleTransport('toggle'));
+cass.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();handleTransport('toggle')}});
+document.querySelectorAll('.ctl button').forEach(b=>b.addEventListener('click',()=>handleTransport(b.dataset.k==='play'?'toggle':b.dataset.k)));
+addEventListener('keydown',e=>{
+ if(e.target.closest&&e.target.closest('button,a'))return;
+ if(e.code==='Space'){e.preventDefault();handleTransport('toggle')}
+ else if(e.key==='ArrowRight')handleTransport('ff');
+ else if(e.key==='ArrowLeft')handleTransport('rew');
+ else if(e.key==='ArrowUp'){vol=Math.min(1,vol+.05);radioPlayer.volume=vol}
+ else if(e.key==='ArrowDown'){vol=Math.max(0,vol-.05);radioPlayer.volume=vol}
+});
+addEventListener('wheel',e=>{vol=Math.max(0,Math.min(1,vol-Math.sign(e.deltaY)*.05));radioPlayer.volume=vol},{passive:true});
+
+/* ===== Carretes y cinta (misma geometría del casete original) ===== */
+const NS='http://www.w3.org/2000/svg',el=id=>document.getElementById(id);
+['teethL','teethR'].forEach(id=>{const g=el(id);for(let i=0;i<6;i++){const r=document.createElementNS(NS,'rect');r.setAttribute('x',-1.6);r.setAttribute('y',-9);r.setAttribute('width',3.2);r.setAttribute('height',5.5);r.setAttribute('transform','rotate('+i*60+')');g.appendChild(r)}});
+/* [v19] FISICA DE LA CINTA
+   SIDE_S: un lado dura 1 hora (casete C120 = 60 min por lado).
+   V1: velocidad de la cinta en unidades del dibujo por segundo. Escala real: el carrete vacio mide 26 u de radio
+       (hub de 10,5 mm reales), asi 4,76 cm/s = 47,6 mm/s x 2,476 u/mm = 118 u/s. Con esto el carrete vacio gira
+       a 4,5 rad/s (0,72 vueltas/s) y el lleno a 1,55 rad/s (radio 76 u), como en un casete de verdad.
+   BOOST_MAX: antes el turbo llegaba a 2,5x con cada comentario; ahora es un efecto visual leve (maximo 1,6x). */
+const V1=118,BOOST_MAX=1.6,SIDE_S=3600,capf=(x,c)=>c*Math.tanh(x/c);
+/* [v19] side = lado actual ('A' o 'B'); sideT = segundos de cinta ya corridos en este lado (0 a 3600).
+   Se guardan en localStorage para no perder el punto de la cinta al recargar la pagina. */
+let side='A',sideT=0;
+try{const v=JSON.parse(localStorage.getItem('radio-tape-side-v1')||'null');if(v&&(v.s==='A'||v.s==='B')&&Number.isFinite(v.t)&&v.t>=0&&v.t<SIDE_S){side=v.s;sideT=v.t}}catch(e){}
+function saveTape(){try{localStorage.setItem('radio-tape-side-v1',JSON.stringify({s:side,t:Math.floor(sideT)}))}catch(e){}}
+setInterval(saveTape,5000);addEventListener('pagehide',saveTape);
+/* [v19] Fin del lado: la cinta ya rebobino, se cambia de lado y empieza desde cero */
+function flipSide(){side=side==='A'?'B':'A';sideT=0;pos=0;saveTape();updateNow()}
+let run=0,boost=1,boostUntil=0,aL=0,aR=0,aP=0,aG=0,aC=0,off=0,last=performance.now();
+/* [v22] ECUALIZADOR SIMULADO: no analiza el audio (conectar el <audio> a un analizador puede dejarlo mudo si el tema viene de otro origen).
+   Cada barra mezcla dos senos con velocidad y fase propias; eqAmp sube a 1 si suena (o TEST) y baja a 0,18 en reposo, asi siempre hay movimiento. */
+const eqBars=[];(function(){const box=el('eq');for(let i=0;i<28;i++){const b=document.createElement('i');box.appendChild(b);eqBars.push({b,sp:2.2+Math.random()*3.2,ph:Math.random()*6.28,sp2:.9+Math.random()*1.6,ph2:Math.random()*6.28,env:.55+.45*Math.sin(Math.PI*(i+.5)/28)})}})();
+const REDUCED=matchMedia('(prefers-reduced-motion:reduce)').matches;let eqAmp=.18;
+function eqTick(now,playing){const t=now/1000;eqAmp+=((playing?1:.18)-eqAmp)*.08;
+ for(const e of eqBars){const w=.5+.5*Math.sin(t*e.sp+e.ph),m=.55+.45*Math.sin(t*e.sp2+e.ph2),v=REDUCED?.2:.12+.88*eqAmp*(.55*w+.45*m)*e.env;e.b.style.transform='scaleY('+Math.min(1,v).toFixed(3)+')'}}
+function frame(now){
+ const dt=Math.min(.05,(now-last)/1000);last=now;
+/* [v14] real = hay audio sonando. playing = audio real O modo TEST. Asi la cinta gira aunque no haya audio */
+ const real=!radioPlayer.paused&&!!currentTrackKey,playing=real;
+ const target=rewinding?-3:playing?1:0;
+ eqTick(now,playing); /* [v22] */
+ run+=(target-run)*Math.min(1,dt*4);
+ boost+=((now<boostUntil?BOOST_MAX:1)-boost)*Math.min(1,dt*3);
+ /* [v19] La cinta avanza con el tiempo real de reproduccion (no con cada cancion). Si se acaba el lado (1 h),
+    se rebobina con la animacion rapida de siempre y al terminar se pasa al otro lado (flipSide). */
+ if(!rewinding&&run>0)sideT+=dt*run;
+ if(!rewinding&&sideT>=SIDE_S){rewinding=1;rwStart=now;rwFrom=1;clk()}
+ if(rewinding){
+  const p=Math.min(1,(now-rwStart)/RW_MS),ease=p*p*(3-2*p);pos=rwFrom*(1-ease);
+  if(p>=1){rewinding=0;flipSide()}
+ /* [v14] En TEST sin audio, la posicion de la cinta avanza sola (vuelta completa en 45 s) para que los carretes cambien de tamano */
+}else pos=sideT/SIDE_S;
+ pos=Math.max(0,Math.min(1,pos));
+ const rL=2*Math.sqrt(169+1275*(1-pos)),rR=2*Math.sqrt(169+1275*pos);
+ /* [v19] vPx = velocidad lineal de la cinta. Todo lo que toca la cinta usa esa misma velocidad: omega = v / radio.
+    Antes los carretes giraban al doble que la cinta dibujada (vPx contra vPx/2); ahora son coherentes. */
+ const vPx=V1*run*boost,wL=vPx/rL,wR=vPx/rR;
+ aL+=capf(wL,40)*dt*57.3;aR+=capf(wR,40)*dt*57.3;aP+=capf(vPx,500)/15*dt*57.3;off-=capf(vPx,500)*dt;
+ el('pL').setAttribute('r',rL.toFixed(1));el('pR').setAttribute('r',rR.toFixed(1));
+ el('hL').setAttribute('transform','translate(231 176) rotate('+aL.toFixed(1)+') scale(2)');
+ el('hR').setAttribute('transform','translate(409 176) rotate('+aR.toFixed(1)+') scale(2)');
+ el('pr').setAttribute('transform','translate(430 251) rotate('+aP.toFixed(1)+')');
+/* [v12] Giro de rodillos guia (aG) y capstan (aC, en sentido contrario al rodillo de presion). Velocidad proporcional a la de la cinta */
+ aG+=capf(vPx/7,40)*dt*57.3;aC-=capf(vPx/10,40)*dt*57.3; /* [v19] rodillo guia r=7 y capstan r=10: omega = v/r */
+ el('grL').setAttribute('transform','translate(118 262) rotate('+aG.toFixed(1)+')');el('grR').setAttribute('transform','translate(522 262) rotate('+aG.toFixed(1)+')');
+ el('cap').setAttribute('transform','translate(430 276) rotate('+aC.toFixed(1)+')');
+/* [v12] Freno de carrete: encajado y naranja si la cinta esta parada; retirado y gris cuando corre o rebobina */
+ const lkOn=Math.abs(run)<.12,lkd=24+9*Math.max(0,Math.min(1,Math.abs(run)*4));
+ [['lkL',231],['lkR',409]].forEach(a=>{el(a[0]).setAttribute('transform','translate('+a[1]+' '+(176+lkd).toFixed(1)+')');el(a[0]+'p').setAttribute('fill',lkOn?'#ff5b22':'#8c8f97')});
+ const pL=(231+rL*Math.cos(2.3)).toFixed(1)+' '+(176+rL*Math.sin(2.3)).toFixed(1),pR=(409+rR*Math.cos(.84)).toFixed(1)+' '+(176+rR*Math.sin(.84)).toFixed(1);
+/* [v12] Recorrido de la cinta: carrete -> pin guia fijo (156,241 / 484,241) -> rodillo guia -> frente -> cabezal -> pinza entre rodillo de presion y capstan (dip en x=430,y=266) */
+ const dL='M'+pL+' L156 241 L118 262',dF='M118 262 L292 262 Q320 257 348 262 L400 262 Q430 270 460 262 L522 262',dR='M522 262 L484 241 L'+pR;
+ [['tL','sL',dL],['tF','sF',dF],['tR','sR',dR]].forEach(a=>{el(a[0]).setAttribute('d',a[2]);el(a[1]).setAttribute('d',a[2]);el(a[1]).setAttribute('stroke-dashoffset',off.toFixed(1))});
+ requestAnimationFrame(frame)}
+requestAnimationFrame(frame);
+
+/* ===== Estado de conexión con TikTok ===== */
+const lnk=$('#lnk'),lnkT=$('#lnkT');
+function renderTikTokStatus(status={}){
+ const connector=status.connector||{};
+ const state=String(connector.status||status.status||'').toLowerCase();
+ const connected=typeof connector.isConnected==='boolean'?connector.isConnected
+  :typeof status.connected==='boolean'?status.connected
+   :typeof status.isConnected==='boolean'?status.isConnected:state==='connected';
+ const pending=!connected&&['connecting','reconnecting'].includes(state);
+ lnk.classList.toggle('online',connected);
+ lnk.classList.toggle('bad',!connected);
+ lnk.classList.toggle('pending',false);
+ lnk.classList.toggle('unknown',!connected&&state==='');
+ lnkT.textContent=connected?'EN LÍNEA':'OFFLINE';
+ lnk.title=connected?'TikTok confirmó que el usuario está en línea'
+  :pending?'OFFLINE · intentando conectar con TikTok'
+   :state==='failed'?'OFFLINE · se agotaron los intentos automáticos'
+    :state?'OFFLINE · esperando conexión con TikTok':'OFFLINE · no se pudo consultar el estado';
+}
+async function refreshTikTokStatus(){
+ try{const r=await fetch('/api/status');if(!r.ok)throw new Error('HTTP '+r.status);renderTikTokStatus(await r.json())}
+ catch(e){renderTikTokStatus({})}
+}
+function initTikTokEventStream(){
+ const es=new EventSource('/api/events');
+ es.addEventListener('status',e=>renderTikTokStatus(JSON.parse(e.data)));
+ es.addEventListener('runtime-state',e=>syncRuntimeStats(JSON.parse(e.data)));
+ es.addEventListener('update',e=>{
+  const {entry}=JSON.parse(e.data);if(!entry||typeof entry!=='object')return;
+  const user=entry.username||'usuario',n=Number.isFinite(entry.activityCount)?entry.activityCount:1;
+  if(entry.type==='like')window.liveEvent({type:'like',user,count:n,avatar:entry.avatar});
+  else if(entry.type==='gift')window.liveEvent({type:'gift',user,gift:(entry.content||'un regalo').replace(/^Envi(?:ó|\u00c3\u00b3)\s*/i,'').replace(/\s+x\d+$/i,''),diamonds:Number.isFinite(entry.diamondCount)?entry.diamondCount:0,count:n,avatar:entry.avatar});
+  else if(entry.type==='chat')window.liveEvent({type:'comment',user,text:entry.content||'Envió un mensaje',avatar:entry.avatar});
+  else if(entry.type==='member')window.liveEvent({type:'join',user,avatar:entry.avatar});
+  else if(entry.type==='follow')window.liveEvent({type:'follow',user,avatar:entry.avatar});
+  else if(entry.type==='share')window.liveEvent({type:'share',user,avatar:entry.avatar});
+ });
+ es.addEventListener('error',refreshTikTokStatus);
+}
+async function reconnectTikTok(){
+ try{
+  const r=await fetch('/api/reconnect',{method:'POST'});
+  const res=await r.json();
+  if(!r.ok&&r.status!==409)throw new Error(res.message||'No se pudo reconectar con TikTok.');
+ }catch(e){refreshTikTokStatus();say(e.message)}
+}
+lnk.onclick=()=>{unlock();reconnectTikTok()};
+renderTikTokStatus({});refreshTikTokStatus();initTikTokEventStream();reconnectTikTok();
+
+/* ===== Interacción del live ===== */
+const tot={like:0,comment:0,join:0,gift:0},users=new Map();
+const first=s=>String(s||'Alguien').replace(/^@/,'').trim().split(/\s+/)[0].slice(0,14)||'Alguien';
+const colorOf=n=>'hsl('+([...n].reduce((a,c)=>a+c.charCodeAt(0),0)*47%360)+' 55% 38%)';
+function setAv(node,name,url){node.replaceChildren();node.textContent=name.charAt(0).toUpperCase();node.style.background=colorOf(name);
+ if(url){const im=new Image();im.referrerPolicy='no-referrer';im.onload=()=>{node.textContent='';node.appendChild(im)};im.src=url}}
+function retrig(node,cls){node.classList.remove(cls);void node.offsetWidth;node.classList.add(cls)}
+function activateTurbo(duration=10000){boost=BOOST_MAX;boostUntil=Math.max(boostUntil,performance.now()+duration)}
+
+/* Meta de monedas -> siguiente tema */
+let goalMax=500,goalNow=0;
+try{const v=JSON.parse(localStorage.getItem('radio-song-goal-progress-v1')||'0');if(Number.isSafeInteger(v)&&v>=0)goalNow=v}catch(e){}
+/* [v17] La meta de monedas sigue funcionando por detras (cambia de tema), pero ya no se muestra ni se pide. La barra del CTA ahora es renderTurbo() */
+function renderGoal(){$('#gP').textContent=goalNow+' / '+goalMax;$('#gB').style.width=Math.min(100,goalNow/goalMax*100)+'%';$('#gS').textContent=goalMax-goalNow<=50?'Un regalo de 10–50 💎 puede completar esta meta':'Cada regalo acerca la próxima alabanza · 100+ 💎, celebración comunitaria'}
+function setGoalMax(v){if(!Number.isSafeInteger(v)||v<1)return;goalMax=v;goalNow%=goalMax;renderGoal()}
+async function advanceTracks(n){for(let i=0;i<n;i++)await requestRadioAction('next')}
+function addCoins(v){
+ if(!Number.isFinite(v)||v<=0)return;
+ const total=goalNow+Math.floor(v),done=Math.floor(total/goalMax);
+ goalNow=total%goalMax;
+ try{localStorage.setItem('radio-song-goal-progress-v1',String(goalNow))}catch(e){}
+ renderGoal();
+ if(done>0){showBanner('goalok','🎶','¡Meta cumplida!','Pasamos a la siguiente alabanza',4200);chime(true);advanceTracks(done).catch(e=>say(e.message))}
+}
+fetch('/api/overlay/settings').then(async r=>{if(!r.ok)throw new Error('No se pudo cargar la meta de monedas.');setGoalMax((await r.json()).coinGoal)}).catch(e=>console.warn(e.message));
+const gs=new EventSource('/api/overlay/stream');
+gs.addEventListener('settings',e=>setGoalMax(JSON.parse(e.data).coinGoal));
+renderGoal();
+
+/* Llamado a la acción: un mensaje a la vez */
+const cta=$('#cta'),ctaI=$('#ctaI'),ctaT=$('#ctaT'),ctaS=$('#ctaS');
+let ctaIdx=0,bannerUntil=0,bannerTimer=0,greetAt=-1e9;
+/* [v17] Solo 4 mensajes, sin pedir regalos: tac tac, comentar, compartir y seguir (rotan cada 7 s) */
+const CTA=[
+ /* [v22] Primero AMÉN (pago inmediato: tu nombre sale en pantalla), despues likes, compartir y seguir */
+ ()=>['🙏','Escribe AMÉN','Tu nombre sale en pantalla'],
+ ()=>['❤','Tac, tac en la pantalla','Cada 1.000 likes activa turbo por 10 segundos'],
+ ()=>['↗','Comparte el live','Invita a alguien a escuchar'],
+ ()=>['➕','Síguenos','Para no perderte ninguna alabanza']
+];
+function paintCta(cls,ic,t,s){cta.className='cta '+(cls||'');ctaI.textContent=ic;ctaT.textContent=t;ctaS.textContent=s;retrig(cta,'in')}
+function showBanner(cls,ic,t,s,ms){bannerUntil=performance.now()+ms;paintCta(cls,ic,t,s);clearTimeout(bannerTimer);bannerTimer=setTimeout(nextCta,ms)}
+function nextCta(){if(performance.now()<bannerUntil)return;const c=CTA[ctaIdx++%CTA.length]();paintCta('',c[0],c[1],c[2])}
+nextCta();setInterval(nextCta,7000);
+
+/* Último evento */
+const tick=$('#tick'),tkA=$('#tkA'),tkN=$('#tkN'),tkS=$('#tkS');
+let lastLike=null;
+function showTick(cls,ic,name,txt,av){tick.className='tick '+cls;tkN.textContent=ic+' '+name;tkS.textContent=txt;setAv(tkA,name,av);retrig(tick,'in')}
+
+function boostReels(v){boost=Math.min(BOOST_MAX,boost+v)}
+let likesToTurbo=0;
+try{const saved=Number(localStorage.getItem('radio-like-turbo-progress-v1'));if(Number.isSafeInteger(saved)&&saved>=0)likesToTurbo=saved%1000}catch(e){}
+/* [v17] Barra del CTA = progreso de likes hacia el turbo (0 a 1000). Antes mostraba diamantes de la meta */
+function renderTurbo(){$('#ctaB').style.width=(likesToTurbo/10)+'%';$('#ctaP').textContent='❤ '+likesToTurbo+'/1000'}
+renderTurbo();
+function addLikesToTurbo(count){
+ likesToTurbo+=count;
+ const rewards=Math.floor(likesToTurbo/1000);
+ likesToTurbo%=1000;
+ try{localStorage.setItem('radio-like-turbo-progress-v1',String(likesToTurbo))}catch(e){}
+ renderTurbo();
+ if(rewards>0){activateTurbo(10000);showBanner('goalok','⚡','¡1.000 likes!','Modo turbo en las bobinas por 10 segundos',3500)}
+}
+function showComment(name,message,av){
+ if(/\bam[ée]n\b/i.test(message)){showTick('cm','🙏',name,'dijo AMÉN',av);tick.classList.add('amen')}
+ else showTick('cm','💬',name,message.slice(0,70),av);
+}
+function ev(e){
+ if(!e||!e.type)return;
+ const key=e.id||e.user||'Alguien',name=first(e.user);
+ let u=users.get(key);if(!u){u={name,l:0,c:0,d:0,pts:0};users.set(key,u)}
+ u.name=name;if(e.avatar||e.profilePictureUrl)u.av=e.avatar||e.profilePictureUrl;
+ if(e.type==='like'){
+  const n=(e.count|0)||1;tot.like+=n;u.l+=n;u.pts+=n;boostReels(Math.min(n,12)*.12);addLikesToTurbo(n);retrig($('#chLk'),'pop');
+  const now=performance.now();
+  if(lastLike&&lastLike.key===key&&now-lastLike.t<4000){lastLike.n+=n;lastLike.t=now;tkS.textContent='dio '+lastLike.n+' me gusta'}
+  else{lastLike={key,t:now,n};showTick('lk','❤',name,'dio '+n+' me gusta',u.av)}
+ }else if(e.type==='comment'){
+  tot.comment++;u.c++;u.pts+=5;boostReels(.5);retrig($('#chCm'),'pop');
+  const message=String(e.text||'');
+  showComment(name,message,u.av);
+  lastLike=null;
+ }else if(e.type==='join'){tot.join++;showTick('jn','👋',name,'se unió al live',u.av);lastLike=null;
+  /* [v22] Saludo por nombre en el llamado a la accion: maximo 1 cada 5 s y sin pisar un banner de regalo/meta */
+  const nw=performance.now();if(nw>=bannerUntil&&nw-greetAt>5000){greetAt=nw;showBanner('','👋','¡Hola, '+name+'!','Escribe AMÉN y sales aquí',2600)}}
+ else if(e.type==='follow'){showTick('jn','➕',name,'empezó a seguirte',u.av);lastLike=null}
+ else if(e.type==='share'){showTick('jn','↗',name,'compartió el live',u.av);lastLike=null}
+ else if(e.type==='gift'){
+  const n=(e.count|0)||1,dia=Math.max(1,(+e.diamonds||1)*n),g=e.gift||'un regalo',ic=e.icon||'🎁';
+  addCoins(Math.max(0,Math.floor(+e.diamonds||0))*n);
+  tot.gift+=n;u.d+=dia;u.pts+=dia*10;
+  if(dia>=100)activateTurbo(5000);
+  else if(dia>=10)boostReels(.8);
+  showTick('gf',ic,name,'envió '+(n>1?n+'× ':'')+g+'  💎'+dia,u.av);lastLike=null;
+  /* [v17] Si alguien envia un regalo solo se le da las gracias (no se pide ni se promociona) */
+  if(performance.now()>=bannerUntil){
+   const reward=dia>=100?'¡Celebración especial para toda la comunidad!':dia>=10?'¡Gracias por impulsar la próxima alabanza!':'¡Gracias por acompañar la radio!';
+   showBanner('gift',ic,name+' envió '+g,reward+' · 💎'+dia+(n>1?' ('+n+'×)':''),3200+Math.min(2600,dia*20))
+  }
+  chime(dia>=20);retrig(cass,'bump');
+ }
+ renderStats();
+}
+function renderStats(){
+ $('#sLk').textContent=tot.like;$('#sCm').textContent=tot.comment;$('#joinN').textContent=tot.join;
+ /* [v22] La pastilla "N entraron" solo se muestra cuando hay al menos 1 */
+ $('#joinsN').textContent=tot.join;$('#joinsW').textContent=tot.join===1?'entró':'entraron';$('#joinsPill').hidden=tot.join<1;
+}
+function syncRuntimeStats(stats){
+ if(!stats||typeof stats!=='object')return;
+ tot.like=Number(stats.likes)||0;tot.comment=Number(stats.comments)||0;tot.join=Number(stats.members)||0;
+ renderStats();
+}
+window.liveEvent=e=>ev(e);
+
+updateNow();
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/service-worker.js').catch((error) => {
+    console.error('No se pudo preparar la instalación de Radio:', error);
+  });
+}
+</script>
+</body></html>

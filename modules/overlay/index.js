@@ -59,7 +59,7 @@ function createOverlayModule({
 
   function registerRoutes(app) {
     app.get(['/','/index.html'], (request, response) => {
-      response.sendFile(path.join(__dirname, '..', '..', 'Radio_Cristiana_Pentecostal_Eco_del_Cielo_TikTok_Live_v21.html'));
+      response.sendFile(path.join(__dirname, '..', '..', 'Radio_Cristiana_Pentecostal_Eco_del_Cielo_TikTok_Live_v22.html'));
     });
 
     app.get('/manifest.webmanifest', (request, response) => {

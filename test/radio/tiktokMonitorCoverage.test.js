@@ -89,8 +89,8 @@ test('monitor loads the TikTok connector through its ESM export', async () => {
 
 test('monitor validates timing and subscription contracts', () => {
   for (const options of [
-    { retryBaseDelayMs: 0 },
-    { retryMaxDelayMs: Infinity },
+    { retryFastIntervalMs: 0 },
+    { retrySlowWindowMs: Infinity },
     { connectTimeoutMs: -1 },
     { maxConnectionAttempts: 1.5 },
   ]) {
@@ -98,7 +98,7 @@ test('monitor validates timing and subscription contracts', () => {
   }
 
   const { monitor } = createMonitor();
-  assert.equal(monitor.getStatusPayload().maxConnectionAttempts, 3);
+  assert.equal(monitor.getStatusPayload().maxConnectionAttempts, 51);
   assert.throws(() => monitor.subscribeToEvents(null), /suscriptor de eventos/);
   assert.throws(() => monitor.subscribeToStatus(null), /suscriptor de estado/);
   assert.throws(() => monitor.connectUser('  '), /indicar un usuario/);
@@ -223,12 +223,20 @@ test('monitor normalizes every webcast event and event payload shape', async () 
 });
 
 test('monitor retries rejected, thrown, and timed-out connections until the limit', async () => {
+  const clock = { value: 0 };
   const { monitor, timers } = createMonitor({
-    retryBaseDelayMs: 10,
-    retryMaxDelayMs: 15,
+    now: () => clock.value,
+    retryFastIntervalMs: 10,
+    retrySlowIntervalMs: 15,
     connectTimeoutMs: 5,
     maxConnectionAttempts: 4,
   });
+  const fireAfterDelay = () => {
+    const timer = timers.pending.values().next().value;
+    assert.ok(timer);
+    clock.value += timer.delay;
+    return timers.fire();
+  };
 
   FakeConnection.connectBehavior = 'reject';
   monitor.connectUser('@retries');
@@ -236,20 +244,52 @@ test('monitor retries rejected, thrown, and timed-out connections until the limi
   assert.equal(monitor.state.status, 'reconnecting');
   assert.equal(timers.pending.size, 1);
   FakeConnection.connectBehavior = 'throw';
-  assert.equal(timers.fire(), 10);
+  assert.equal(fireAfterDelay(), 10);
   assert.equal(monitor.state.connectionAttempts, 2);
   FakeConnection.connectBehavior = 'pending';
-  assert.equal(timers.fire(), 15);
+  assert.equal(fireAfterDelay(), 10);
   const timedOutConnection = FakeConnection.instances.at(-1);
-  assert.equal(timers.fire(), 5);
+  assert.equal(fireAfterDelay(), 5);
   assert.equal(timedOutConnection.disconnected, true);
   assert.equal(monitor.state.status, 'reconnecting');
-  assert.equal(timers.fire(), 15);
+  assert.equal(fireAfterDelay(), 5);
   const finalConnection = FakeConnection.instances.at(-1);
-  assert.equal(timers.fire(), 5);
+  assert.equal(fireAfterDelay(), 5);
   assert.equal(finalConnection.disconnected, true);
   assert.equal(monitor.state.status, 'failed');
   assert.equal(monitor.state.connectionAttempts, 4);
+  assert.equal(timers.pending.size, 0);
+  monitor.disconnectUser();
+});
+
+test('monitor retries every 15 seconds for five minutes, then every minute for thirty minutes', async () => {
+  const clock = { value: 0 };
+  const { monitor, timers } = createMonitor({ now: () => clock.value });
+  const fireAfterDelay = async () => {
+    const timer = timers.pending.values().next().value;
+    assert.ok(timer);
+    clock.value += timer.delay;
+    timers.fire();
+    await new Promise((resolve) => setImmediate(resolve));
+  };
+
+  FakeConnection.connectBehavior = 'reject';
+  monitor.connectUser('scheduled-retries');
+  await new Promise((resolve) => setImmediate(resolve));
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    assert.equal(timers.pending.values().next().value.delay, 15000);
+    await fireAfterDelay();
+  }
+
+  assert.equal(clock.value, 5 * 60 * 1000);
+  assert.equal(timers.pending.values().next().value.delay, 60000);
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    await fireAfterDelay();
+  }
+
+  assert.equal(clock.value, 35 * 60 * 1000);
+  assert.equal(monitor.state.status, 'failed');
+  assert.equal(monitor.state.connectionAttempts, 51);
   assert.equal(timers.pending.size, 0);
   monitor.disconnectUser();
 });
