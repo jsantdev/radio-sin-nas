@@ -6,7 +6,7 @@
   "lang": "es",
   "start_url": "/",
   "scope": "/",
-  "display": "standalone",
+  "display": "fullscreen",
   "background_color": "#160d20",
   "theme_color": "#4c1d95",
   "orientation": "portrait",

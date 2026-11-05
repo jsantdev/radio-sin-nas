@@ -25,7 +25,7 @@ test('radio root is installable as the Radio PWA', async () => {
     const manifest = await manifestResponse.json();
     assert.equal(manifest.name, 'Radio');
     assert.equal(manifest.short_name, 'Radio');
-    assert.equal(manifest.display, 'standalone');
+    assert.equal(manifest.display, 'fullscreen');
     assert.equal(manifest.start_url, '/');
 
     const workerResponse = await fetch(`${baseUrl}/service-worker.js`);
