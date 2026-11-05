@@ -98,39 +98,36 @@ test('radio overlay renders the actual TikTok connection state', () => {
   assert.notEqual(end, -1, 'connection-status renderer has a clear boundary');
 
   const classes = new Set();
-  const lnk = {
+  const livePill = {
+    title: '',
     classList: {
       toggle(name, enabled) {
         if (enabled) classes.add(name);
         else classes.delete(name);
       },
     },
-    dataset: {},
   };
-  const lnkT = { textContent: '' };
-  const livePill = { hidden: true };
-  const renderTikTokStatus = vm.runInNewContext(`(${overlay.slice(start, end)})`, { lnk, lnkT, livePill });
+  const liveText = { textContent: '' };
+  const renderTikTokStatus = vm.runInNewContext(`(${overlay.slice(start, end)})`, { livePill, liveText });
   renderTikTokStatus({ connected: true, username: 'canal', status: 'connected' });
-  assert.equal(lnkT.textContent, 'EN LÍNEA');
-  assert.equal(livePill.hidden, false);
-  assert.doesNotMatch(lnk.title, /canal/);
-  assert.equal(classes.has('bad'), false);
+  assert.equal(liveText.textContent, 'EN VIVO · RADIO CRISTIANA');
+  assert.match(livePill.title, /confirmó/);
   assert.equal(classes.has('online'), true);
+  assert.equal(classes.has('offline'), false);
 
   renderTikTokStatus({ connector: { isConnected: false, status: 'reconnecting' } });
-  assert.equal(lnkT.textContent, 'OFFLINE');
-  assert.equal(livePill.hidden, true);
-  assert.match(lnk.title, /intentando conectar/);
-  assert.equal(classes.has('bad'), true);
+  assert.equal(liveText.textContent, 'OFFLINE');
+  assert.match(livePill.title, /intentando conectar/);
+  assert.equal(classes.has('offline'), true);
   assert.equal(classes.has('online'), false);
 
   renderTikTokStatus({ connected: false, status: 'disconnected' });
-  assert.equal(lnkT.textContent, 'OFFLINE');
-  assert.equal(classes.has('bad'), true);
+  assert.equal(liveText.textContent, 'OFFLINE');
+  assert.equal(classes.has('offline'), true);
 
   renderTikTokStatus({});
-  assert.equal(lnkT.textContent, 'OFFLINE');
-  assert.equal(classes.has('unknown'), true);
+  assert.equal(liveText.textContent, 'OFFLINE');
+  assert.match(livePill.title, /no se pudo consultar/);
 });
 
 test('radio visualizer reads frequency levels from the playing audio', () => {
@@ -267,7 +264,9 @@ test('overlay engagement alerts appear centered in a TikTok-style panel', () => 
   assert.match(overlay, /Comparte el live/);
   assert.match(overlay, /Escribe AMÉN y sales aquí/);
   assert.doesNotMatch(overlay, /id="testBtn"|\\?bots=|function testStep/);
-  assert.match(overlay, /id="livePill" hidden/);
+  assert.match(overlay, /class="pill live offline" id="livePill"/);
+  assert.match(overlay, /id="liveText">OFFLINE<\/span>/);
+  assert.doesNotMatch(overlay, /id="lnk"|class="lnk/);
   assert.match(overlay, /¡'\+name\+' se unió!/);
   assert.match(overlay, /getByteFrequencyData/);
 });

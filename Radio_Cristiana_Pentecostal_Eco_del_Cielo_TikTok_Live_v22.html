@@ -74,12 +74,6 @@ button:focus-visible,a:focus-visible,.cass:focus-visible{outline:6px solid var(-
 .brand{position:absolute;left:0;top:0}
 .brand b{display:block;font:900 96px/1 var(--f);letter-spacing:-1px;color:var(--gold)}
 .brand small{display:block;margin-top:8px;font:700 34px/1 var(--f);color:var(--txt)}
-.lnk{position:absolute;right:0;top:6px;height:56px;padding:0 20px;display:flex;align-items:center;gap:12px;border-radius:28px;background:#292633;border:0;font:800 26px var(--f);color:#c2bdca;cursor:pointer}
-.lnk span{display:inline}
-.lnk.bad span,.lnk.pending span,.lnk.unknown span{display:inline}
-.led{width:22px;height:22px;border-radius:50%;background:#85818e}
-.lnk.online{background:#183326;color:#a6f0bb}
-.lnk.online .led{background:#34e06b}
 
 /* ===== Casete realista ===== */
 .cass{left:160px;top:145px;width:760px;height:500px;cursor:pointer;transition:transform .2s}
@@ -158,8 +152,11 @@ button:focus-visible,a:focus-visible,.cass:focus-visible{outline:6px solid var(-
 .top{height:56px;top:20px}
 .liverow{left:60px;top:94px;width:960px;height:38px;display:flex;justify-content:center;gap:12px}
 .pill{height:38px;padding:0 16px;border-radius:19px;display:flex;align-items:center;gap:9px;font:900 20px/1 var(--f);white-space:nowrap;color:#fff}
-.pill.live{background:#e0262a}
-.pill.live i{width:12px;height:12px;border-radius:50%;background:#fff;animation:blink 1.2s steps(1) infinite}
+.pill.live{border:0;cursor:pointer}
+.pill.live.online{background:#e0262a}
+.pill.live.offline{background:#625e69;color:#e3e0e8}
+.pill.live i{width:12px;height:12px;border-radius:50%;background:#fff}
+.pill.live.online i{animation:blink 1.2s steps(1) infinite}
 @keyframes blink{50%{opacity:.25}}
 .pill.joins{background:var(--panel);color:var(--gold)}
 .pill[hidden]{display:none}
@@ -179,14 +176,10 @@ button:focus-visible,a:focus-visible,.cass:focus-visible{outline:6px solid var(-
 <audio id="radioPlayer" preload="metadata" hidden></audio>
 <div id="stage">
 
- <header class="top">
-  <!-- [v20][v21] Nombre de la radio: Eco del Cielo (antes BUBSDT). [v21] Este bloque está oculto por CSS; el nombre visible va en la etiqueta roja del casete (SVG). ?name=Otro en la URL lo cambia -->
-  <div class="brand"><b id="pn">Eco del Cielo</b><small>Radio cristiana pentecostal</small></div>
-  <button class="lnk bad" id="lnk" title="Conexión con TikTok · clic para reconectar"><i class="led"></i><span id="lnkT">OFFLINE</span></button>
- </header>
-
- <!-- El estado de TikTok se muestra como EN LÍNEA solo cuando el conector confirma la conexión. -->
- <div class="liverow" aria-label="Estado del live"><div class="pill live" id="livePill" hidden><i></i><span>EN VIVO · RADIO CRISTIANA</span></div><div class="pill joins" id="joinsPill" hidden>👥 <span id="joinsN">0</span> <span id="joinsW">entraron</span></div></div>
+ <div class="liverow" aria-label="Estado del live">
+  <button class="pill live offline" id="livePill" type="button" aria-live="polite"><i></i><span id="liveText">OFFLINE</span></button>
+  <div class="pill joins" id="joinsPill" hidden>👥 <span id="joinsN">0</span> <span id="joinsW">entraron</span></div>
+ </div>
 
  <main class="cass" id="cass" role="button" tabindex="0" aria-label="Reproducir o pausar la radio">
   <svg viewBox="100 2 440 290" aria-hidden="true">
@@ -493,7 +486,7 @@ function frame(now){
 requestAnimationFrame(frame);
 
 /* ===== Estado de conexión con TikTok ===== */
-const lnk=$('#lnk'),lnkT=$('#lnkT'),livePill=$('#livePill');
+const livePill=$('#livePill'),liveText=$('#liveText');
 function renderTikTokStatus(status={}){
  const connector=status.connector||{};
  const state=String(connector.status||status.status||'').toLowerCase();
@@ -501,13 +494,10 @@ function renderTikTokStatus(status={}){
   :typeof status.connected==='boolean'?status.connected
    :typeof status.isConnected==='boolean'?status.isConnected:state==='connected';
  const pending=!connected&&['connecting','reconnecting'].includes(state);
- lnk.classList.toggle('online',connected);
- lnk.classList.toggle('bad',!connected);
- lnk.classList.toggle('pending',false);
- lnk.classList.toggle('unknown',!connected&&state==='');
- lnkT.textContent=connected?'EN LÍNEA':'OFFLINE';
- livePill.hidden=!connected;
- lnk.title=connected?'TikTok confirmó que el usuario está en línea'
+ livePill.classList.toggle('online',connected);
+ livePill.classList.toggle('offline',!connected);
+ liveText.textContent=connected?'EN VIVO · RADIO CRISTIANA':'OFFLINE';
+ livePill.title=connected?'TikTok confirmó que el usuario está en línea'
   :pending?'OFFLINE · intentando conectar con TikTok'
    :state==='failed'?'OFFLINE · se agotaron los intentos automáticos'
     :state?'OFFLINE · esperando conexión con TikTok':'OFFLINE · no se pudo consultar el estado';
@@ -539,7 +529,7 @@ async function reconnectTikTok(){
   if(!r.ok&&r.status!==409)throw new Error(res.message||'No se pudo reconectar con TikTok.');
  }catch(e){refreshTikTokStatus();say(e.message)}
 }
-lnk.onclick=()=>{unlock();reconnectTikTok()};
+livePill.onclick=()=>{unlock();reconnectTikTok()};
 renderTikTokStatus({});refreshTikTokStatus();initTikTokEventStream();reconnectTikTok();
 
 /* ===== Interacción del live ===== */
