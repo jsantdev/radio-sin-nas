@@ -108,15 +108,18 @@ test('radio overlay renders the actual TikTok connection state', () => {
     dataset: {},
   };
   const lnkT = { textContent: '' };
-  const renderTikTokStatus = vm.runInNewContext(`(${overlay.slice(start, end)})`, { lnk, lnkT });
+  const livePill = { hidden: true };
+  const renderTikTokStatus = vm.runInNewContext(`(${overlay.slice(start, end)})`, { lnk, lnkT, livePill });
   renderTikTokStatus({ connected: true, username: 'canal', status: 'connected' });
   assert.equal(lnkT.textContent, 'EN LÍNEA');
+  assert.equal(livePill.hidden, false);
   assert.doesNotMatch(lnk.title, /canal/);
   assert.equal(classes.has('bad'), false);
   assert.equal(classes.has('online'), true);
 
   renderTikTokStatus({ connector: { isConnected: false, status: 'reconnecting' } });
   assert.equal(lnkT.textContent, 'OFFLINE');
+  assert.equal(livePill.hidden, true);
   assert.match(lnk.title, /intentando conectar/);
   assert.equal(classes.has('bad'), true);
   assert.equal(classes.has('online'), false);
@@ -128,6 +131,33 @@ test('radio overlay renders the actual TikTok connection state', () => {
   renderTikTokStatus({});
   assert.equal(lnkT.textContent, 'OFFLINE');
   assert.equal(classes.has('unknown'), true);
+});
+
+test('radio visualizer reads frequency levels from the playing audio', () => {
+  const overlay = fs.readFileSync(path.join(__dirname, overlayPath), 'utf8');
+  const start = overlay.indexOf('function eqTick(now,playing){');
+  const end = overlay.indexOf('\nfunction frame(now)', start);
+  assert.notEqual(start, -1, 'audio visualizer exists');
+  assert.notEqual(end, -1, 'audio visualizer has a clear boundary');
+
+  const bars = Array.from({ length: 28 }, () => ({ b: { style: {} }, env: 1, level: 0 }));
+  let samplesRead = 0;
+  const context = {
+    eqBars: bars,
+    radioAnalyser: {
+      getByteFrequencyData(samples) {
+        samplesRead += 1;
+        samples.fill(128);
+      },
+    },
+    radioFrequencyData: new Uint8Array(64),
+    A: { state: 'running' },
+    REDUCED: false,
+  };
+  vm.runInNewContext(`${overlay.slice(start, end)}\neqTick(1000,true);`, context);
+  assert.equal(samplesRead, 1);
+  assert.ok(bars.every((bar) => bar.level > 0));
+  assert.ok(bars.every((bar) => bar.b.style.transform !== 'scaleY(0.080)'));
 });
 
 test('radio advances one track per completed coin goal and keeps leftover coins', async () => {
@@ -235,8 +265,11 @@ test('overlay engagement alerts appear centered in a TikTok-style panel', () => 
   assert.match(overlay, /Tac, tac en la pantalla/);
   assert.match(overlay, /Escribe AMÉN/);
   assert.match(overlay, /Comparte el live/);
+  assert.match(overlay, /Escribe AMÉN y sales aquí/);
   assert.doesNotMatch(overlay, /id="testBtn"|\\?bots=|function testStep/);
-  assert.doesNotMatch(overlay, /<div class="pill live"/);
+  assert.match(overlay, /id="livePill" hidden/);
+  assert.match(overlay, /¡'\+name\+' se unió!/);
+  assert.match(overlay, /getByteFrequencyData/);
 });
 
 test('radio overlay fits the upper half of the vertical canvas', () => {

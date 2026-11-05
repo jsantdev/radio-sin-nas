@@ -46,6 +46,8 @@
   [v23] El overlay ocupa la mitad superior del formato vertical. El estado muestra EN LÍNEA solo con conexión confirmada;
         sin conexión queda gris y dice OFFLINE. Al abrir el overlay solicita conexión y escucha únicamente los eventos
         reales del servidor TikTok. Se retiraron los generadores de eventos de prueba.
+  [v24] La pastilla roja EN VIVO aparece solo con conexión real. El ecualizador lee el audio de la radio y late suavemente
+        mientras espera reproducción. AMÉN abre el CTA y las entradas muestran el saludo con el nombre del usuario.
  ============================================================================
 -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -117,7 +119,7 @@ button:focus-visible,a:focus-visible,.cass:focus-visible{outline:6px solid var(-
 .cta{left:60px;top:700px;width:960px;height:150px;border-radius:28px;background:var(--gold);color:var(--ink);display:flex;align-items:center;gap:24px;padding:0 30px 28px;overflow:hidden}
 .cta .ic{flex:none;width:90px;height:90px;border-radius:50%;background:var(--ink);display:grid;place-items:center;font-size:50px;line-height:1}
 .cta .tx{min-width:0;flex:1}
-.cta .tx b{display:block;font:900 44px/1.05 var(--f);overflow-wrap:anywhere}
+.cta .tx b{display:block;font:900 40px/1.05 var(--f);overflow-wrap:anywhere}
 .cta .tx span{display:block;margin-top:8px;font:700 27px/1.15 var(--f)}
 .cta.in .ic,.cta.in .tx{animation:cin .45s ease-out}
 @keyframes cin{from{opacity:0;transform:translateY(24px)}}
@@ -154,8 +156,11 @@ button:focus-visible,a:focus-visible,.cass:focus-visible{outline:6px solid var(-
 /* Composición compacta: una sola mitad de la pantalla vertical. */
 .brand{display:none}
 .top{height:56px;top:20px}
-.liverow{left:60px;top:90px;width:960px;height:52px;display:flex;justify-content:center;gap:16px}
-.pill{height:52px;padding:0 24px;border-radius:26px;display:flex;align-items:center;gap:12px;font:900 28px/1 var(--f);white-space:nowrap;color:#fff}
+.liverow{left:60px;top:94px;width:960px;height:38px;display:flex;justify-content:center;gap:12px}
+.pill{height:38px;padding:0 16px;border-radius:19px;display:flex;align-items:center;gap:9px;font:900 20px/1 var(--f);white-space:nowrap;color:#fff}
+.pill.live{background:#e0262a}
+.pill.live i{width:12px;height:12px;border-radius:50%;background:#fff;animation:blink 1.2s steps(1) infinite}
+@keyframes blink{50%{opacity:.25}}
 .pill.joins{background:var(--panel);color:var(--gold)}
 .pill[hidden]{display:none}
 .cass{top:145px}
@@ -181,7 +186,7 @@ button:focus-visible,a:focus-visible,.cass:focus-visible{outline:6px solid var(-
  </header>
 
  <!-- El estado de TikTok se muestra como EN LÍNEA solo cuando el conector confirma la conexión. -->
- <div class="liverow"><div class="pill joins" id="joinsPill" hidden>👋 <span id="joinsN">0</span> <span id="joinsW">entraron</span></div></div>
+ <div class="liverow" aria-label="Estado del live"><div class="pill live" id="livePill" hidden><i></i><span>EN VIVO · RADIO CRISTIANA</span></div><div class="pill joins" id="joinsPill" hidden>👥 <span id="joinsN">0</span> <span id="joinsW">entraron</span></div></div>
 
  <main class="cass" id="cass" role="button" tabindex="0" aria-label="Reproducir o pausar la radio">
   <svg viewBox="100 2 440 290" aria-hidden="true">
@@ -235,10 +240,10 @@ button:focus-visible,a:focus-visible,.cass:focus-visible{outline:6px solid var(-
    <g id="pr" transform="translate(430 251)"><circle r="15" fill="#111" stroke="#333" stroke-width="2"/><circle r="5" fill="#8c8f97"/><rect x="-1" y="-14" width="2" height="6" fill="#444"/></g>
    <path d="M107 8H340L220 278H107Z" fill="rgba(255,255,255,.07)"/><path d="M200 138H290L254 214H200Z" fill="rgba(255,255,255,.1)"/>
   </svg>
-  <div class="ttl"><span id="np" class="idle">Alabanzas de avivamiento</span></div>
+  <div class="ttl"><span id="np" class="idle">Radio cristiana en vivo</span></div>
  </main>
  <div class="hint" id="radioHint" role="status" aria-live="polite"></div>
- <!-- [v22] Ecualizador simulado (28 barras planas); lo mueve eqTick() en frame() -->
+ <!-- Ecualizador de audio real cuando reproduce; movimiento tenue en reposo. -->
  <div class="eq" id="eq" aria-hidden="true"></div>
  <button id="enableRadioAudio" type="button" hidden>▶ TOCA PARA ACTIVAR EL AUDIO</button>
 
@@ -278,10 +283,18 @@ if(q.get('name'))$('#pn').textContent=q.get('name');
 if(+q.get('tickY')>0)$('#tick').style.top=(+q.get('tickY'))+'px';
 if(q.get('bg')){const c='#'+q.get('bg').replace('#','');document.documentElement.style.background=c;document.body.style.background=c}
 
-/* ===== Audio: solo clics y campanita de regalo ===== */
-let A,vol=.6;
+/* ===== Audio: radio, clics y campanita de regalo ===== */
+let A,vol=.6,radioAnalyser=null,radioFrequencyData=null,radioSource=null;
 const radioPlayer=$('#radioPlayer'),radioHint=$('#radioHint'),enableAudio=$('#enableRadioAudio'),cass=$('#cass');
-function unlock(){try{if(!A)A=new (window.AudioContext||window.webkitAudioContext)();if(A.state==='suspended')A.resume()}catch(e){}}
+function connectRadioAnalyser(){
+ if(!A||radioAnalyser)return;
+ try{
+  radioAnalyser=A.createAnalyser();radioAnalyser.fftSize=256;radioAnalyser.smoothingTimeConstant=.72;
+  radioFrequencyData=new Uint8Array(radioAnalyser.frequencyBinCount);
+  radioSource=A.createMediaElementSource(radioPlayer);radioSource.connect(radioAnalyser);radioAnalyser.connect(A.destination);
+ }catch(error){radioAnalyser=null;radioFrequencyData=null;console.warn('No se pudo analizar el audio de la radio:',error)}
+}
+function unlock(){try{if(!A)A=new (window.AudioContext||window.webkitAudioContext)();connectRadioAnalyser();if(A.state==='suspended')A.resume()}catch(error){console.warn('No se pudo activar el audio de la radio:',error)}}
 ['pointerdown','keydown','touchstart'].forEach(t=>addEventListener(t,unlock));
 function clk(){if(!A)return;const t=A.currentTime,o=A.createOscillator(),g=A.createGain();o.frequency.setValueAtTime(220,t);o.frequency.exponentialRampToValueAtTime(70,t+.1);g.gain.setValueAtTime(.25*vol,t);g.gain.exponentialRampToValueAtTime(.001,t+.12);o.connect(g);g.connect(A.destination);o.start(t);o.stop(t+.15)}
 function chime(big){if(!A)return;const t=A.currentTime,ns=big?[72,76,79,84,88]:[76,79,84];
@@ -301,7 +314,7 @@ function writeTrackTitle(value){
  const title=String(value||'').trim();
  if(title===curT)return;curT=title;
 /* [v16] Antes se cortaba a las dos primeras palabras; ahora se muestra el titulo completo (fitTitle reduce la letra si es largo) */
- np.textContent=title||'Alabanzas de avivamiento';np.classList.toggle('idle',!title);
+ np.textContent=title||'Radio cristiana en vivo';np.classList.toggle('idle',!title);
  fitTitle();np.classList.remove('tin');void np.offsetWidth;np.classList.add('tin');
 }
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fitTitle);
@@ -422,15 +435,25 @@ setInterval(saveTape,5000);addEventListener('pagehide',saveTape);
 /* [v19] Fin del lado: la cinta ya rebobino, se cambia de lado y empieza desde cero */
 function flipSide(){side=side==='A'?'B':'A';sideT=0;pos=0;saveTape();updateNow()}
 let run=0,boost=1,boostUntil=0,aL=0,aR=0,aP=0,aG=0,aC=0,off=0,last=performance.now();
-/* [v22] ECUALIZADOR SIMULADO: no analiza el audio (conectar el <audio> a un analizador puede dejarlo mudo si el tema viene de otro origen).
-   Cada barra mezcla dos senos con velocidad y fase propias; eqAmp sube a 1 si suena (o TEST) y baja a 0,18 en reposo, asi siempre hay movimiento. */
-const eqBars=[];(function(){const box=el('eq');for(let i=0;i<28;i++){const b=document.createElement('i');box.appendChild(b);eqBars.push({b,sp:2.2+Math.random()*3.2,ph:Math.random()*6.28,sp2:.9+Math.random()*1.6,ph2:Math.random()*6.28,env:.55+.45*Math.sin(Math.PI*(i+.5)/28)})}})();
-const REDUCED=matchMedia('(prefers-reduced-motion:reduce)').matches;let eqAmp=.18;
-function eqTick(now,playing){const t=now/1000;eqAmp+=((playing?1:.18)-eqAmp)*.08;
- for(const e of eqBars){const w=.5+.5*Math.sin(t*e.sp+e.ph),m=.55+.45*Math.sin(t*e.sp2+e.ph2),v=REDUCED?.2:.12+.88*eqAmp*(.55*w+.45*m)*e.env;e.b.style.transform='scaleY('+Math.min(1,v).toFixed(3)+')'}}
+const eqBars=[];(function(){const box=el('eq');for(let i=0;i<28;i++){const b=document.createElement('i');box.appendChild(b);eqBars.push({b,sp:2.2+Math.random()*3.2,ph:Math.random()*6.28,sp2:.9+Math.random()*1.6,ph2:Math.random()*6.28,env:.55+.45*Math.sin(Math.PI*(i+.5)/28),level:0})}})();
+const REDUCED=matchMedia('(prefers-reduced-motion:reduce)').matches;
+function eqTick(now,playing){
+ const t=now/1000,hasAudio=playing&&radioAnalyser&&radioFrequencyData&&A.state==='running';
+ if(hasAudio)radioAnalyser.getByteFrequencyData(radioFrequencyData);
+ for(let i=0;i<eqBars.length;i++){
+  const bar=eqBars[i];let level;
+  if(hasAudio){
+   const from=Math.floor(i*radioFrequencyData.length/eqBars.length),to=Math.max(from+1,Math.floor((i+1)*radioFrequencyData.length/eqBars.length));
+   let sum=0;for(let j=from;j<to;j++)sum+=radioFrequencyData[j];
+   level=sum/(to-from)/255;
+  }else level=REDUCED?0:.035+.045*(.5+.5*Math.sin(t*bar.sp+bar.ph))*(.55+.45*Math.sin(t*bar.sp2+bar.ph2));
+  bar.level+=(level-bar.level)*(hasAudio?.42:.12);
+  bar.b.style.transform='scaleY('+Math.min(1,.08+bar.level*.92*bar.env).toFixed(3)+')';
+ }
+}
 function frame(now){
  const dt=Math.min(.05,(now-last)/1000);last=now;
-/* [v14] real = hay audio sonando. playing = audio real O modo TEST. Asi la cinta gira aunque no haya audio */
+/* real indica que el audio de la radio está reproduciéndose. */
  const real=!radioPlayer.paused&&!!currentTrackKey,playing=real;
  const target=rewinding?-3:playing?1:0;
  eqTick(now,playing); /* [v22] */
@@ -470,7 +493,7 @@ function frame(now){
 requestAnimationFrame(frame);
 
 /* ===== Estado de conexión con TikTok ===== */
-const lnk=$('#lnk'),lnkT=$('#lnkT');
+const lnk=$('#lnk'),lnkT=$('#lnkT'),livePill=$('#livePill');
 function renderTikTokStatus(status={}){
  const connector=status.connector||{};
  const state=String(connector.status||status.status||'').toLowerCase();
@@ -483,6 +506,7 @@ function renderTikTokStatus(status={}){
  lnk.classList.toggle('pending',false);
  lnk.classList.toggle('unknown',!connected&&state==='');
  lnkT.textContent=connected?'EN LÍNEA':'OFFLINE';
+ livePill.hidden=!connected;
  lnk.title=connected?'TikTok confirmó que el usuario está en línea'
   :pending?'OFFLINE · intentando conectar con TikTok'
    :state==='failed'?'OFFLINE · se agotaron los intentos automáticos'
@@ -552,8 +576,8 @@ const cta=$('#cta'),ctaI=$('#ctaI'),ctaT=$('#ctaT'),ctaS=$('#ctaS');
 let ctaIdx=0,bannerUntil=0,bannerTimer=0,greetAt=-1e9;
 /* [v17] Solo 4 mensajes, sin pedir regalos: tac tac, comentar, compartir y seguir (rotan cada 7 s) */
 const CTA=[
- /* [v22] Primero AMÉN (pago inmediato: tu nombre sale en pantalla), despues likes, compartir y seguir */
- ()=>['🙏','Escribe AMÉN','Tu nombre sale en pantalla'],
+ /* Primero AMÉN: beneficio inmediato y visible; luego likes, compartir y seguir. */
+ ()=>['🙏','Escribe AMÉN y sales aquí','Tu nombre aparece en pantalla'],
  ()=>['❤','Tac, tac en la pantalla','Cada 1.000 likes activa turbo por 10 segundos'],
  ()=>['↗','Comparte el live','Invita a alguien a escuchar'],
  ()=>['➕','Síguenos','Para no perderte ninguna alabanza']
@@ -603,7 +627,7 @@ function ev(e){
   lastLike=null;
  }else if(e.type==='join'){tot.join++;showTick('jn','👋',name,'se unió al live',u.av);lastLike=null;
   /* [v22] Saludo por nombre en el llamado a la accion: maximo 1 cada 5 s y sin pisar un banner de regalo/meta */
-  const nw=performance.now();if(nw>=bannerUntil&&nw-greetAt>5000){greetAt=nw;showBanner('','👋','¡Hola, '+name+'!','Escribe AMÉN y sales aquí',2600)}}
+  const nw=performance.now();if(nw>=bannerUntil&&nw-greetAt>5000){greetAt=nw;showBanner('','👋','¡'+name+' se unió!','Escribe AMÉN y sales aquí',2600)}}
  else if(e.type==='follow'){showTick('jn','➕',name,'empezó a seguirte',u.av);lastLike=null}
  else if(e.type==='share'){showTick('jn','↗',name,'compartió el live',u.av);lastLike=null}
  else if(e.type==='gift'){
